@@ -1,0 +1,101 @@
+.layout {
+  min-height: 100vh;
+}
+
+.header {
+  background-color: #ffffff;
+  padding: 0;
+}
+
+.sider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.menu {
+  background-color: transparent;
+  font-weight: 500;
+}
+
+.content {
+  background-color: #F8F9FA;
+}
+
+.triggerBtn {
+  font-size: 16px;
+  width: 64;
+  height: 64;
+}
+
+img {
+  padding-top: 1.6rem;
+}
+
+.logoWrapper {
+  display: flex;
+  align-items: center;
+
+  div {
+    position: relative;
+    right: 1rem;
+  }
+
+  div>h1 {
+    font-size: .9rem;
+    color: #ffffff;
+    padding: 0;
+    width: max-content;
+    line-height: 1.5;
+  }
+
+  div>p {
+    font-size: .7rem;
+    color: #94A3B8;
+    font-weight: 600;
+    width: fit-content;
+    line-height: 1;
+    padding: 0;
+  }
+}
+
+.logo {
+  aspect-ratio: 1;
+  width: 50%;
+  margin-left: auto;
+}
+
+.logoCollapsed {
+  aspect-ratio: 1;
+  /* width: 100%; */
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.fadeIn {
+  animation: fadeIn 1500ms;
+}
+
+.fadeOut {
+  animation: fadeOut 1500ms;
+}
+
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
+}

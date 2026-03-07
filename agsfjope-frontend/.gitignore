@@ -52,5 +52,5 @@ coverage/
 # Dev (demo / scratch)
 # ===============================
 dev/
-   package-lock.json
+package-lock.json
 docs/

@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './ProtectedRoute';
 import Login from '../pages/auth/Login';
 import StudentLayout from '../layouts/StudentLayout';
 import SubmitCode from '../pages/student/SubmitCode';
@@ -6,25 +7,35 @@ import ExamListDemo from '../../dev/ExamListDemo';
 import ExamDetail from '../../dev/ExamDetail';
 import Register from '../pages/auth/Register';
 import ResetPassword from '../pages/auth/ResetPassword/ResetPassword';
+import StaffDashboard from '../pages/exam-staff/StaffDashboard';
 
 export default function AppRoutes() {
   return (
     <Routes>
       <Route
-        path="/"
+        path=""
         element={<Navigate to="/login" />}
       />
       <Route
-        path="/login"
+        path="login"
         element={<Login />}
       />
       <Route
-        path="/register"
+        path="register"
         element={<Register />}
       />
       <Route
-        path="/reset-password"
+        path="reset-password"
         element={<ResetPassword />}
+      />
+      <Route
+        path="staff"
+        element={
+          // <ProtectedRoute>
+          //   <StaffDashboard />
+          // </ProtectedRoute>
+          <StaffDashboard />
+        }
       />
       {/* Route để xem đồ của AI, sẽ bỏ lúc deployed */}
       {/* <Route path="/dev/exam-list" element={<ExamListDemo />} />
@@ -32,7 +43,7 @@ export default function AppRoutes() {
       {/* -------------------------------------------------- */}
 
       <Route
-        path="/student"
+        path="student"
         element={<StudentLayout />}
       >
         <Route
