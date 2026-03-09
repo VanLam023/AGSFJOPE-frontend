@@ -1,0 +1,55 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+}
+
+@layer components {
+  /* ── Floating glass navigation bar (landing page) ── */
+  .glass-nav {
+    background: rgba(26, 28, 35, 0.65);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(243, 112, 33, 0.2);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15), 0 0 20px rgba(243, 112, 33, 0.08);
+  }
+
+  /* ── Orange text glow ── */
+  .cyber-glow {
+    text-shadow: 0 0 10px rgba(243, 112, 33, 0.7), 0 0 22px rgba(243, 112, 33, 0.45);
+  }
+
+  /* ── Orange border/inset glow ── */
+  .cyber-box-glow {
+    box-shadow: 0 0 14px rgba(243, 112, 33, 0.28), inset 0 0 14px rgba(243, 112, 33, 0.08);
+  }
+
+  /* ── Horizontal circuit line (gradient bar) ── */
+  .circuit-line {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, rgba(243, 112, 33, 0.75), transparent);
+    height: 2px;
+  }
+
+  /* ── Dark perspectived card for hero visual ── */
+  .hologram-panel {
+    background: linear-gradient(135deg, rgba(26, 28, 35, 0.85) 0%, rgba(10, 11, 16, 0.95) 100%);
+    border: 1px solid rgba(243, 112, 33, 0.28);
+    box-shadow: 0 0 30px rgba(243, 112, 33, 0.08) inset, 0 20px 60px rgba(0, 0, 0, 0.5);
+    transform: perspective(1000px) rotateY(-5deg) rotateX(5deg);
+  }
+
+  /* ── Skewed section + inner content counter-skew ── */
+  .skew-section {
+    transform: skewY(-3deg);
+    transform-origin: 0;
+  }
+  .unskew-content {
+    transform: skewY(3deg);
+  }
+}
