@@ -1,8 +1,17 @@
-import { Layout, Button, Menu, ConfigProvider } from 'antd';
+import {
+  Layout,
+  Button,
+  Menu,
+  ConfigProvider,
+  Divider,
+  Avatar,
+  ColorPicker,
+} from 'antd';
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
 import React, { useState } from 'react';
 import styles from './MainLayout.module.css';
 import logoImg from '../assets/logo.svg';
+import { Bell } from 'lucide-react';
 
 const { Header, Content, Sider } = Layout;
 
@@ -101,6 +110,21 @@ const MainLayout = ({
                 height: 48,
               }}
             />
+            <div className={styles.uti}>
+              <Button
+                shape="circle"
+                color="default"
+                variant="filled"
+                icon={<Bell size="16px" />}
+              ></Button>
+
+              <div className={styles.divider}></div>
+              <div className={styles.accWrapper}>
+                <p>Khảo thí</p>
+                <p>staff_01@gmail.vn</p>
+              </div>
+              <Avatar size="medium" />
+            </div>
           </Header>
           <Content className={styles.content}>{children}</Content>
         </Layout>
