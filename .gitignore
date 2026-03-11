@@ -7,6 +7,8 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+package-lock.json
+yarn.lock
 
 # ===============================
 # Build output
@@ -21,17 +23,33 @@ build/
 .vite/
 
 # ===============================
-# Environment variables
+# ❗ Environment variables — NEVER commit
 # ===============================
 .env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
 .env.*
+!.env.example
 *.local
+
+# ===============================
+# PowerShell scripts (may contain credentials)
+# ===============================
+*.ps1
+!run-local.ps1
+!run-docker.ps1
 
 # ===============================
 # Logs
 # ===============================
 logs/
 *.log
+build_errors.txt
 
 # ===============================
 # Editor / OS
