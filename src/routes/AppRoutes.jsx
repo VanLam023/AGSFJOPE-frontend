@@ -3,8 +3,6 @@ import ProtectedRoute from './ProtectedRoute';
 import Login from '../pages/auth/Login';
 import StudentLayout from '../layouts/StudentLayout';
 import SubmitCode from '../pages/student/SubmitCode';
-import ExamListDemo from '../../dev/ExamListDemo';
-import ExamDetail from '../../dev/ExamDetail';
 import Register from '../pages/auth/Register';
 import ResetPassword from '../pages/auth/ResetPassword/ResetPassword';
 import StaffDashboard from '../pages/exam-staff/StaffDashboard';
