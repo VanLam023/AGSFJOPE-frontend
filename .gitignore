@@ -23,7 +23,7 @@ build/
 .vite/
 
 # ===============================
-# ❗ Environment variables — NEVER commit
+# Environment variables — NEVER commit
 # ===============================
 .env
 .env.local
@@ -72,3 +72,9 @@ coverage/
 dev/
 package-lock.json
 docs/
+pages/auth
+pages/exam-staff
+pages/test-data
+
+layouts/
+apis/
