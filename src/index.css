@@ -34,7 +34,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: Be Vietnam Pro,system-ui, sans-serif;
+  font-family: Be Vietnam Pro, system-ui, sans-serif;
 }
 
 
@@ -54,7 +54,7 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-img,
+/* img, */
 picture,
 video,
 canvas,
@@ -97,3 +97,9 @@ h6 {
 #__next {
   isolation: isolate;
 }
+
+
+/* :where(.css-dev-only-do-not-override-1daqxe2)
+.ant-table-wrapper.ant-table-thead>tr>th:not(:last-child):not(.ant-table-selection-column):not(.ant-table-row-expand-icon-cell):not([colspan])::before {
+  width: 0px !important;
+} */

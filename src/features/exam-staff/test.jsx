@@ -1,28 +1,28 @@
 export const testDashboardCardData = [
   {
     id: '1',
-    title: 'Tổng số kỳ thi',
-    value: 12,
+    title: 'Kỳ thi đang diễn ra',
+    value: 3,
     iconKey: 'exam',
     iconBackground: '#FFF4EE',
   },
   {
     id: '2',
-    title: 'Bài nộp hôm nay',
+    title: 'Số bài nộp',
     value: 48,
     iconKey: 'submission',
     iconBackground: '#E0F2FE',
   },
   {
     id: '3',
-    title: 'Đơn phúc khảo',
+    title: 'Số bài đã chấm',
     value: 3,
     iconKey: 'appeal',
     iconBackground: '#FEF3C7',
   },
   {
     id: '4',
-    title: 'Nhật ký thao tác',
+    title: 'Bài cần phúc khảo',
     value: 156,
     iconKey: 'audit',
     iconBackground: '#E0E7FF',

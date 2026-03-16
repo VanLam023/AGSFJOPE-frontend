@@ -72,9 +72,4 @@ coverage/
 dev/
 package-lock.json
 docs/
-pages/auth
-pages/exam-staff
-pages/test-data
 
-layouts/
-apis/

@@ -8,6 +8,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+
 }
 
 .uti {
@@ -46,6 +47,7 @@
 .menu {
   background-color: transparent;
   font-weight: 500;
+
 }
 
 .content {
@@ -68,7 +70,7 @@ img {
 
   div {
     position: relative;
-    right: 1rem;
+    right: 2rem;
   }
 
   div>h1 {
@@ -92,12 +94,14 @@ img {
 
 .logo {
   aspect-ratio: 1;
-  width: 50%;
+  width: 40%;
   margin-left: auto;
+  margin-right: auto;
 }
 
 .logoCollapsed {
   aspect-ratio: 1;
+
   /* width: 100%; */
   margin-left: auto;
   margin-right: auto;
