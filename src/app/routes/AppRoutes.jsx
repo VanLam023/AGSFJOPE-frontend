@@ -1,9 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Login from '../../features/auth/Login.jsx';
-import Register from '../../features/auth/Register.jsx';
 import ForgotPassword from '../../features/auth/ForgotPassword.jsx';
 import ResetPassword from '../../features/auth/ResetPassword.jsx';
-import VerifyAccount from '../../features/auth/VerifyAccount.jsx';
 import StudentDashboard from '../../features/student/StudentDashboard.jsx';
 import SubmitCode from '../../features/submission/SubmitCode.jsx';
 import LandingPage from '../../pages/LandingPage.jsx';
@@ -23,10 +21,7 @@ export default function AppRoutes() {
         path="/login"
         element={<Login />}
       />
-      <Route
-        path="/register"
-        element={<Register />}
-      />
+
       <Route
         path="/forgot-password"
         element={<ForgotPassword />}
@@ -35,10 +30,7 @@ export default function AppRoutes() {
         path="/reset-password"
         element={<ResetPassword />}
       />
-      <Route
-        path="/verify-account"
-        element={<VerifyAccount />}
-      />
+
 
       {/* Student routes — no layout wrapper (Dashboard has its own sidebar) */}
       <Route
