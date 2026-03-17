@@ -1,12 +1,54 @@
-import { useContext } from "react";
-import { Navigate } from "react-router-dom";
-import { AuthContext } from "../context/authContext.js";
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/authContext.js';
 
-export default function ProtectedRoute({ children }) {
-  const { user } = useContext(AuthContext);
+export const ROLE_HOME_MAP = {
+  SYSTEM_ADMIN: '/admin',
+  EXAM_STAFF: '/exam-staff',
+  LECTURER: '/lecturer',
+  STUDENT: '/student',
+};
 
-  if (!user) {
-    return <Navigate to="/login" />;
+const normalizeRole = (role) =>
+  typeof role === 'string' ? role.trim().toUpperCase() : '';
+
+const getHomeRouteByRole = (roleName) =>
+  ROLE_HOME_MAP[normalizeRole(roleName)] || '/login';
+
+export default function ProtectedRoute({ children, allowedRoles = [] }) {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  // Chờ AuthProvider khôi phục session từ localStorage xong
+  if (loading) {
+    return null;
+  }
+
+  const token = localStorage.getItem('token');
+  const currentRole = normalizeRole(user?.roleName);
+  const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
+
+  // Chưa đăng nhập hoặc session không hợp lệ
+  if (!token || !user || !currentRole) {
+    return (
+      <Navigate
+        to="/login"
+        replace
+        state={{ from: location }}
+      />
+    );
+  }
+
+  // Có đăng nhập nhưng không đúng quyền
+  if (
+    normalizedAllowedRoles.length > 0 &&
+    !normalizedAllowedRoles.includes(currentRole)
+  ) {
+    return (
+      <Navigate
+        to={getHomeRouteByRole(currentRole)}
+        replace
+      />
+    );
   }
 
   return children;
