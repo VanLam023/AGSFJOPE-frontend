@@ -14,6 +14,7 @@ import styles from './MainLayout.module.css';
 import logoImg from '../../assets/logo.svg';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../../app/context/authContext';
+import { sidebarItemsWithMaterialIcons } from '../utils/Utils';
 
 const { Header, Content, Sider } = Layout;
 
@@ -42,7 +43,7 @@ const MainLayout = ({
   siderIcons,
   currentSelectedItem,
   notifCount,
-  actionBtn,
+  actionBtn = null,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
@@ -55,14 +56,28 @@ const MainLayout = ({
     : 'Khảo thí';
   const userEmail = user?.email ?? user?.username ?? '—';
 
-  const currentRoleSiderItems = siderItems.map((item, index) => {
-    const currentIcon = siderIcons[index];
+  const currentRoleSiderItems = () => {
+    const items =
+      typeof siderItems === 'function' ? siderItems({ collapsed }) : siderItems;
 
-    return {
-      ...item,
-      icon: currentIcon,
-    };
-  });
+    const hasChildren = items.some((item) => item.children != null);
+
+    if (hasChildren) {
+      return sidebarItemsWithMaterialIcons({
+        icons: siderIcons,
+        items: items,
+      });
+    } else {
+      return items.map((item, index) => {
+        const currentIcon = siderIcons[index];
+
+        return {
+          ...item,
+          icon: currentIcon,
+        };
+      });
+    }
+  };
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -91,12 +106,16 @@ const MainLayout = ({
             // For the other background
             // --------------------------
             itemColor: '#CBD5E1',
-            itemSelectedColor: '#ffffff',
+            //itemSelectedColor: '#ffffff',
+            itemSelectedColor: '#F37021',
             itemSelectedBg: '#291D1A',
             itemHoverBg: 'rgba(255, 255, 255, 0.1)',
             itemHoverColor: '#ffffff',
             // --------------------------
             collapsedWidth: 10,
+
+            groupTitleColor: '#A1A1AA',
+            collapsedIconSize: 20,
           },
           Layout: {
             siderBg: '#2D2D2D',
@@ -138,20 +157,23 @@ const MainLayout = ({
                 className={styles.logoCollapsed}
               />
             )}
-
+            <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-b border-slate-600"></div>
             <Menu
               defaultSelectedKeys={['1']}
-              items={currentRoleSiderItems}
+              items={currentRoleSiderItems()}
               onSelect={(item) => currentSelectedItem(item)}
               className={styles.menu}
               mode="inline"
             />
 
-            <div className="px-4 pb-3 mt-auto">
-              {typeof actionBtn === 'function'
-                ? actionBtn({ collapsed })
-                : actionBtn}
-            </div>
+            {actionBtn && (
+              <div className="px-4 pb-3 mt-auto ">
+                <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-t border-slate-600"></div>
+                {typeof actionBtn === 'function'
+                  ? actionBtn({ collapsed })
+                  : actionBtn}
+              </div>
+            )}
           </div>
         </Sider>
         <Layout>
@@ -188,11 +210,6 @@ const MainLayout = ({
               </Button>
 
               <div className={styles.divider}></div>
-              {/* <div className={styles.accWrapper}>
-                <p>{roleLabel}</p>
-                <p>{userEmail}</p>
-              </div>
-              <Avatar size="medium" /> */}
               <div
                 className="flex items-center gap-3 pl-6 relative"
                 ref={headerDropdownRef}
@@ -210,20 +227,6 @@ const MainLayout = ({
                     </p>
                   </div>
 
-                  {/* <div
-                    className={`aspect-square 
-                      w-10 rounded-full 
-                      bg-slate-200 
-                      overflow-hidden ring-2 
-                      transition-all cursor-pointer
-                    ${headerDropdownOpen ? 'ring-[#F37021]' : 'ring-[#F37021]/20 group-hover:ring-[#F37021]/50'}`}
-                  >
-                    <img
-                      className="w-full h-full relative"
-                      src="https://lh3.googleusercontent.com/aida-public/AB6AXuCo9OzzsHT5Aj1roCt7Nv_ABU8KJRL7UBksbvyl8DFixLZmQ2vxz3SsOFXyWhWJCalc9K3AabCLNaCf3_kDh_9QDIhAzQ9qnUcXAFaH_lfs_mFpcJlPc1CQT9aYTuqZuXXIetZeDRKzu4GYopfz4IUuSuD26s3zs6lAxoPlSBwDwLZQucu91YX_cVtzA-0EIEaY6lqafYO2RGLh7Z6wYmcYsdUmozJEK5oFY4fPidEncDwgS9et7v3C6xbKSoT7OE1y69DF5Fm9bxNd"
-                      alt="avatar"
-                    />
-                  </div> */}
                   <div
                     className={`aspect-square w-10 rounded-full bg-slate-200 
                       ring-2 transition-all cursor-pointer

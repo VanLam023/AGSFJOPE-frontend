@@ -9,6 +9,7 @@ import LecturerDashboard from '../../features/lecturer/LecturerDashboard.jsx';
 import ExamStaffDashboard from '../../features/exam-staff/ExamStaffDashboard.jsx';
 
 import SystemAdminDashboard from '../../features/admin/SystemAdminDashboard.jsx';
+import SystemAdminDashboardOld from '../../features/admin/SystemAdminDashboardOld.jsx';
 
 export default function AppRoutes() {
   return (
@@ -30,7 +31,6 @@ export default function AppRoutes() {
         path="/reset-password"
         element={<ResetPassword />}
       />
-
 
       {/* Student routes — no layout wrapper (Dashboard has its own sidebar) */}
       <Route
@@ -57,6 +57,10 @@ export default function AppRoutes() {
       <Route
         path="/admin"
         element={<SystemAdminDashboard />}
+      />
+      <Route
+        path="/admin2"
+        element={<SystemAdminDashboardOld />}
       />
     </Routes>
   );

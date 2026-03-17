@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './DashboardCard.module.css';
+import { getTrendIcon } from './utils/Utils';
 
 const DashboardCard = ({
   icon,
@@ -25,9 +26,7 @@ const DashboardCard = ({
     >
       {/* Background icon here */}
       {iconContent && (
-        <div
-          className={`absolute -bottom-5 -right-6`}
-        >
+        <div className={`absolute -bottom-5 -right-6`}>
           <span className={`${styles.size36} material-symbols-outlined`}>
             {iconName}
           </span>
@@ -37,7 +36,6 @@ const DashboardCard = ({
       <div className={styles.header}>
         <p className={styles.title}>{title}</p>
         <div className={styles.headerRight}>
-          {trend != null && <div className={styles.trend}>{trend}</div>}
           <div
             className={`${styles.iconWrapper} ${isAlert ? styles.iconWrapperAlert : ''}`}
             style={
@@ -53,6 +51,11 @@ const DashboardCard = ({
       <h3 className={`${styles.value} ${isAlert ? styles.valueAlert : ''}`}>
         {value}
       </h3>
+      {trend != null && (
+        <div className={styles.trend}>
+          {getTrendIcon({ trend })}
+        </div>
+      )}
     </div>
   );
 };

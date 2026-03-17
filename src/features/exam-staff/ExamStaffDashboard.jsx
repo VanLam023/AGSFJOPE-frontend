@@ -24,13 +24,13 @@ import {
 
 const CARD_ICON = ['timer', 'description', 'check_circle', 'priority_high'];
 
-const ICON_MAP = {
-  exam: ExamManagementIcon,
-  submission: SubmissionsIcon,
-  appeal: AppealsIcon,
-  audit: AuditLogIcon,
-  dashboard: DashboardIcon,
-};
+// const ICON_MAP = {
+//   exam: ExamManagementIcon,
+//   submission: SubmissionsIcon,
+//   appeal: AppealsIcon,
+//   audit: AuditLogIcon,
+//   dashboard: DashboardIcon,
+// };
 
 const TABLE_COLUMNS_1 = [
   {
@@ -150,17 +150,17 @@ const TABLE_COLUMNS_2 = [
   },
 ];
 
+const icons = [
+  DashboardIcon,
+  ExamManagementIcon,
+  SubmissionsIcon,
+  AppealsIcon,
+  AuditLogIcon,
+];
+
 export default function ExamStaffDashboard() {
   const [selectedIndex, setSelectedIndex] = useState(1);
   const [notifCount] = useState(5);
-
-  const icons = [
-    DashboardIcon,
-    ExamManagementIcon,
-    SubmissionsIcon,
-    AppealsIcon,
-    AuditLogIcon,
-  ];
 
   const cardWithIcon = testDashboardData.card.map((card, index) => {
     return { ...card, iconName: CARD_ICON[index] };
@@ -179,7 +179,6 @@ export default function ExamStaffDashboard() {
       notifCount={notifCount}
       currentSelectedItem={(item) => setSelectedIndex(Number(item.key))}
       actionBtn={({ collapsed }) => {
-        console.log(collapsed);
         return (
           <Button
             type="primary"
@@ -221,16 +220,13 @@ export default function ExamStaffDashboard() {
         <div className="flex-1 flex flex-col min-w-0">
           <div className="p-8 space-y-6 max-w-7xl mx-auto w-full">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* {cardData?.map((item) => { */}
               {cardWithIcon?.map((item) => {
-                const IconComponent = ICON_MAP[item.iconKey] ?? DashboardIcon;
                 return (
                   <DashboardCard
                     key={item.id}
                     iconName={item.iconName}
                     title={item.title}
                     value={item.value}
-                    trend={item.trend ?? null}
                   />
                 );
               })}
