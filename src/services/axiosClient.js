@@ -8,7 +8,8 @@ import axios from "axios";
  *   the original request once. On refresh failure, clears storage and redirects to /login.
  */
 const axiosClient = axios.create({
-  baseURL: "http://localhost:8080/api",
+  // Đỏ nhưng mà xài dc
+  baseURL: `${__BASE_URL__}`,
   timeout: 10000,
 });
 
