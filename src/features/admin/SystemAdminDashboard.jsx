@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { data, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { AuthContext } from '../../app/context/authContext';
 import MainLayout from '../../components/layouts/MainLayout';
 import {
@@ -44,7 +44,7 @@ import DashboardCard from '../../components/DashboardCard.jsx';
 import ReactECharts from 'echarts-for-react';
 
 export default function SystemAdminDashboard() {
-  const [selectedIndex, setSelectedIndex] = useState(1);
+  // const [selectedIndex, setSelectedIndex] = useState(1);
   const [notifCount] = useState(5);
   const [chartOp, setChartOp] = useState('Hôm nay');
 
@@ -141,7 +141,7 @@ export default function SystemAdminDashboard() {
         }
       }}
       notifCount={notifCount}
-      currentSelectedItem={(item) => setSelectedIndex(Number(item.key))}
+      // currentSelectedItem={(item) => setSelectedIndex(Number(item.key))}
     >
       <ConfigProvider
         theme={{
@@ -232,9 +232,7 @@ export default function SystemAdminDashboard() {
                 <p className="font-bold text-lg">Phân bố người dùng</p>
 
                 <ReactECharts
-                  style={{
-                    height: '100%',
-                  }}
+            
                   option={{
                     tooltip: {
                       trigger: 'item',

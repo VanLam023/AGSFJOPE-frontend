@@ -110,6 +110,57 @@ const getTrendIcon = ({ trend }) => {
   }
 };
 
+const renderRolePill = ({ role }) => {
+  if (role === 'Sinh viên') {
+    return (
+      <span className="text-blue-700 bg-blue-50 border border-blue-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {role}
+      </span>
+    );
+  } else if (role === 'Giảng viên') {
+    return (
+      <span className="text-purple-700 bg-purple-50 border border-purple-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {role}
+      </span>
+    );
+  } else if (role === 'Cán bộ khảo thí') {
+    return (
+      <span className="text-orange-700 bg-orange-50 border border-orange-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {role}
+      </span>
+    );
+  } else {
+    return (
+      <span className="text-red-700 bg-red-50 border border-red-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {role}
+      </span>
+    );
+  }
+};
+
+const renderStatusPill = ({ status }) => {
+  if (status === 'Đang hoạt động') {
+    return (
+      <span className="text-green-700 bg-green-50 border border-green-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {status}
+      </span>
+    );
+  }
+
+  if (status === 'Tạm khóa') {
+    return (
+      <span className="text-slate-600 bg-slate-100 border border-slate-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {status}
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-slate-600 bg-slate-50 border border-slate-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+      {status}
+    </span>
+  );
+};
 export {
   renderSiderIcons,
   renderSiderIconsMaterialSymbol,
@@ -117,4 +168,6 @@ export {
   sidebarItemsWithMaterialIcons,
   renderCardWithIcon,
   getTrendIcon,
+  renderRolePill,
+  renderStatusPill,
 };

@@ -7,9 +7,15 @@ import {
   Avatar,
   ColorPicker,
 } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
-import React, { useState, useRef, useEffect } from 'react';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react';
 import styles from './MainLayout.module.css';
 import logoImg from '../../assets/logo.svg';
 import { Bell } from 'lucide-react';
@@ -37,47 +43,84 @@ const ROLE_LABELS = {
   STUDENT: 'Sinh viên',
 };
 
+const findKeyByPath = (items, pathname) => {
+  for (const item of items) {
+    if (item.to && String(item.to) === pathname) return String(item.key);
+    if (item.children) {
+      const found = findKeyByPath(item.children, pathname);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
 const MainLayout = ({
   children,
   siderItems,
   siderIcons,
-  currentSelectedItem,
+  // currentSelectedItem,
   notifCount,
   actionBtn = null,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
+
   const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
 
   const headerDropdownRef = useRef(null);
 
   const { user } = useAuth();
+
   const roleLabel = user?.role
     ? (ROLE_LABELS[user.role] ?? user.role)
     : 'Khảo thí';
   const userEmail = user?.email ?? user?.username ?? '—';
 
-  const currentRoleSiderItems = () => {
+  // const currentRoleSiderItems = () => {
+  //   const items =
+  //     typeof siderItems === 'function' ? siderItems({ collapsed }) : siderItems;
+
+  //   const hasChildren = items.some((item) => item.children != null);
+
+  //   if (hasChildren) {
+  //     return sidebarItemsWithMaterialIcons({
+  //       icons: siderIcons,
+  //       items: items,
+  //     });
+  //   } else {
+  //     return items.map((item, index) => {
+  //       const currentIcon = siderIcons[index];
+
+  //       return {
+  //         ...item,
+  //         icon: currentIcon,
+  //       };
+  //     });
+  //   }
+  // };
+
+  const menuItems = useMemo(() => {
     const items =
       typeof siderItems === 'function' ? siderItems({ collapsed }) : siderItems;
 
+    const attachLink = (item) => ({
+      ...item,
+      label: item.to ? <Link to={item.to}>{item.label}</Link> : item.label,
+      children: item.children ? item.children.map(attachLink) : undefined,
+    });
+
     const hasChildren = items.some((item) => item.children != null);
 
-    if (hasChildren) {
-      return sidebarItemsWithMaterialIcons({
-        icons: siderIcons,
-        items: items,
-      });
-    } else {
-      return items.map((item, index) => {
-        const currentIcon = siderIcons[index];
+    const baseItems = hasChildren
+      ? sidebarItemsWithMaterialIcons({ icons: siderIcons, items })
+      : items.map((item, index) => ({ ...item, icon: siderIcons[index] }));
 
-        return {
-          ...item,
-          icon: currentIcon,
-        };
-      });
-    }
-  };
+    return baseItems.map(attachLink);
+  }, [collapsed, siderItems, siderIcons]);
+
+  const selectedKey = useMemo(() => {
+    return findKeyByPath(menuItems, location.pathname) ?? '1';
+  }, [menuItems, location.pathname]);
 
   useEffect(() => {
     const handleClick = (e) => {
@@ -122,6 +165,7 @@ const MainLayout = ({
           },
           Button: {
             colorPrimaryHover: '#F37021E6',
+            colorPrimaryActive: '#D95F19',
           },
         },
       }}
@@ -159,9 +203,8 @@ const MainLayout = ({
             )}
             <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-b border-slate-600"></div>
             <Menu
-              defaultSelectedKeys={['1']}
-              items={currentRoleSiderItems()}
-              onSelect={(item) => currentSelectedItem(item)}
+              selectedKeys={[selectedKey]}
+              items={menuItems}
               className={styles.menu}
               mode="inline"
             />

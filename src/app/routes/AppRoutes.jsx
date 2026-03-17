@@ -10,6 +10,7 @@ import ExamStaffDashboard from '../../features/exam-staff/ExamStaffDashboard.jsx
 
 import SystemAdminDashboard from '../../features/admin/SystemAdminDashboard.jsx';
 import SystemAdminDashboardOld from '../../features/admin/SystemAdminDashboardOld.jsx';
+import UserManagement from '../../features/admin/UserManagement.jsx';
 
 export default function AppRoutes() {
   return (
@@ -58,6 +59,12 @@ export default function AppRoutes() {
         path="/admin"
         element={<SystemAdminDashboard />}
       />
+      {/* Trang quan li nguoi dung admin */}
+      <Route
+        path="/admin/student-management"
+        element={<UserManagement />}
+      />
+
       <Route
         path="/admin2"
         element={<SystemAdminDashboardOld />}

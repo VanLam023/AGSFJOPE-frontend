@@ -36,9 +36,9 @@ export const ADMIN_ICONS = [
 ];
 
 export const ADMIN_SIDEBAR_ITEMS_FLAT = [
-  { key: '1', label: 'Bảng điều khiển' },
+  { key: '1', label: 'Bảng điều khiển', to: '/admin' },
   { key: '2', label: 'Số liệu hệ thống' },
-  { key: '3', label: 'Người dùng & Roles' },
+  { key: '3', label: 'Người dùng & Roles', to: '/admin/student-management' },
   { key: '4', label: 'Quy tắc chấm điểm' },
   { key: '5', label: 'Model AI' },
   {
@@ -53,7 +53,7 @@ export const ADMIN_SIDEBAR_ITEMS = [
     label: 'Giám sát',
     type: 'group',
     children: [
-      { key: '1', label: 'Bảng điều khiển' },
+      { key: '1', label: 'Bảng điều khiển', to: '/admin' },
       { key: '2', label: 'Số liệu hệ thống' },
     ],
   },
@@ -62,7 +62,11 @@ export const ADMIN_SIDEBAR_ITEMS = [
     label: 'Quản lí',
     type: 'group',
     children: [
-      { key: '3', label: 'Người dùng & Roles' },
+      {
+        key: '3',
+        label: 'Người dùng & Roles',
+        to: '/admin/student-management',
+      },
       { key: '4', label: 'Quy tắc chấm điểm' },
     ],
   },
