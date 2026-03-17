@@ -1,13 +1,5 @@
-import {
-  Layout,
-  Button,
-  Menu,
-  ConfigProvider,
-  Divider,
-  Avatar,
-  ColorPicker,
-} from 'antd';
-import { Link, useLocation } from 'react-router-dom';
+import { Layout, Button, Menu, ConfigProvider } from 'antd';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
 import React, {
   useState,
@@ -21,6 +13,7 @@ import logoImg from '../../assets/logo.svg';
 import { Bell } from 'lucide-react';
 import { useAuth } from '../../app/context/authContext';
 import { sidebarItemsWithMaterialIcons } from '../utils/Utils';
+import axiosClient from '../../services/axiosClient';
 
 const { Header, Content, Sider } = Layout;
 
@@ -34,14 +27,18 @@ const siderStyle = {
   scrollbarGutter: 'stable',
 };
 
-// Map API role from backend to vietnamese to display label.
 const ROLE_LABELS = {
-  STAFF: 'Khảo thí',
+  SYSTEM_ADMIN: 'Quản trị',
   ADMIN: 'Quản trị',
+  EXAM_STAFF: 'Khảo thí',
+  STAFF: 'Khảo thí',
   LECTURER: 'Giảng viên',
   TEACHER: 'Giảng viên',
   STUDENT: 'Sinh viên',
 };
+
+const normalizeRole = (role) =>
+  typeof role === 'string' ? role.trim().toUpperCase() : '';
 
 const findKeyByPath = (items, pathname) => {
   for (const item of items) {
@@ -58,46 +55,23 @@ const MainLayout = ({
   children,
   siderItems,
   siderIcons,
-  // currentSelectedItem,
   notifCount,
   actionBtn = null,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
-  const location = useLocation();
-
   const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
+  const location = useLocation();
+  const navigate = useNavigate();
   const headerDropdownRef = useRef(null);
 
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
-  const roleLabel = user?.role
-    ? (ROLE_LABELS[user.role] ?? user.role)
-    : 'Khảo thí';
-  const userEmail = user?.email ?? user?.username ?? '—';
-
-  // const currentRoleSiderItems = () => {
-  //   const items =
-  //     typeof siderItems === 'function' ? siderItems({ collapsed }) : siderItems;
-
-  //   const hasChildren = items.some((item) => item.children != null);
-
-  //   if (hasChildren) {
-  //     return sidebarItemsWithMaterialIcons({
-  //       icons: siderIcons,
-  //       items: items,
-  //     });
-  //   } else {
-  //     return items.map((item, index) => {
-  //       const currentIcon = siderIcons[index];
-
-  //       return {
-  //         ...item,
-  //         icon: currentIcon,
-  //       };
-  //     });
-  //   }
-  // };
+  const roleKey = normalizeRole(user?.roleName ?? user?.role);
+  const roleLabel = roleKey ? (ROLE_LABELS[roleKey] ?? roleKey) : 'Người dùng';
+  const userDisplay = user?.fullName ?? user?.username ?? 'Người dùng';
+  const userSubText = user?.email ?? user?.username ?? roleLabel;
 
   const menuItems = useMemo(() => {
     const items =
@@ -127,36 +101,47 @@ const MainLayout = ({
       if (
         headerDropdownRef.current &&
         !headerDropdownRef.current.contains(e.target)
-      )
+      ) {
         setHeaderDropdownOpen(false);
+      }
     };
+
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  const handleLogout = useCallback(async () => {
+    if (loggingOut) return;
+
+    setLoggingOut(true);
+    setHeaderDropdownOpen(false);
+
+    try {
+      // Backend: POST /api/auth/logout
+      // axiosClient đã tự gắn Authorization: Bearer <token>
+      await axiosClient.post('/auth/logout');
+    } catch (error) {
+      // Dù backend logout lỗi thì vẫn xóa session local để tránh user bị kẹt
+      console.error('Logout API failed:', error);
+    } finally {
+      logout(); // xóa token + user trong AuthContext hiện tại
+      localStorage.removeItem('refreshToken'); // backend có revoke refresh token, frontend cũng nên xóa local
+      navigate('/login', { replace: true });
+      setLoggingOut(false);
+    }
+  }, [loggingOut, logout, navigate]);
 
   return (
     <ConfigProvider
       theme={{
         components: {
           Menu: {
-            // For #ffffff background
-            // ------------------------------
-            // itemColor: '#64748B',
-            // itemSelectedBg: '#FFF4EE',
-            // itemSelectedColor: '#F37021',
-            // ------------------------------
-
-            // For the other background
-            // --------------------------
             itemColor: '#CBD5E1',
-            //itemSelectedColor: '#ffffff',
             itemSelectedColor: '#F37021',
             itemSelectedBg: '#291D1A',
             itemHoverBg: 'rgba(255, 255, 255, 0.1)',
             itemHoverColor: '#ffffff',
-            // --------------------------
             collapsedWidth: 10,
-
             groupTitleColor: '#A1A1AA',
             collapsedIconSize: 20,
           },
@@ -186,22 +171,21 @@ const MainLayout = ({
                   alt="Logo"
                   className={styles.logo}
                 />
-                {!collapsed && (
-                  <div className={collapsed ? styles.fadeOut : styles.fadeIn}>
-                    <h1 className="font-bold">Chấm bài OOP</h1>
-                    <p>{roleLabel}</p>
-                  </div>
-                )}
+                <div className={collapsed ? styles.fadeOut : styles.fadeIn}>
+                  <h1 className="font-bold">Chấm bài OOP</h1>
+                  <p>{roleLabel}</p>
+                </div>
               </div>
             ) : (
               <img
                 src={logoImg}
                 alt="Logo"
-                // className={collapsed ? styles.logoCollapsed : styles.logo}
                 className={styles.logoCollapsed}
               />
             )}
-            <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-b border-slate-600"></div>
+
+            <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-b border-slate-600" />
+
             <Menu
               selectedKeys={[selectedKey]}
               items={menuItems}
@@ -210,8 +194,8 @@ const MainLayout = ({
             />
 
             {actionBtn && (
-              <div className="px-4 pb-3 mt-auto ">
-                <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-t border-slate-600"></div>
+              <div className="px-4 pb-3 mt-auto">
+                <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-t border-slate-600" />
                 {typeof actionBtn === 'function'
                   ? actionBtn({ collapsed })
                   : actionBtn}
@@ -219,6 +203,7 @@ const MainLayout = ({
             )}
           </div>
         </Sider>
+
         <Layout>
           <Header
             className={`${styles.header} border-b border-slate-200`}
@@ -230,7 +215,7 @@ const MainLayout = ({
           >
             <Button
               type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuUnfoldOutlined />}
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
               style={{
                 fontSize: '16px',
@@ -240,6 +225,7 @@ const MainLayout = ({
                 left: 32,
               }}
             />
+
             <div className={styles.uti}>
               <Button
                 shape="circle"
@@ -252,7 +238,8 @@ const MainLayout = ({
                 </span>
               </Button>
 
-              <div className={styles.divider}></div>
+              <div className={styles.divider} />
+
               <div
                 className="flex items-center gap-3 pl-6 relative"
                 ref={headerDropdownRef}
@@ -260,13 +247,14 @@ const MainLayout = ({
                 <button
                   onClick={() => setHeaderDropdownOpen(!headerDropdownOpen)}
                   className="flex items-center gap-3 group"
+                  type="button"
                 >
                   <div className="text-right">
-                    <p className="text-sm font-bold text-slate-800 leading-none ">
-                      {roleLabel}
+                    <p className="text-sm font-bold text-slate-800 leading-none">
+                      {userDisplay}
                     </p>
-                    <p className="text-[11px] text-slate-500 font-medium  leading-4">
-                      {userEmail}
+                    <p className="text-[11px] text-slate-500 font-medium leading-4">
+                      {userSubText}
                     </p>
                   </div>
 
@@ -278,17 +266,18 @@ const MainLayout = ({
                     style={{
                       backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuCo9OzzsHT5Aj1roCt7Nv_ABU8KJRL7UBksbvyl8DFixLZmQ2vxz3SsOFXyWhWJCalc9K3AabCLNaCf3_kDh_9QDIhAzQ9qnUcXAFaH_lfs_mFpcJlPc1CQT9aYTuqZuXXIetZeDRKzu4GYopfz4IUuSuD26s3zs6lAxoPlSBwDwLZQucu91YX_cVtzA-0EIEaY6lqafYO2RGLh7Z6wYmcYsdUmozJEK5oFY4fPidEncDwgS9et7v3C6xbKSoT7OE1y69DF5Fm9bxNd")`,
                     }}
-                  ></div>
+                  />
                 </button>
 
                 {headerDropdownOpen && (
                   <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl py-1 z-50">
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="text-sm font-bold text-slate-800">
-                        {roleLabel}
+                        {userDisplay}
                       </p>
-                      <p className="text-xs text-slate-400">{userEmail}</p>
+                      <p className="text-xs text-slate-400">{userSubText}</p>
                     </div>
+
                     <Link
                       to="/exam-staff/profile"
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
@@ -298,17 +287,24 @@ const MainLayout = ({
                       </span>
                       Hồ sơ cá nhân
                     </Link>
-                    <button className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors">
+
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      disabled={loggingOut}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
                       <span className="material-symbols-outlined text-[18px]">
                         logout
                       </span>
-                      Đăng xuất
+                      {loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
                     </button>
                   </div>
                 )}
               </div>
             </div>
           </Header>
+
           <Content className={styles.content}>{children}</Content>
         </Layout>
       </Layout>

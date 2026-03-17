@@ -1,84 +1,55 @@
-import { useEffect } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext.js';
 
-export const ROLE_HOME_MAP = Object.freeze({
+export const ROLE_HOME_MAP = {
   SYSTEM_ADMIN: '/admin',
   EXAM_STAFF: '/exam-staff',
   LECTURER: '/lecturer',
   STUDENT: '/student',
-});
+};
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
 
-const sanitizeUser = (user) => {
-  if (!user || typeof user !== 'object') return null;
-
-  const roleName = normalizeRole(user.roleName);
-  if (!roleName) return null;
-
-  return {
-    ...user,
-    roleName,
-  };
-};
-
 const getHomeRouteByRole = (roleName) =>
   ROLE_HOME_MAP[normalizeRole(roleName)] || '/login';
 
-export default function ProtectedRoute({
-  children,
-  allowedRoles = [],
-  redirectTo = '/login',
-}) {
-  const { user, loading, logout } = useAuth();
+export default function ProtectedRoute({ children, allowedRoles = [] }) {
+  const { user, loading } = useAuth();
   const location = useLocation();
 
-  const token =
-    typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-
-  const safeUser = sanitizeUser(user);
-  const isAuthenticated = Boolean(token && safeUser);
-
-  useEffect(() => {
-    // Dọn session lỗi: có user nhưng mất token
-    if (!loading && user && !token) {
-      logout?.();
-    }
-  }, [loading, user, token, logout]);
-
-  // Chờ AuthProvider restore localStorage xong rồi mới guard route
+  // Chờ AuthProvider khôi phục session từ localStorage xong
   if (loading) {
     return null;
   }
 
-  // Chưa đăng nhập / session không hợp lệ
-  if (!isAuthenticated) {
+  const token = localStorage.getItem('token');
+  const currentRole = normalizeRole(user?.roleName);
+  const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
+
+  // Chưa đăng nhập hoặc session không hợp lệ
+  if (!token || !user || !currentRole) {
     return (
       <Navigate
-        to={redirectTo}
+        to="/login"
         replace
         state={{ from: location }}
       />
     );
   }
 
-  // Có đăng nhập nhưng sai role
-  if (allowedRoles.length > 0) {
-    const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
-    const isAllowed = normalizedAllowedRoles.includes(safeUser.roleName);
-
-    if (!isAllowed) {
-      return (
-        <Navigate
-          to={getHomeRouteByRole(safeUser.roleName)}
-          replace
-          state={{ from: location }}
-        />
-      );
-    }
+  // Có đăng nhập nhưng không đúng quyền
+  if (
+    normalizedAllowedRoles.length > 0 &&
+    !normalizedAllowedRoles.includes(currentRole)
+  ) {
+    return (
+      <Navigate
+        to={getHomeRouteByRole(currentRole)}
+        replace
+      />
+    );
   }
 
-  return children || <Outlet />;
+  return children;
 }
