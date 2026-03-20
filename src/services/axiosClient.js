@@ -54,7 +54,7 @@ axiosClient.interceptors.response.use(
         try {
           // Call the refresh endpoint directly (bypass interceptor to avoid recursion)
           const refreshResponse = await axios.post(
-            "http://localhost:8080/api/auth/refresh",
+            `${__BASE_URL__}/auth/refresh`,
             { refreshToken }
           );
 
