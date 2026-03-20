@@ -34,10 +34,10 @@ const Login = () => {
       const res = await loginApi(username.trim(), password);
       // axiosClient interceptor trả về res.data trực tiếp
       // response format: { success, message, data: { accessToken, ... } }
-      const data = res.data ?? res;
+      const data = res?.data ?? res;
 
       // Kiểm tra role hợp lệ trước khi lưu
-      const route = ROLE_ROUTES[data.roleName];
+      const route = ROLE_ROUTES[data?.roleName];
       if (!route) {
         setError(
           'Tài khoản không có quyền truy cập hệ thống. Vui lòng liên hệ quản trị viên.',
@@ -47,8 +47,9 @@ const Login = () => {
 
       // Lưu token
       localStorage.setItem('token', data.accessToken);
-      if (data.refreshToken)
+      if (data.refreshToken) {
         localStorage.setItem('refreshToken', data.refreshToken);
+      }
 
       // Lưu user vào context
       login({
