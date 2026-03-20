@@ -32,6 +32,7 @@ import {
   resourceMonitors,
 } from './test.jsx';
 import { PIE_COLOR } from './config.jsx';
+
 import * as echarts from 'echarts/core';
 import { LineChart } from 'echarts/charts';
 import {
@@ -42,6 +43,7 @@ import {
 import { CanvasRenderer } from 'echarts/renderers';
 import DashboardCard from '../../components/DashboardCard.jsx';
 import ReactECharts from 'echarts-for-react';
+
 
 export default function SystemAdminDashboard() {
   // const [selectedIndex, setSelectedIndex] = useState(1);
@@ -232,7 +234,6 @@ export default function SystemAdminDashboard() {
                 <p className="font-bold text-lg">Phân bố người dùng</p>
 
                 <ReactECharts
-            
                   option={{
                     tooltip: {
                       trigger: 'item',

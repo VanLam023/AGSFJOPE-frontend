@@ -11,8 +11,20 @@ import {
   RoleManagementIcon,
   UserManagementIcon,
 } from '../../components/icons/SidebarIcons.jsx';
-import { DownloadOutlined, PlusOutlined } from '@ant-design/icons';
-import { ConfigProvider, Table, Button, Input, Select } from 'antd';
+import {
+  DownloadOutlined,
+  PlusOutlined,
+  InboxOutlined,
+} from '@ant-design/icons';
+import {
+  message,
+  ConfigProvider,
+  Table,
+  Button,
+  Input,
+  Select,
+  Upload,
+} from 'antd';
 import {
   renderSiderIconsMaterialSymbol,
   renderRolePill,
@@ -25,6 +37,8 @@ import {
   ADMIN_SIDEBAR_ITEMS_FLAT,
 } from '../../constants/sidebarItems';
 import { allRoles, allStatus, userSeedData } from './test.jsx';
+import Modal from '../../components/Modal.jsx';
+import useImportExcel from '../../hooks/useImportExcel.jsx';
 
 const UserManagement = () => {
   const [selectedIndex, setSelectedIndex] = useState(1);
@@ -32,6 +46,8 @@ const UserManagement = () => {
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState(undefined);
   const [statusFilter, setStatusFilter] = useState(undefined);
+  const { callImportExcelEndpoint, importExcelData, loading, error } =
+    useImportExcel();
 
   const filteredUsers = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -132,6 +148,16 @@ const UserManagement = () => {
     [],
   );
 
+  const handleUpload = async ({ file, onSuccess, onError }) => {
+    try {
+      await callImportExcelEndpoint(file);
+      onSuccess(null, file);
+      message.success(`${file.name} uploaded successfully.`);
+    } catch (err) {
+      onError(err);
+      message.error(`${file.name} upload failed.`);
+    }
+  };
   return (
     <MainLayout
       siderIcons={renderSiderIconsMaterialSymbol({ icons: ADMIN_ICONS })}
@@ -227,6 +253,21 @@ const UserManagement = () => {
             </div>
           </div>
         </div>
+        <Modal isOpen={false}>
+          <Upload.Dragger
+            name="file"
+            multiple={false}
+            customRequest={handleUpload}
+            disabled={loading}
+          >
+            <p className="ant-upload-drag-icon">
+              <InboxOutlined />
+            </p>
+            <p className="ant-upload-text">
+              Nhấn hay kéo file Excel tới khu vực này để upload
+            </p>
+          </Upload.Dragger>
+        </Modal>
       </ConfigProvider>
     </MainLayout>
   );
