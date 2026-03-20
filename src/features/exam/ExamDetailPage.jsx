@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import examApi from '../../services/examApi';
 import blockApi from '../../services/blockApi';
+import examPaperApi from '../../services/examPaperApi';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -14,6 +16,7 @@ function fmtDate(isoStr) {
   if (!isoStr) return '—';
   return new Date(isoStr).toLocaleDateString('vi-VN', {
     day: '2-digit', month: '2-digit', year: 'numeric',
+    timeZone: 'Asia/Ho_Chi_Minh',
   });
 }
 
@@ -21,15 +24,177 @@ function fmtTime(isoStr) {
   if (!isoStr) return '—';
   return new Date(isoStr).toLocaleTimeString('vi-VN', {
     hour: '2-digit', minute: '2-digit',
+    timeZone: 'Asia/Ho_Chi_Minh',
   });
+}
+
+function sanitizeUiErrorMessage(message) {
+  if (!message || typeof message !== 'string') return 'Có lỗi xảy ra. Vui lòng thử lại.';
+  return message.replace(/\s*\([^)]*\)\.?\s*$/, '').trim();
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
+function UpdateBlockModal({ block, onClose, onSuccess }) {
+  const [examDate, setExamDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  // Điền dữ liệu block vào form
+  useEffect(() => {
+    if (!block) return;
+    if (block.examDate) {
+      setExamDate(block.examDate); // 'YYYY-MM-DD'
+    }
+    if (block.startTime) {
+      const st = new Date(block.startTime);
+      setStartTime(st.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    }
+    if (block.endTime) {
+      const et = new Date(block.endTime);
+      setEndTime(et.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    }
+  }, [block]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!examDate || !startTime || !endTime) {
+      setError('Vui lòng nhập đầy đủ Ngày thi, Giờ bắt đầu và Giờ kết thúc');
+      return;
+    }
+    // Ngày thi phải lớn hơn ngày hiện tại
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(examDate);
+    if (selected <= today) {
+      setError('Ngày thi phải lớn hơn ngày hiện tại');
+      return;
+    }
+    // Giờ kết thúc phải lớn hơn giờ bắt đầu (so sánh chuỗi HH:mm, cùng ngày)
+    if (endTime <= startTime) {
+      setError('Giờ kết thúc phải lớn hơn giờ bắt đầu');
+      return;
+    }
+    if (!block?.blockId || !block?.examId) {
+      setError('Không xác định được block này. Vui lòng tải lại trang và thử lại.');
+      return;
+    }
+
+    try {
+      // Gửi đúng offset +07:00 (múi giờ Việt Nam) thay vì với toISOString() có thể trừ 7 tiếng và lưu sai
+      const startIso = `${examDate}T${startTime}:00+07:00`;
+      const endIso   = `${examDate}T${endTime}:00+07:00`;
+
+      setSaving(true);
+      setError('');
+      await blockApi.update(block.examId, block.blockId, {
+        examDate,
+        startTime: startIso,
+        endTime: endIso
+      });
+      onSuccess();
+    } catch (err) {
+      const rawMessage = err?.response?.data?.message || 'Cập nhật thất bại. Vui lòng kiểm tra lại thời gian.';
+      setError(sanitizeUiErrorMessage(rawMessage));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-[0_20px_50px_rgba(15,23,42,0.25)] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-100 bg-orange-50/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#F37120]">edit_calendar</span>
+            <h3 className="font-bold text-slate-800">Cập nhật {block?.name}</h3>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-2 text-red-700 text-sm">
+              <span className="material-symbols-outlined text-[18px]">error</span>
+              <p>{error}</p>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-[16px] text-slate-400">event</span>
+              Ngày thi
+            </label>
+            <input
+              type="date"
+              value={examDate}
+              onChange={(e) => setExamDate(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 outline-none transition-all text-sm font-medium text-slate-700"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-slate-400">schedule</span>
+                Giờ bắt đầu
+              </label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 outline-none transition-all text-sm font-medium text-slate-700"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px] text-slate-400">timer_off</span>
+                Giờ kết thúc
+              </label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 outline-none transition-all text-sm font-medium text-slate-700"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2 flex justify-end gap-3 border-t border-slate-100 mt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={saving}
+              className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2 flex items-center justify-center min-w-[120px] text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-[#F37120] rounded-xl shadow-md hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function SemesterBadge({ semester }) {
   if (!semester) return <span className="text-slate-500">—</span>;
   const prefix = semester.substring(0, 2).toUpperCase();
-  
+
   let config = {
     color: 'bg-slate-100 text-slate-700 border-slate-200 shadow-slate-500/10',
     icon: 'calendar_month',
@@ -66,8 +231,12 @@ function InfoItem({ label, value, accent, icon }) {
 }
 
 /** Card thông tin một Block */
-function BlockCard({ block, fallbackName, loadingBlocks }) {
-  const displayName = block?.name || fallbackName || 'Block';
+// blockSource = object thực từ API (luôn có blockId, name),
+// block = cùng object (có thể null nếu không tìm được theo tên)
+function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, onOpenBlockDetail }) {
+  // Dùng blockSource để get blockId khi cần mở modal (block có thể null nếu chưa có lịch)
+  const editTarget = blockSource ?? block;
+  const displayName = editTarget?.name || fallbackName || 'Block';
   // skeleton
   if (loadingBlocks) {
     return (
@@ -95,17 +264,18 @@ function BlockCard({ block, fallbackName, loadingBlocks }) {
           </div>
           <h4 className="text-base font-extrabold text-slate-800">{displayName}</h4>
         </div>
-        <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${
-          hasSchedule
-            ? 'bg-green-50 text-green-700 border-green-200'
-            : 'bg-slate-50 text-slate-500 border-slate-200'
-        }`}>
-          {hasSchedule ? 'Đã có lịch' : 'Chưa có lịch'}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${hasSchedule ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+            {hasSchedule ? 'Đã có lịch' : 'Chưa có lịch'}
+          </span>
+          <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${block?.hasPaper ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
+            {block?.hasPaper ? 'Đã có đề thi' : 'Chưa có đề'}
+          </span>
+        </div>
       </div>
 
       {/* Body */}
-      <div className="p-6 flex-1 space-y-3">
+      <div className="p-6 flex-1 space-y-4">
         {block?.description && (
           <p className="text-xs text-slate-500 leading-relaxed mb-4 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
             {block.description}
@@ -114,25 +284,36 @@ function BlockCard({ block, fallbackName, loadingBlocks }) {
 
         <div className="grid grid-cols-2 gap-3">
           <InfoItem icon="event" label="Ngày thi" value={block?.examDate ? fmtDate(block.examDate) : null} />
-          <InfoItem icon="schedule" label="Bắt đầu nộp" value={block?.startTime ? fmtTime(block.startTime) : null} />
-          <InfoItem icon="timer_off" label="Kết thúc nộp" value={block?.endTime ? fmtTime(block.endTime) : null} />
-          <InfoItem icon="calendar_add_on" label="Tạo lúc" value={block?.createdAt ? fmtDate(block.createdAt) : null} />
+          <InfoItem icon="description" label="Đề thi" value={block?.hasPaper ? (block?.paperFileName || 'Đã tải lên') : 'Chưa tải lên'} />
+          <InfoItem icon="schedule" label="Giờ bắt đầu" value={block?.startTime ? fmtTime(block.startTime) : null} />
+          <InfoItem icon="timer_off" label="Giờ kết thúc" value={block?.endTime ? fmtTime(block.endTime) : null} />
+          <InfoItem icon="upload_file" label="Số bài nộp" value="0" />
+          <InfoItem icon="fact_check" label="Số bài đã chấm" value="0/0" />
         </div>
       </div>
 
       {/* Actions */}
       <div className="px-6 pb-5 flex gap-3">
         <button
-          className="flex-1 py-2.5 px-4 text-xs font-bold border border-slate-200 text-slate-400 bg-slate-50 rounded-xl cursor-not-allowed"
-          disabled
+          onClick={() => {
+            const target = editTarget ?? { name: fallbackName };
+            onEdit?.(target);
+          }}
+          className="flex-1 py-2.5 px-4 text-xs font-bold border border-orange-200 text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 hover:border-orange-300 hover:-translate-y-0.5 transition-all flex justify-center items-center gap-1.5"
         >
-          Upload đề thi
+          <span className="material-symbols-outlined text-[16px]">edit</span>
+          Cập nhật
         </button>
         <button
-          className="flex-1 py-2.5 px-4 text-xs font-bold border border-slate-200 text-slate-400 bg-slate-50 rounded-xl cursor-not-allowed"
-          disabled
+          type="button"
+          onClick={() => {
+            const targetBlockId = editTarget?.blockId;
+            if (targetBlockId) onOpenBlockDetail?.(targetBlockId);
+          }}
+          className="flex-1 py-2.5 px-4 text-xs font-bold border border-slate-200 text-slate-600 bg-white rounded-xl hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-0.5 transition-all shadow-sm flex justify-center items-center gap-1.5"
         >
-          Xem bài nộp
+          <span className="material-symbols-outlined text-[16px]">visibility</span>
+          Chi tiết
         </button>
       </div>
     </div>
@@ -154,7 +335,7 @@ function Skeleton() {
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
-export default function ExamDetailPage({ examId, onBack, onEdit }) {
+export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDetail }) {
   const [exam, setExam]         = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState('');
@@ -185,25 +366,51 @@ export default function ExamDetailPage({ examId, onBack, onEdit }) {
   }, [examId]);
 
   // Fetch blocks after exam loaded
-  useEffect(() => {
-    if (!examId) return;
+  const loadBlocks = async () => {
+    if (!examId) { console.warn('[Block] examId is empty, skip'); return; }
+    console.log('[Block] GET blocks for examId:', examId);
     setLoadingBlocks(true);
-    blockApi.getByExam(examId)
-      .then((res) => {
-        // axiosClient interceptor trả res.data → đây là List<BlockResponse> trực tiếp từ backend
-        // BlockController trả ResponseEntity<List<BlockResponse>> không wrap thêm
-        const list = Array.isArray(res) ? res : [];
-        // Sắp xếp: Block 10 trước, Block 3 sau (số lớn trước)
-        list.sort((a, b) => {
-          const numA = parseInt((a.name || '').replace(/\D/g, ''), 10) || 0;
-          const numB = parseInt((b.name || '').replace(/\D/g, ''), 10) || 0;
-          return numB - numA;
-        });
-        setBlocks(list);
-      })
-      .catch(() => setBlocks([]))
-      .finally(() => setLoadingBlocks(false));
+    try {
+      const res = await blockApi.getByExam(examId);
+      console.log('[Block] raw res:', res, '| isArray:', Array.isArray(res));
+      const list = Array.isArray(res) ? res
+                 : Array.isArray(res?.data) ? res.data
+                 : [];
+      console.log('[Block] parsed list length:', list.length, list);
+
+      const listWithPaperName = await Promise.all(
+        list.map(async (b) => {
+          if (!b?.blockId || !b?.hasPaper) return b;
+          try {
+            const paperRes = await examPaperApi.getByBlock(examId, b.blockId);
+            const paper = paperRes?.data ?? paperRes;
+            return { ...b, paperFileName: paper?.fileName || null };
+          } catch {
+            return b;
+          }
+        })
+      );
+
+      listWithPaperName.sort((a, b) => {
+        const numA = parseInt((a.name || '').replace(/\D/g, ''), 10) || 0;
+        const numB = parseInt((b.name || '').replace(/\D/g, ''), 10) || 0;
+        return numB - numA;
+      });
+      setBlocks(listWithPaperName);
+    } catch (err) {
+      console.error('[Block] error:', err?.response?.status, err?.response?.data, err?.message);
+      setBlocks([]);
+    } finally {
+      setLoadingBlocks(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBlocks();
   }, [examId]);
+
+  // Handle Update Block modal
+  const [editingBlock, setEditingBlock] = useState(null);
 
   function openDeleteConfirm() {
     setDeleteError('');
@@ -250,9 +457,16 @@ export default function ExamDetailPage({ examId, onBack, onEdit }) {
 
   const statusMeta = STATUS_META[exam.status] ?? STATUS_META.UPCOMING;
 
-  // Tìm đúng Block 10 (bên trái) và Block 3 (bên phải) theo tên
-  const block10 = blocks.find(b => b.name === 'Block 10') ?? null;
-  const block3  = blocks.find(b => b.name === 'Block 3')  ?? null;
+  // Tìm Block 10 (bên trái) và Block 3 (bên phải)
+  // Ưu tiên match theo tên có chứa số, fallback: blocks[0]/blocks[1]
+  const block10 = blocks.find(b => /\b10\b/.test(b.name || ''))
+               ?? blocks.find(b => !/\b3\b/.test(b.name || ''))
+               ?? blocks[0]
+               ?? null;
+  const block3  = blocks.find(b => /\b3\b/.test(b.name || '') && !/10/.test(b.name || ''))
+               ?? blocks.find(b => b !== block10)
+               ?? blocks[1]
+               ?? null;
   const displayPairs = loadingBlocks ? [null, null] : [block10, block3];
 
   return (
@@ -338,18 +552,34 @@ export default function ExamDetailPage({ examId, onBack, onEdit }) {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[
-            { label: 'Block 10', block: displayPairs[0] },
-            { label: 'Block 3',  block: displayPairs[1] },
-          ].map(({ label, block }) => (
+            { label: 'Block 10', block: displayPairs[0], src: block10 },
+            { label: 'Block 3',  block: displayPairs[1], src: block3  },
+          ].map(({ label, block, src }) => (
             <BlockCard
               key={label}
               block={block}
+              blockSource={src}
               fallbackName={label}
               loadingBlocks={loadingBlocks}
+              onEdit={setEditingBlock}
+              onOpenBlockDetail={onOpenBlockDetail}
             />
           ))}
         </div>
       </div>
+
+      {/* ── Update Block modal ── (dùng Portal để tránh bị clip bởi overflow) */}
+      {editingBlock && createPortal(
+        <UpdateBlockModal
+          block={editingBlock}
+          onClose={() => setEditingBlock(null)}
+          onSuccess={() => {
+            setEditingBlock(null);
+            loadBlocks();
+          }}
+        />,
+        document.body
+      )}
 
       {/* ── Delete confirm modal ── */}
       {confirmOpen && (
