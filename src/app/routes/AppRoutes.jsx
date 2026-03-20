@@ -13,6 +13,7 @@ import UserManagement from '../../features/admin/UserManagement.jsx';
 
 import ProtectedRoute, { ROLE_HOME_MAP } from './ProtectedRoute.jsx';
 import { useAuth } from '../context/authContext.js';
+import VerifyAccount from '../../features/auth/VerifyAccount.jsx';
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
@@ -67,6 +68,11 @@ export default function AppRoutes() {
       <Route
         path="/reset-password"
         element={<ResetPassword />}
+      />
+
+      <Route
+        path="/verify-account"
+        element={<VerifyAccount />}
       />
 
       {/* Student routes */}
