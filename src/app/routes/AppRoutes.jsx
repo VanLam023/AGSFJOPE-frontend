@@ -112,6 +112,54 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/exam-staff/exams"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/exams/create"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/exams/:examId"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/exams/:examId/edit"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/exams/:examId/blocks/:blockId"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/exams/:examId/blocks/:blockId/upload-paper"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Admin routes */}
       <Route
