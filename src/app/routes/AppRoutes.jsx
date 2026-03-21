@@ -14,6 +14,7 @@ import UserManagement from '../../features/admin/UserManagement.jsx';
 import ProtectedRoute, { ROLE_HOME_MAP } from './ProtectedRoute.jsx';
 import { useAuth } from '../context/authContext.js';
 import VerifyAccount from '../../features/auth/VerifyAccount.jsx';
+import UserDetail from '../../features/admin/UserDetail.jsx';
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
@@ -179,10 +180,10 @@ export default function AppRoutes() {
         }
       />
       <Route
-        path="/admin2"
+        path="/admin/student-management/:userId"
         element={
           <ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}>
-            <SystemAdminDashboardOld />
+            <UserDetail />
           </ProtectedRoute>
         }
       />

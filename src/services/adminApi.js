@@ -1,13 +1,43 @@
 import axiosClient from './axiosClient';
 
 const importExcel = (file) => {
-    const formData = new FormData();
-    
-    formData.append('file', file);
+  const formData = new FormData();
 
-    const res = axiosClient.post("/admin/users/import-excel", formData);
+  formData.append('file', file);
 
-    return res;
+  const res = axiosClient.post('/admin/users/import-excel', formData);
+  return res;
 };
 
-export { importExcel };
+const createUser = ({ roleName, email, fullName, mssv }) => {
+  return axiosClient.post('/admin/users/create', {
+    roleName,
+    email,
+    fullName,
+    mssv,
+  });
+};
+
+const getAllUsers = ({ page, size, sort, search, roleName }) => {
+  const res = axiosClient.get('/admin/users', {
+    params: {
+      page,
+      size,
+      sort,
+      search,
+      roleName,
+    },
+  });
+
+  return res;
+};
+
+const getUserDetail = (userId) => {
+  return axiosClient.get(`/admin/users/${userId}`);
+};
+
+const deleteUser = (userId) => {
+  return axiosClient.delete(`/admin/users/${userId}`);
+};
+
+export { importExcel, createUser, getAllUsers, getUserDetail, deleteUser };

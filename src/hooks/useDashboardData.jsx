@@ -18,7 +18,9 @@ const useDashboardData = () => {
         setRecentExamData(recentExam ?? null);
         setAppealData(appeal ?? null);
         setChartData(chart ?? null);
-      } catch (err) {}
+      } catch (err) {
+        console.log(err);
+      }
     };
 
     fetchData();

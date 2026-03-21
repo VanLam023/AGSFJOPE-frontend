@@ -1,3 +1,4 @@
+import { color } from 'echarts';
 import { CARD_ADMIN_ICON } from '../../features/admin/config';
 
 // Sidebar cho sidebar khong dung materialIcon
@@ -147,7 +148,7 @@ const renderStatusPill = ({ status }) => {
     );
   }
 
-  if (status === 'Tạm khóa') {
+  if (status === 'Tạm khóa' || status == 'Không hoạt động') {
     return (
       <span className="text-slate-600 bg-slate-100 border border-slate-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
         {status}
@@ -161,6 +162,62 @@ const renderStatusPill = ({ status }) => {
     </span>
   );
 };
+
+const mapUserFromApi = ({ user, index }) => {
+  return {
+    key: index + 1,
+    user: {
+      initials: getInitialsFromName(user.fullName),
+      initialsColor: getInitialsColor(index),
+      name: user.fullName,
+    },
+    id: {
+      email: user.email,
+      mssv: user.mssv,
+    },
+    userId: user.userId,
+    role: mapRoleFromApi(user.roleName),
+    status: user.isActive ? 'Đang hoạt động' : 'Không hoạt động',
+  };
+};
+
+const getInitialsFromName = (fullName) => {
+  const words = fullName.split(' ');
+  const firstChars = words.map((word) => word.charAt(0));
+  if (firstChars.length === 1) return firstChars[0];
+  return [firstChars[0], firstChars[firstChars.length - 1]];
+};
+
+const getInitialsColor = (index) => {
+  const colors = [
+    'bg-blue-100 text-blue-600',
+    'bg-purple-100 text-purple-600',
+    'bg-emerald-100 text-emerald-700',
+    'bg-amber-100 text-amber-700',
+    'bg-slate-800 text-white',
+  ];
+
+  return colors[index % colors.length];
+};
+
+const mapRoleFromApi = (role) => {
+  const roles = ['Sinh viên', 'Giảng viên', 'Cán bộ khảo thí', 'Quản trị viên'];
+
+  const rolesMap = new Map([
+    ['STUDENT', 'Sinh viên'],
+    ['LECTURER', 'Giảng viên'],
+    ['EXAM_STAFF', 'Cán bộ khảo thí'],
+    ['SYSTEM_ADMIN', 'Quản trị viên'],
+  ]);
+
+  return rolesMap.get(role);
+};
+
+// const mapUsersFromApi = (users) => users.map((user) => mapUserFromApi(user));
+
+const mapUsersFromApi = (users) =>
+  users.map((user, index) => mapUserFromApi({ user, index }));
+
 export {
   renderSiderIcons,
   renderSiderIconsMaterialSymbol,
@@ -170,4 +227,5 @@ export {
   getTrendIcon,
   renderRolePill,
   renderStatusPill,
+  mapUsersFromApi,
 };
