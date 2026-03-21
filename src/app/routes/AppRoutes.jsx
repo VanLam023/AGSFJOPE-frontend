@@ -3,6 +3,7 @@ import Login from '../../features/auth/Login.jsx';
 import ForgotPassword from '../../features/auth/ForgotPassword.jsx';
 import ResetPassword from '../../features/auth/ResetPassword.jsx';
 import StudentDashboard from '../../features/student/StudentDashboard.jsx';
+import StudentResultsPage from '../../features/student/StudentResultsPage.jsx';
 import SubmitCode from '../../features/submission/SubmitCode.jsx';
 import LandingPage from '../../pages/LandingPage.jsx';
 import LecturerDashboard from '../../features/lecturer/LecturerDashboard.jsx';
@@ -83,6 +84,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['STUDENT']}>
             <SubmitCode />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/results"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <StudentResultsPage />
           </ProtectedRoute>
         }
       />
