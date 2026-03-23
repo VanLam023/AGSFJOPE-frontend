@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { message } from 'antd';
 import examApi from '../../services/examApi';
 import blockApi from '../../services/blockApi';
 import examPaperApi from '../../services/examPaperApi';
+import gradingApi from '../../services/gradingApi';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +33,29 @@ function fmtTime(isoStr) {
 function sanitizeUiErrorMessage(message) {
   if (!message || typeof message !== 'string') return 'Có lỗi xảy ra. Vui lòng thử lại.';
   return message.replace(/\s*\([^)]*\)\.?\s*$/, '').trim();
+}
+
+function getBlockScheduleLockMessage(block) {
+  const now = Date.now();
+
+  if (block?.endTime) {
+    const end = new Date(block.endTime);
+    if (!Number.isNaN(end.getTime()) && now > end.getTime()) {
+      return 'Kì thi đã qua không được chỉnh sửa thời gian ca thi';
+    }
+  }
+
+  if (block?.startTime) {
+    const start = new Date(block.startTime);
+    if (!Number.isNaN(start.getTime())) {
+      const lockAt = start.getTime() - (7 * 24 * 60 * 60 * 1000);
+      if (now >= lockAt) {
+        return 'Không thể chỉnh sửa lịch trong vòng 7 ngày trước khi ca thi bắt đầu.';
+      }
+    }
+  }
+
+  return '';
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -121,6 +146,11 @@ function UpdateBlockModal({ block, onClose, onSuccess }) {
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2 text-amber-800 text-sm">
+            <span className="material-symbols-outlined text-[18px]">warning</span>
+            <p>Lưu ý: Bạn không thể cập nhật giờ khi còn dưới 1 tuần trước ngày thi diễn ra. Vui lòng cân nhắc trước khi cập nhật.</p>
+          </div>
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-2 text-red-700 text-sm">
               <span className="material-symbols-outlined text-[18px]">error</span>
@@ -287,8 +317,8 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
           <InfoItem icon="description" label="Đề thi" value={block?.hasPaper ? (block?.paperFileName || 'Đã tải lên') : 'Chưa tải lên'} />
           <InfoItem icon="schedule" label="Giờ bắt đầu" value={block?.startTime ? fmtTime(block.startTime) : null} />
           <InfoItem icon="timer_off" label="Giờ kết thúc" value={block?.endTime ? fmtTime(block.endTime) : null} />
-          <InfoItem icon="upload_file" label="Số bài nộp" value="0" />
-          <InfoItem icon="fact_check" label="Số bài đã chấm" value="0/0" />
+          <InfoItem icon="upload_file" label="Số bài nộp" value={String(block?.submissionCount ?? 0)} />
+          <InfoItem icon="fact_check" label="Số bài đã chấm" value={`${block?.gradedCount ?? 0}/${block?.submissionCount ?? 0}`} />
         </div>
       </div>
 
@@ -297,6 +327,11 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
         <button
           onClick={() => {
             const target = editTarget ?? { name: fallbackName };
+            const lockMessage = getBlockScheduleLockMessage(target);
+            if (lockMessage) {
+              message.warning(lockMessage);
+              return;
+            }
             onEdit?.(target);
           }}
           className="flex-1 py-2.5 px-4 text-xs font-bold border border-orange-200 text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 hover:border-orange-300 hover:-translate-y-0.5 transition-all flex justify-center items-center gap-1.5"
@@ -378,25 +413,47 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
                  : [];
       console.log('[Block] parsed list length:', list.length, list);
 
-      const listWithPaperName = await Promise.all(
+      const listWithPaperNameAndStats = await Promise.all(
         list.map(async (b) => {
-          if (!b?.blockId || !b?.hasPaper) return b;
-          try {
-            const paperRes = await examPaperApi.getByBlock(examId, b.blockId);
-            const paper = paperRes?.data ?? paperRes;
-            return { ...b, paperFileName: paper?.fileName || null };
-          } catch {
-            return b;
+          if (!b?.blockId) return b;
+
+          let paperFileName = b?.paperFileName ?? null;
+          if (b?.hasPaper) {
+            try {
+              const paperRes = await examPaperApi.getByBlock(examId, b.blockId);
+              const paper = paperRes?.data ?? paperRes;
+              paperFileName = paper?.fileName || null;
+            } catch {
+              // keep null, do not fail whole list
+            }
           }
+
+          let submissionCount = 0;
+          let gradedCount = 0;
+          try {
+            const progressRes = await gradingApi.getProgress(examId, b.blockId);
+            const progress = progressRes?.data ?? progressRes;
+            submissionCount = Number(progress?.totalSubmissions ?? 0);
+            gradedCount = Number(progress?.gradedCount ?? 0);
+          } catch {
+            // keep default 0/0 when no grading progress yet
+          }
+
+          return {
+            ...b,
+            paperFileName,
+            submissionCount,
+            gradedCount,
+          };
         })
       );
 
-      listWithPaperName.sort((a, b) => {
+      listWithPaperNameAndStats.sort((a, b) => {
         const numA = parseInt((a.name || '').replace(/\D/g, ''), 10) || 0;
         const numB = parseInt((b.name || '').replace(/\D/g, ''), 10) || 0;
         return numB - numA;
       });
-      setBlocks(listWithPaperName);
+      setBlocks(listWithPaperNameAndStats);
     } catch (err) {
       console.error('[Block] error:', err?.response?.status, err?.response?.data, err?.message);
       setBlocks([]);

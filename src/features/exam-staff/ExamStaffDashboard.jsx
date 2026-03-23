@@ -25,6 +25,8 @@ import CreateExamPage from '../exam/CreateExamPage.jsx';
 import ExamDetailPage from '../exam/ExamDetailPage.jsx';
 import UploadExamPaperPage from '../exam-paper/UploadExamPaperPage.jsx';
 import BlockDetailPage from '../block/BlockDetailPage.jsx';
+import BlockSubmissionsPage from '../submission/BlockSubmissionsPage.jsx';
+import SubmissionDetailPage from '../submission/SubmissionDetailPage.jsx';
 
 const CARD_ICON = ['timer', 'description', 'check_circle', 'priority_high'];
 
@@ -165,7 +167,7 @@ const icons = [
 export default function ExamStaffDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { examId, blockId } = useParams();
+  const { examId, blockId, submissionId } = useParams();
   const [notifCount] = useState(5);
 
   const pathSelectedIndexMap = {
@@ -184,10 +186,20 @@ export default function ExamStaffDashboard() {
   const isCreateExamPage = location.pathname === '/exam-staff/exams/create';
   const isUpdateExamPage = location.pathname.startsWith('/exam-staff/exams/') && location.pathname.endsWith('/edit');
   const isUploadExamPaperPage = location.pathname.includes('/upload-paper');
+  const isBlockSubmissionsPage =
+    location.pathname.startsWith('/exam-staff/exams/') &&
+    location.pathname.includes('/blocks/') &&
+    location.pathname.endsWith('/submissions');
+  const isSubmissionDetailPage =
+    location.pathname.startsWith('/exam-staff/exams/') &&
+    location.pathname.includes('/blocks/') &&
+    /\/submissions\/[^/]+$/.test(location.pathname);
   const isBlockDetailPage =
     location.pathname.startsWith('/exam-staff/exams/') &&
     location.pathname.includes('/blocks/') &&
-    !isUploadExamPaperPage;
+    !isUploadExamPaperPage &&
+    !isBlockSubmissionsPage &&
+    !isSubmissionDetailPage;
   const isExamDetailPage =
     location.pathname.startsWith('/exam-staff/exams/') && !isCreateExamPage && !isUpdateExamPage && !isUploadExamPaperPage && !isBlockDetailPage;
 
@@ -254,12 +266,26 @@ export default function ExamStaffDashboard() {
           blockId={blockId}
           onBack={() => navigate(`/exam-staff/exams/${examId}/blocks/${blockId}`)}
         />
+      ) : isBlockSubmissionsPage ? (
+        <BlockSubmissionsPage
+          examId={examId}
+          blockId={blockId}
+          onBack={() => navigate(`/exam-staff/exams/${examId}/blocks/${blockId}`)}
+        />
+      ) : isSubmissionDetailPage ? (
+        <SubmissionDetailPage
+          examId={examId}
+          blockId={blockId}
+          submissionId={submissionId}
+          onBack={() => navigate(`/exam-staff/exams/${examId}/blocks/${blockId}/submissions`)}
+        />
       ) : isBlockDetailPage ? (
         <BlockDetailPage
           examId={examId}
           blockId={blockId}
           onBack={() => navigate(`/exam-staff/exams/${examId}`)}
           onOpenUploadPaper={(id) => navigate(`/exam-staff/exams/${examId}/blocks/${id}/upload-paper`)}
+          onOpenSubmissions={(id) => navigate(`/exam-staff/exams/${examId}/blocks/${id}/submissions`)}
         />
       ) : isExamDetailPage ? (
         <ExamDetailPage
