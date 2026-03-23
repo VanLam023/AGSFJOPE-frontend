@@ -1,0 +1,50 @@
+import axiosClient from './axiosClient';
+
+/**
+ * Submission API service — Nested under /api/exams/{examId}/blocks/{blockId}/submission.
+ * Authorization: STUDENT (POST, GET), EXAM_STAFF / SYSTEM_ADMIN (GET, Download).
+ */
+const submissionApi = {
+  /**
+   * Lấy thông tin bài nộp của sinh viên hiện tại cho một block.
+   * GET /api/exams/{examId}/blocks/{blockId}/submission
+   *
+   * @param {string} examId  - UUID của kỳ thi
+   * @param {string} blockId - UUID của block
+   * @returns {Promise<{ success, message, data: SubmissionResponse }>}
+   */
+  getMySubmission: (examId, blockId) =>
+    axiosClient.get(`/exams/${examId}/blocks/${blockId}/submission`),
+
+  /**
+   * Nộp bài (submit hoặc resubmit).
+   * POST /api/exams/{examId}/blocks/{blockId}/submission
+   *
+   * @param {string} examId  - UUID của kỳ thi
+   * @param {string} blockId - UUID của block
+   * @param {File}   file    - File .zip hoặc .rar của bài nộp
+   * @returns {Promise<{ success, message, data: SubmissionResponse }>}
+   */
+  submit: (examId, blockId, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return axiosClient.post(`/exams/${examId}/blocks/${blockId}/submission`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  /**
+   * Download file bài nộp của sinh viên hiện tại.
+   * GET /api/exams/{examId}/blocks/{blockId}/submission/download
+   *
+   * @param {string} examId  - UUID của kỳ thi
+   * @param {string} blockId - UUID của block
+   * @returns {Promise<Blob>}
+   */
+  download: (examId, blockId) =>
+    axiosClient.get(`/exams/${examId}/blocks/${blockId}/submission/download`, {
+      responseType: 'blob',
+    }),
+};
+
+export default submissionApi;

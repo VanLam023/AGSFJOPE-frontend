@@ -1,31 +1,10 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../app/context/authContext';
+import examApi from '../../services/examApi';
+import blockApi from '../../services/blockApi';
 
-// ─── Mock data ────────────────────────────────────────────────────────────────
-const student = {
-  name: 'Nguyễn Văn A',
-  id: 'SE123456',
-  avatar: 'NVA',
-  email: 'se123456@fpt.edu.vn',
-};
-
-const activeExam = {
-  title: 'OOP Lab Final – SP26',
-  subject: 'PRO192 – Lập trình Hướng đối tượng',
-  deadline: '2026-03-12T23:59:00',
-};
-
-const submissions = [
-  {
-    id: 1,
-    attempt: 1,
-    submittedAt: '2026-03-09T10:22:13',
-    fileName: 'SE123456_attempt1.zip',
-    status: 'GRADED',
-  },
-];
-
+// ─── Status badge config ──────────────────────────────────────────────────────
 const statusInfo = {
   GRADED:    { label: 'Đã có kết quả', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
   GRADING:   { label: 'Đang chấm',     cls: 'bg-amber-50 text-amber-700 border-amber-200',       dot: 'bg-amber-500 animate-pulse' },
@@ -40,13 +19,15 @@ const navItems = [
   { icon: 'notifications',  label: 'Thông báo',   to: '/student/notifications',  active: false },
 ];
 
-// ─── Countdown hook (không có ngày) ──────────────────────────────────────────
-function useCountdown(deadline) {
+// ─── Countdown hook ───────────────────────────────────────────────────────────
+// Đếm ngược đến một mốc thời gian bất kỳ (ISO string hoặc Date object).
+function useCountdown(target) {
   const compute = () => {
-    const diff = new Date(deadline) - new Date();
-    if (diff <= 0) return { hours: 0, mins: 0, secs: 0, expired: true };
+    const diff = new Date(target) - new Date();
+    if (diff <= 0) return { days: 0, hours: 0, mins: 0, secs: 0, expired: true };
     return {
-      hours:   Math.floor(diff / 3600000),
+      days:    Math.floor(diff / 86400000),
+      hours:   Math.floor((diff % 86400000) / 3600000),
       mins:    Math.floor((diff % 3600000) / 60000),
       secs:    Math.floor((diff % 60000) / 1000),
       expired: false,
@@ -54,9 +35,12 @@ function useCountdown(deadline) {
   };
   const [cd, setCd] = useState(compute);
   useEffect(() => {
+    if (!target) return;
+    setCd(compute());
     const id = setInterval(() => setCd(compute()), 1000);
     return () => clearInterval(id);
-  }, [deadline]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target]);
   return cd;
 }
 
@@ -93,18 +77,120 @@ function DigitBox({ value, label }) {
   );
 }
 
+// ─── Helper: tìm block gần nhất ──────────────────────────────────────────────
+/**
+ * Từ danh sách blocks (nhiều exam gộp lại), trả về block relevant nhất:
+ * - Ưu tiên block đang ONGOING (startTime <= now <= endTime).
+ * - Nếu không có ONGOING, lấy block UPCOMING có startTime gần nhất.
+ * - Trả về null nếu không có block nào thỏa mãn.
+ *
+ * @param {Array} blocks - mảng block objects từ API, mỗi item shape: { blockId, examId, name, startTime, endTime, examName }
+ * @returns {object|null}
+ */
+function findNearestBlock(blocks) {
+  const now = new Date();
+
+  // Lọc các block chưa kết thúc (endTime > now)
+  const activeBlocks = blocks.filter((b) => b.endTime && new Date(b.endTime) > now);
+  if (activeBlocks.length === 0) return null;
+
+  // Kiểm tra xem có block nào đang ONGOING không
+  const ongoingBlocks = activeBlocks.filter(
+    (b) => b.startTime && new Date(b.startTime) <= now,
+  );
+  if (ongoingBlocks.length > 0) {
+    // Lấy block ONGOING có endTime gần now nhất (sắp hết hạn)
+    return ongoingBlocks.sort((a, b) => new Date(a.endTime) - new Date(b.endTime))[0];
+  }
+
+  // Không có ONGOING → lấy UPCOMING có startTime gần nhất
+  return activeBlocks.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))[0];
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 const StudentDashboard = () => {
   const navigate = useNavigate();
-  const { logout } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const countdown = useCountdown(activeExam.deadline);
   const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
   const [sidebarDropdownOpen, setSidebarDropdownOpen] = useState(false);
   const headerDropdownRef = useRef(null);
   const sidebarDropdownRef = useRef(null);
 
-  // Đóng dropdown khi click ra ngoài
+  // ── Data states ──────────────────────────────────────────────────────────────
+  const [nearestBlock, setNearestBlock] = useState(null); // block thi gần nhất
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Countdown target: nếu đang ONGOING → đếm tới endTime; nếu UPCOMING → đếm tới startTime
+  const now = new Date();
+  const isOngoing = nearestBlock &&
+    new Date(nearestBlock.startTime) <= now &&
+    new Date(nearestBlock.endTime) > now;
+  const countdownTarget = nearestBlock
+    ? (isOngoing ? nearestBlock.endTime : nearestBlock.startTime)
+    : null;
+
+  const countdown = useCountdown(countdownTarget);
+
+  // Nút nộp bài: chỉ active khi đang ONGOING
+  const isExpired  = nearestBlock && new Date(nearestBlock.endTime) <= now;  // đã qua endTime
+  const canSubmit  = nearestBlock && isOngoing;
+
+  // ── Fetch data ───────────────────────────────────────────────────────────────
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Bước 1: Lấy danh sách tất cả exam (lấy page đủ lớn để bao hết)
+      const examRes = await examApi.getAll({ page: 0, size: 100, sort: 'startTime,asc' });
+      const exams = examRes?.data?.content ?? [];
+
+      if (exams.length === 0) {
+        setNearestBlock(null);
+        return;
+      }
+
+      // Bước 2: Chỉ lấy block của các exam chưa COMPLETED để giảm số request
+      const relevantExams = exams.filter((e) => e.status !== 'COMPLETED');
+
+      // Bước 3: Gọi song song getByExam cho từng exam
+      const blockResults = await Promise.allSettled(
+        relevantExams.map((exam) =>
+          blockApi.getByExam(exam.examId).then((res) => {
+            // Gắn thêm thông tin exam vào từng block để hiển thị trên UI
+            const blocks = Array.isArray(res) ? res : res?.data ?? [];
+            return blocks.map((b) => ({
+              ...b,
+              examName:     exam.name,
+              examSemester: exam.semester,
+              examStatus:   exam.status,
+            }));
+          }),
+        ),
+      );
+
+      // Gom tất cả blocks thành mảng phẳng (bỏ qua request bị lỗi)
+      const allBlocks = blockResults
+        .filter((r) => r.status === 'fulfilled')
+        .flatMap((r) => r.value);
+
+      // Bước 4: Tìm block gần nhất
+      const best = findNearestBlock(allBlocks);
+      setNearestBlock(best);
+    } catch (err) {
+      console.error('[StudentDashboard] fetchDashboardData error:', err);
+      setError('Không thể tải thông tin kỳ thi. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [fetchDashboardData]);
+
+  // ── Đóng dropdown khi click ra ngoài ─────────────────────────────────────────
   useEffect(() => {
     const handleClick = (e) => {
       if (headerDropdownRef.current && !headerDropdownRef.current.contains(e.target))
@@ -122,13 +208,34 @@ const StudentDashboard = () => {
     navigate('/login');
   };
 
+  // Thông tin user từ AuthContext — shape: { userId, fullName, roleName }
+  const displayName  = user?.fullName  || 'Sinh viên';
+  const displayId    = user?.userId    ? `ID: ${user.userId.slice(0, 8).toUpperCase()}` : '—';
+  const displayEmail = '';                                   // không có trong AuthContext
+  const avatarText   = displayName !== 'Sinh viên'
+    ? displayName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+    : 'SV';
+
+  // ── Formatters ────────────────────────────────────────────────────────────────
+  const fmtDate = (iso) => {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    const p = new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+      timeZone: 'Asia/Ho_Chi_Minh',
+    }).formatToParts(d);
+    const get = (type) => p.find((x) => x.type === type)?.value ?? '00';
+    return `${get('day')}/${get('month')}/${get('year')} ${get('hour')}:${get('minute')}`;
+  };
+
   return (
-    <div className="flex h-screen bg-[#F5F5F5] font-[Inter,sans-serif] overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-[#f7f7f8] via-[#f6f6f8] to-[#fffaf6] font-[Inter,sans-serif] overflow-hidden">
 
       {/* ════════════════════════════════════════════
           SIDEBAR
       ════════════════════════════════════════════ */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-[72px]'} transition-[width] duration-300 ease-in-out flex-shrink-0 flex flex-col bg-[#2D2D2D] border-r border-slate-800 shadow-xl z-20`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-[72px]'} transition-[width] duration-300 ease-in-out flex-shrink-0 flex flex-col bg-gradient-to-b from-[#2b2b2f] to-[#232327] border-r border-slate-800 shadow-2xl z-20`}>
 
           {/* Logo */}
           <div className="px-5 py-5 flex items-center gap-3 border-b border-slate-700/50">
@@ -173,12 +280,11 @@ const StudentDashboard = () => {
 
           {/* Sidebar user area với dropdown */}
           <div className="px-3 py-4 border-t border-slate-700/50" ref={sidebarDropdownRef}>
-            {/* Dropdown hiện ra phía trên */}
             {sidebarDropdownOpen && sidebarOpen && (
               <div className="mb-2 bg-[#3a3a3a] rounded-2xl border border-slate-700 shadow-xl py-1 overflow-hidden">
                 <div className="px-4 py-3 border-b border-slate-700">
-                  <p className="text-sm font-bold text-white">{student.name}</p>
-                  <p className="text-xs text-slate-400">{student.email}</p>
+                  <p className="text-sm font-bold text-white">{displayName}</p>
+                  <p className="text-xs text-slate-400">{displayEmail}</p>
                 </div>
                 <Link
                   to="/student/profile"
@@ -204,15 +310,15 @@ const StudentDashboard = () => {
             >
               <div className="relative flex-shrink-0">
                 <div className="w-9 h-9 rounded-full bg-[#F37021]/20 text-[#F37021] font-black text-sm flex items-center justify-center ring-2 ring-[#F37021]/30">
-                  {student.avatar}
+                  {avatarText}
                 </div>
                 <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#2D2D2D]" />
               </div>
               {sidebarOpen && (
                 <>
                   <div className="min-w-0 flex-1 text-left">
-                    <p className="text-white text-[13px] font-bold truncate">{student.name}</p>
-                    <p className="text-slate-400 text-[10px] truncate">{student.id}</p>
+                    <p className="text-white text-[13px] font-bold truncate">{displayName}</p>
+                    <p className="text-slate-400 text-[10px] truncate">{displayId}</p>
                   </div>
                   <span className={`material-symbols-outlined text-slate-400 text-[18px] transition-transform duration-200 ${sidebarDropdownOpen ? 'rotate-180' : ''}`}>
                     expand_less
@@ -226,10 +332,11 @@ const StudentDashboard = () => {
       {/* ════════════════════════════════════════════
           MAIN CONTENT
       ════════════════════════════════════════════ */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden relative">
+        <div className="pointer-events-none absolute -top-20 -right-20 w-72 h-72 bg-orange-200/20 rounded-full blur-3xl" />
 
         {/* ── Header ── */}
-        <header className="flex-shrink-0 flex items-center justify-between h-16 px-8 border-b border-slate-200 bg-white shadow-sm sticky top-0 z-10">
+        <header className="flex-shrink-0 flex items-center justify-between h-16 px-8 border-b border-slate-200/80 bg-white/90 backdrop-blur-md shadow-sm sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -240,7 +347,7 @@ const StudentDashboard = () => {
             <div>
               <h1 className="text-slate-800 font-black text-[17px] leading-none">Trang chủ</h1>
               <p className="text-slate-400 text-[11px] mt-0.5">
-                Xin chào trở lại, <span className="text-[#F37021]">{student.name}</span> 👋
+                Xin chào trở lại, <span className="text-[#F37021]">{displayName}</span> 👋
               </p>
             </div>
           </div>
@@ -258,14 +365,14 @@ const StudentDashboard = () => {
                 onClick={() => setHeaderDropdownOpen(!headerDropdownOpen)}
                 className="w-9 h-9 rounded-full bg-[#F37021]/20 text-[#F37021] font-black text-sm flex items-center justify-center ring-2 ring-[#F37021]/30 hover:ring-[#F37021]/60 transition-all cursor-pointer"
               >
-                {student.avatar}
+                {avatarText}
               </button>
 
               {headerDropdownOpen && (
                 <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl border border-slate-200 shadow-xl py-1 z-50">
                   <div className="px-4 py-3 border-b border-slate-100">
-                    <p className="text-sm font-bold text-slate-800">{student.name}</p>
-                    <p className="text-xs text-slate-400">{student.email}</p>
+                    <p className="text-sm font-bold text-slate-800">{displayName}</p>
+                    <p className="text-xs text-slate-400">{displayEmail}</p>
                   </div>
                   <Link
                     to="/student/profile"
@@ -289,177 +396,190 @@ const StudentDashboard = () => {
         </header>
 
         {/* ── Scrollable body ── */}
-        <div className="flex-1 overflow-y-auto bg-[#F5F5F5]">
+        <div className="flex-1 overflow-y-auto bg-transparent">
           <div className="px-8 py-8 max-w-5xl mx-auto space-y-6">
 
             {/* ═══════════════════════════════
-                SECTION 1 — Active Exam Banner
+                SECTION 1 — Active/Upcoming Exam Banner
             ═══════════════════════════════ */}
             <section>
-              <div className="relative rounded-3xl overflow-hidden shadow-xl shadow-orange-500/10">
-                {/* Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#1C1008] via-[#1a1a1a] to-[#111]" />
-                {/* Orange glow orb */}
-                <div className="absolute -top-20 -left-20 w-72 h-72 bg-[#F37021]/20 rounded-full blur-[80px]" />
-                <div className="absolute -bottom-10 right-20 w-48 h-48 bg-amber-400/10 rounded-full blur-[60px]" />
-                {/* Dot texture */}
-                <div className="absolute inset-0 opacity-20"
-                  style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
-                />
-                {/* Top accent line */}
-                <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#F37021]/60 to-transparent" />
-
-                <div className="relative p-8">
-                  <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
-
-                    {/* Left — info */}
-                    <div className="flex-1 space-y-5">
-                      {/* Badge */}
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#F37021]/15 border border-[#F37021]/30 rounded-full backdrop-blur-sm">
-                        <span className="w-2 h-2 rounded-full bg-[#F37021] animate-pulse shadow-sm shadow-[#F37021]" />
-                        <span className="text-[#F37021] text-[10px] font-bold uppercase tracking-[0.2em]">Kỳ thi đang diễn ra</span>
-                      </div>
-
-                      {/* Title */}
-                      <div>
-                        <h2 className="text-white text-2xl font-black leading-tight tracking-tight">{activeExam.title}</h2>
-                        <p className="text-white/40 text-sm mt-1.5 font-medium">{activeExam.subject}</p>
-                      </div>
-
-                      {/* CTA */}
-                      <Link
-                        to="/student/submit"
-                        className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-bold text-white text-sm
-                          bg-[#F37021] hover:bg-orange-500 shadow-xl shadow-[#F37021]/30 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
-                      >
-                        <span className="material-symbols-outlined text-[18px]">upload_file</span>
-                        Nộp bài ngay
-                        <span className="material-symbols-outlined text-[16px] ml-0.5">arrow_forward</span>
-                      </Link>
-                    </div>
-
-                    {/* Right — Countdown */}
-                    <div className="flex-shrink-0">
-                      <div className="bg-white/5 border border-white/10 rounded-3xl px-7 py-6 text-center backdrop-blur-sm">
-                        <p className="text-white/30 text-[9px] uppercase tracking-[0.25em] font-bold mb-5">Thời gian còn lại</p>
-                        {!countdown.expired ? (
-                          <div className="flex items-end gap-3">
-                            <DigitBox value={countdown.hours} label="Giờ"  />
-                            <span className="text-white/20 text-3xl font-black mb-5 leading-none select-none">:</span>
-                            <DigitBox value={countdown.mins}  label="Phút" />
-                            <span className="text-white/20 text-3xl font-black mb-5 leading-none select-none">:</span>
-                            <DigitBox value={countdown.secs}  label="Giây" />
-                          </div>
-                        ) : (
-                          <p className="text-red-400 font-black text-lg">Đã hết hạn</p>
-                        )}
-                        <p className="text-white/20 text-[10px] mt-5">
-                          Hạn: {new Date(activeExam.deadline).toLocaleString('vi-VN')}
-                        </p>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* ═══════════════════════════════
-                SECTION 2 — Submission History
-            ═══════════════════════════════ */}
-            <section>
-              <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
-                {/* Header */}
-                <div className="px-7 py-5 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-[#F37021]/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[#F37021] text-[18px]">history</span>
-                    </div>
-                    <div>
-                      <h3 className="text-slate-800 font-black text-sm leading-none">Lịch sử nộp bài</h3>
-                      <p className="text-slate-400 text-[11px] mt-1">Kết quả hiển thị sau khi Phòng khảo thí kích hoạt chấm</p>
+              {/* Loading skeleton */}
+              {loading && (
+                <div className="relative rounded-3xl overflow-hidden shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#1C1008] via-[#1a1a1a] to-[#111]" />
+                  <div className="relative p-8 flex items-center justify-center min-h-[200px]">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-10 h-10 rounded-full border-4 border-[#F37021]/30 border-t-[#F37021] animate-spin" />
+                      <p className="text-white/40 text-sm font-medium">Đang tải thông tin kỳ thi...</p>
                     </div>
                   </div>
-                  <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
-                    {submissions.length} lần nộp
-                  </span>
                 </div>
+              )}
 
-                {/* Rows */}
-                <div className="divide-y divide-slate-100">
-                  {submissions.map((sub) => {
-                    const s = statusInfo[sub.status] || statusInfo.SUBMITTED;
-                    return (
-                      <div
-                        key={sub.id}
-                        className="group flex items-center gap-5 px-7 py-4 hover:bg-slate-50/80 transition-colors duration-150"
+              {/* Error state */}
+              {!loading && error && (
+                <div className="relative rounded-3xl overflow-hidden shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#1C1008] via-[#1a1a1a] to-[#111]" />
+                  <div className="relative p-8 flex items-center justify-center min-h-[200px]">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <span className="material-symbols-outlined text-red-400 text-4xl">error</span>
+                      <p className="text-white/70 text-sm font-medium">{error}</p>
+                      <button
+                        onClick={fetchDashboardData}
+                        className="mt-2 px-5 py-2 rounded-full bg-[#F37021]/20 text-[#F37021] text-sm font-bold border border-[#F37021]/30 hover:bg-[#F37021]/30 transition-colors"
                       >
-                        {/* Attempt number */}
-                        <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-[#F37021]/15 to-[#F37021]/5 border border-[#F37021]/20 flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <span className="text-[#F37021] font-black text-sm">{sub.attempt}</span>
-                        </div>
+                        Thử lại
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                        {/* File icon */}
-                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
-                          <span className="material-symbols-outlined text-slate-400 text-[18px]">folder_zip</span>
-                        </div>
+              {/* Empty state — không có kỳ thi nào */}
+              {!loading && !error && !nearestBlock && (
+                <div className="relative rounded-3xl overflow-hidden shadow-xl">
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#1C1008] via-[#1a1a1a] to-[#111]" />
+                  <div className="relative p-8 flex items-center justify-center min-h-[200px]">
+                    <div className="flex flex-col items-center gap-3 text-center">
+                      <span className="material-symbols-outlined text-white/20 text-4xl">event_busy</span>
+                      <p className="text-white/60 text-base font-bold">Không có kỳ thi nào sắp diễn ra</p>
+                      <p className="text-white/30 text-sm">Hãy kiểm tra lại sau khi Phòng khảo thí công bố lịch thi.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                        {/* Info */}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-slate-800 text-sm font-bold leading-none">
-                            {new Date(sub.submittedAt).toLocaleString('vi-VN')}
-                          </p>
-                          <p className="text-slate-400 text-xs mt-1.5 truncate font-mono">{sub.fileName}</p>
-                        </div>
+              {/* Main banner — có dữ liệu */}
+              {!loading && !error && nearestBlock && (
+                <div className="relative rounded-3xl overflow-hidden shadow-[0_24px_50px_rgba(249,115,22,0.18)] ring-1 ring-orange-400/20">
+                  {/* Background */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#1C1008] via-[#1a1a1a] to-[#111]" />
+                  {/* Orange glow orb */}
+                  <div className="absolute -top-20 -left-20 w-72 h-72 bg-[#F37021]/20 rounded-full blur-[80px]" />
+                  <div className="absolute -bottom-10 right-20 w-48 h-48 bg-amber-400/10 rounded-full blur-[60px]" />
+                  {/* Dot texture */}
+                  <div className="absolute inset-0 opacity-20"
+                    style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.06) 1px, transparent 1px)', backgroundSize: '24px 24px' }}
+                  />
+                  {/* Top accent line */}
+                  <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-[#F37021]/60 to-transparent" />
 
-                        {/* Status */}
-                        <div className="flex-shrink-0">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold border ${s.cls}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-                            {s.label}
+                  <div className="relative p-8">
+                    <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
+
+                      {/* Left — info */}
+                      <div className="flex-1 space-y-5">
+                        {/* Status badge */}
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#F37021]/15 border border-[#F37021]/30 rounded-full backdrop-blur-sm">
+                          <span className="w-2 h-2 rounded-full bg-[#F37021] animate-pulse shadow-sm shadow-[#F37021]" />
+                          <span className="text-[#F37021] text-[10px] font-bold uppercase tracking-[0.2em]">
+                            {isOngoing ? 'Kỳ thi đang diễn ra' : 'Kỳ thi sắp diễn ra'}
                           </span>
                         </div>
 
-                        {/* Action */}
-                        <div className="flex-shrink-0">
-                          {sub.status === 'GRADED' ? (
-                            <Link
-                              to={`/student/results/${sub.id}`}
-                              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#F37021]/10 text-[#F37021] font-bold text-xs hover:bg-[#F37021]/20 transition-colors border border-[#F37021]/20"
+                        {/* Tên kỳ thi + block */}
+                        <div>
+                          <h2 className="text-white text-2xl font-black leading-tight tracking-tight">
+                            {nearestBlock.examName}
+                          </h2>
+                          <p className="text-white/50 text-sm mt-1 font-medium">
+                            {nearestBlock.name}
+                            {nearestBlock.examSemester ? ` — ${nearestBlock.examSemester}` : ''}
+                          </p>
+                          {/* Thời gian thi */}
+                          <div className="mt-3 flex flex-wrap gap-3 text-xs text-white/40">
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px]">schedule</span>
+                              Bắt đầu: <span className="text-white/60 font-semibold ml-1">{fmtDate(nearestBlock.startTime)}</span>
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px]">timer_off</span>
+                              Kết thúc: <span className="text-white/60 font-semibold ml-1">{fmtDate(nearestBlock.endTime)}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* CTA — nút nộp bài */}
+                        {canSubmit ? (
+                          <Link
+                            to={`/student/submit?examId=${nearestBlock.examId}&blockId=${nearestBlock.blockId}`}
+                            className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-bold text-white text-sm
+                              bg-[#F37021] hover:bg-orange-500 shadow-xl shadow-[#F37021]/30 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                            Nộp bài ngay
+                            <span className="material-symbols-outlined text-[16px] ml-0.5">arrow_forward</span>
+                          </Link>
+                        ) : isExpired ? (
+                          <div className="flex flex-col gap-2">
+                            <button
+                              disabled
+                              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-bold text-red-300/60 text-sm
+                                bg-red-500/10 border border-red-500/20 cursor-not-allowed select-none"
                             >
-                              Xem kết quả
-                              <span className="material-symbols-outlined text-[14px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
-                            </Link>
+                              <span className="material-symbols-outlined text-[18px]">timer_off</span>
+                              Đã hết giờ nộp bài
+                            </button>
+                            <p className="text-white/30 text-xs">
+                              Hạn nộp đã kết thúc lúc <span className="text-red-400/70 font-semibold">{fmtDate(nearestBlock.endTime)}</span>
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-2">
+                            <button
+                              disabled
+                              className="inline-flex items-center gap-2.5 px-7 py-3.5 rounded-full font-bold text-white/40 text-sm
+                                bg-white/5 border border-white/10 cursor-not-allowed select-none"
+                            >
+                              <span className="material-symbols-outlined text-[18px]">lock_clock</span>
+                              Chưa tới giờ nộp bài
+                            </button>
+                            <p className="text-white/30 text-xs">
+                              Nút sẽ được mở khi đến <span className="text-[#F37021]/70 font-semibold">{fmtDate(nearestBlock.startTime)}</span>
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Right — Countdown */}
+                      <div className="flex-shrink-0">
+                        <div className="bg-white/5 border border-white/10 rounded-3xl px-7 py-6 text-center backdrop-blur-sm shadow-[0_12px_30px_rgba(0,0,0,0.25)]">
+                          <p className="text-white/30 text-[9px] uppercase tracking-[0.25em] font-bold mb-5">
+                            {isOngoing ? 'Thời gian còn lại' : 'Thời gian bắt đầu sau'}
+                          </p>
+                          {!countdown.expired ? (
+                            <div className="flex items-end gap-3">
+                              {countdown.days > 0 && (
+                                <>
+                                  <DigitBox value={countdown.days}  label="Ngày" />
+                                  <span className="text-white/20 text-3xl font-black mb-5 leading-none select-none">:</span>
+                                </>
+                              )}
+                              <DigitBox value={countdown.hours} label="Giờ"  />
+                              <span className="text-white/20 text-3xl font-black mb-5 leading-none select-none">:</span>
+                              <DigitBox value={countdown.mins}  label="Phút" />
+                              <span className="text-white/20 text-3xl font-black mb-5 leading-none select-none">:</span>
+                              <DigitBox value={countdown.secs}  label="Giây" />
+                            </div>
                           ) : (
-                            <span className="text-slate-300 text-sm">—</span>
+                            <p className="text-red-400 font-black text-lg">Đã hết hạn</p>
                           )}
+                          <p className="text-white/20 text-[10px] mt-5">
+                            {isOngoing
+                              ? `Hạn nộp: ${fmtDate(nearestBlock.endTime)}`
+                              : `Mở lúc: ${fmtDate(nearestBlock.startTime)}`}
+                          </p>
                         </div>
                       </div>
-                    );
-                  })}
 
-                  {submissions.length === 0 && (
-                    <div className="py-16 text-center">
-                      <div className="w-16 h-16 rounded-3xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
-                        <span className="material-symbols-outlined text-slate-300 text-3xl">upload_file</span>
-                      </div>
-                      <p className="text-slate-600 font-bold text-base">Chưa có lần nộp bài nào</p>
-                      <p className="text-slate-400 text-sm mt-1 mb-6">Hãy nộp bài trước hạn để đảm bảo kết quả của bạn.</p>
-                      <Link
-                        to="/student/submit"
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-[#F37021] text-white font-bold rounded-full hover:bg-orange-600 transition-all shadow-lg shadow-[#F37021]/25"
-                      >
-                        <span className="material-symbols-outlined text-lg">upload_file</span>
-                        Nộp bài ngay
-                      </Link>
                     </div>
-                  )}
+                  </div>
                 </div>
-              </div>
+              )}
             </section>
 
             {/* ═══════════════════════════════
-                SECTION 3 — Info cards
+                SECTION 2 — Info cards
             ═══════════════════════════════ */}
             <section className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-4">
               {[
@@ -471,7 +591,7 @@ const StudentDashboard = () => {
                   iconColor: 'text-sky-500',
                   dot: 'bg-sky-400',
                   title: 'Cấu trúc file',
-                  desc: 'File .zip phải có thư mục run/ (chứa .jar) và dist/ (source code Java).',
+                  desc: 'File .zip phải có thư mục run/ (chứa .jar) và src/ (source code Java).',
                 },
                 {
                   icon: 'psychology',
@@ -481,7 +601,7 @@ const StudentDashboard = () => {
                   iconColor: 'text-violet-500',
                   dot: 'bg-violet-400',
                   title: 'AI đánh giá OOP',
-                  desc: 'Gemini AI phân tích cấu trúc OOP sau khi Phòng khảo thí kích hoạt chấm.',
+                  desc: 'AI phân tích cấu trúc OOP sau khi Phòng khảo thí kích hoạt chấm.',
                 },
                 {
                   icon: 'gavel',
@@ -496,7 +616,7 @@ const StudentDashboard = () => {
               ].map((tip) => (
                 <div
                   key={tip.title}
-                  className={`bg-gradient-to-br ${tip.gradient} border ${tip.border} rounded-3xl p-5 flex gap-4 items-start hover:shadow-md transition-all duration-200 hover:-translate-y-0.5`}
+                  className={`bg-gradient-to-br ${tip.gradient} border ${tip.border} rounded-3xl p-5 flex gap-4 items-start hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}
                 >
                   <div className={`w-10 h-10 rounded-2xl ${tip.iconBg} flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm`}>
                     <span className={`material-symbols-outlined ${tip.iconColor} text-[20px]`}>{tip.icon}</span>
