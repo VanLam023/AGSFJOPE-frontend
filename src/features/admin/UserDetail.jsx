@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { ConfigProvider, Tabs, Input, Button, Select, message } from 'antd';
+import {
+  ConfigProvider,
+  Tabs,
+  Input,
+  Button,
+  Select,
+  Form,
+  message,
+} from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '../../components/layouts/MainLayout';
 import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils';
@@ -9,7 +17,7 @@ import {
   ADMIN_SIDEBAR_ITEMS_FLAT,
 } from '../../constants/sidebarItems';
 import { renderStatusPill } from '../../components/utils/Utils';
-import { useDeleteUser, useGetUserDetail } from '../../hooks';
+import { useDeleteUser, useGetUserDetail, useEditDetail } from '../../hooks';
 
 const ROLE_LABEL_VI = {
   STUDENT: 'Sinh viên',
@@ -17,7 +25,18 @@ const ROLE_LABEL_VI = {
   SYSTEM_ADMIN: 'Quản trị viên',
   EXAM_STAFF: 'Cán bộ khảo thí',
 };
-
+const ROLE_MAP = new Map([
+  ['STUDENT', 'Sinh viên'],
+  ['LECTURER', 'Giảng viên'],
+  ['SYSTEM_ADMIN', 'Quản trị viên'],
+  ['EXAM_STAFF', 'Cán bộ khảo thí'],
+]);
+const ROLE_MAP_REVERSE = new Map([
+  ['Sinh viên', 'STUDENT'],
+  ['Giảng viên', 'LECTURER'],
+  ['Quản trị viên', 'SYSTEM_ADMIN'],
+  ['Cán bộ khảo thí', 'EXAM_STAFF'],
+]);
 const formatDateVi = (iso) => {
   if (!iso) return '—';
   try {
@@ -38,15 +57,31 @@ const UserDetail = () => {
   const [notifCount] = useState(5);
   const { fetchUserDetail, loading, userDetail } = useGetUserDetail();
   const { callDeleteUserEndpoint, loading: deleteLoading } = useDeleteUser();
-  const user = userDetail;
-  const [isEdit, setIsEdit] = useState(false);
+  const { callEditUserEndpoint, loading: editLoading } = useEditDetail();
+  const [validationError, setValidationError] = useState(false);
 
+  const [form] = Form.useForm();
+  const user = userDetail;
   useEffect(() => {
     if (!userId) return;
     fetchUserDetail(userId);
   }, [userId]);
 
-  const roleDisplay = ROLE_LABEL_VI[user?.roleName] ?? user?.roleName ?? '—';
+  const [isEdit, setIsEdit] = useState(false);
+
+  // First time fetch
+  useEffect(() => {
+    form.setFieldsValue({
+      fullName: user?.fullName,
+      mssv: user?.mssv,
+      email: user?.email,
+      roleName: ROLE_MAP.get(`${user?.roleName}`),
+      phone: user?.phone,
+      username: user?.username,
+    });
+  }, [user]);
+
+  const roleDisplay = ROLE_LABEL_VI[user?.roleName] ?? user?.roleName;
   const roleOptions = Object.entries(ROLE_LABEL_VI).map(([value, label]) => ({
     value,
     label,
@@ -74,6 +109,57 @@ const UserDetail = () => {
     }
   };
 
+  const handleEdit = async () => {
+    const payload = Object.fromEntries(
+      Object.entries(form.getFieldsValue()).map(([key, value]) => [
+        key,
+        value.trim(),
+      ]),
+    );
+
+    if (Object.values(payload).some((value) => value === '')) {
+      message.warning('Vui lòng nhập đầy đủ thông tin người dùng.');
+      return;
+    }
+    const { roleName } = payload;
+    const roleToServer = ROLE_MAP_REVERSE.get(roleName);
+
+    try {
+      await callEditUserEndpoint({
+        userId,
+        ...payload,
+        roleName: roleToServer,
+      });
+      message.success('Cập nhật thông tin người dùng thành công.');
+
+      form.setFieldsValue({
+        fullName: '',
+        mssv: '',
+        email: '',
+        roleName: '',
+        phone: '',
+        username: '',
+      });
+
+      fetchUserDetail(userId);
+    } catch (err) {
+      if (err?.response?.data?.message) {
+        message.error(err.response.data.message);
+      }
+    }
+  };
+
+  // Reset back to original object
+  const handleCancel = () => {
+    form.setFieldsValue({
+      fullName: user?.fullName,
+      mssv: user?.mssv,
+      email: user?.email,
+      roleName: ROLE_MAP.get(`${user?.roleName}`),
+      phone: user?.phone,
+      username: user?.username,
+    });
+  };
   return (
     <MainLayout
       siderIcons={renderSiderIconsMaterialSymbol({ icons: ADMIN_ICONS })}
@@ -99,7 +185,10 @@ const UserDetail = () => {
         <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50">
           <div className="p-8 max-w-7xl mx-auto w-full space-y-6">
             <div className="flex items-center gap-2 text-sm text-slate-500">
-              <span className="hover:text-[#F37021] cursor-default">
+              <span
+                className="hover:text-[#F37021] cursor-pointer"
+                onClick={() => navigate(-1)}
+              >
                 Quản lý người dùng
               </span>
               <span>/</span>
@@ -198,7 +287,18 @@ const UserDetail = () => {
                         label: 'Thông tin cá nhân',
                         children: (
                           <div className="px-6 pb-6 space-y-8">
-                            <div>
+                            <Form
+                              form={form}
+                              name="detail"
+                              onFieldsChange={() => {
+                                const errors = form.getFieldsError();
+                                const hasErrors = errors.some(
+                                  (field) => field.errors.length !== 0,
+                                );
+
+                                setValidationError(hasErrors);
+                              }}
+                            >
                               <h3 className="flex items-center gap-2 text-base font-bold text-slate-800 mb-4">
                                 <span className="w-1 h-5 rounded-full bg-[#F37021]" />
                                 Thông tin tài khoản
@@ -208,67 +308,149 @@ const UserDetail = () => {
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                     Họ và tên
                                   </label>
-                                  <Input
-                                    size="large"
-                                    value={user?.fullName}
-                                    disabled={!isEdit}
-                                  />
+                                  <Form.Item
+                                    name="fullName"
+                                    rules={[
+                                      {
+                                        required: true,
+                                        message: 'Tên không được để trống',
+                                      },
+                                    ]}
+                                  >
+                                    <Input
+                                      size="large"
+                                      disabled={!isEdit}
+                                    />
+                                  </Form.Item>
                                 </div>
                                 <div>
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                     Mã số sinh viên (MSSV)
                                   </label>
-                                  <Input
-                                    size="large"
-                                    value={user?.mssv ?? ''}
-                                    disabled={!isEdit}
-                                  />
+                                  <Form.Item
+                                    name="mssv"
+                                    rules={[
+                                      {
+                                        required: true,
+                                        message:
+                                          'Mã số sinh viên không được để trống',
+                                      },
+                                    ]}
+                                  >
+                                    <Input
+                                      size="large"
+                                      disabled={!isEdit}
+                                    />
+                                  </Form.Item>
                                 </div>
+
                                 <div>
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                     Email FPT
                                   </label>
-                                  <Input
-                                    size="large"
-                                    value={user?.email}
-                                    disabled={!isEdit}
-                                  />
+                                  <Form.Item
+                                    name="email"
+                                    rules={[
+                                      {
+                                        required: true,
+                                        message: 'Email không được để trống',
+                                      },
+                                      ({ getFieldValue }) => ({
+                                        validator: (_, value) => {
+                                          if (
+                                            !value ||
+                                            getFieldValue('email').endsWith(
+                                              '@fpt.edu.vn',
+                                            )
+                                          ) {
+                                            return Promise.resolve();
+                                          }
+                                          return Promise.reject(
+                                            new Error(
+                                              'Email phải có đuôi @fpt.edu.vn',
+                                            ),
+                                          );
+                                        },
+                                      }),
+                                    ]}
+                                  >
+                                    <Input
+                                      size="large"
+                                      disabled={!isEdit}
+                                    />
+                                  </Form.Item>
                                 </div>
                                 <div>
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                     Vai trò
                                   </label>
-                                  <Select
+                                  {/* <Select
                                     className="w-full"
                                     size="large"
                                     options={roleOptions}
                                     value={user?.roleName}
                                     disabled={!isEdit}
-                                  />
+                                  /> */}
+                                  <Form.Item name="roleName">
+                                    <Input
+                                      className="w-full"
+                                      size="large"
+                                      disabled={true}
+                                    />
+                                  </Form.Item>
                                 </div>
                                 <div>
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                     Số điện thoại
                                   </label>
-                                  <Input
-                                    size="large"
-                                    value={user?.phone ?? ''}
-                                    placeholder="Chưa cập nhật"
-                                    disabled={!isEdit}
-                                  />
+                                  <Form.Item
+                                    name="phone"
+                                    rules={[
+                                      {
+                                        required: true,
+                                        message:
+                                          'Số điện thoại không được để trống',
+                                      },
+                                      ({ getFieldValue }) => ({
+                                        validator: (_, value) => {
+                                          if (!value) return Promise.resolve();
+                                          if (
+                                            value.length == 10 &&
+                                            value.match(/^\d+$/)
+                                          ) {
+                                            return Promise.resolve();
+                                          } else {
+                                            return Promise.reject(
+                                              new Error(
+                                                'Số điện thoại phải có đúng 10 chữ số',
+                                              ),
+                                            );
+                                          }
+                                        },
+                                      }),
+                                    ]}
+                                  >
+                                    <Input
+                                      size="large"
+                                      placeholder="Chưa cập nhật"
+                                      disabled={!isEdit}
+                                    />
+                                  </Form.Item>
                                 </div>
                                 <div>
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                     Tên đăng nhập
                                   </label>
-                                  <Input
-                                    size="large"
-                                    value={user?.username}
-                                    disabled={!isEdit}
-                                  />
+                                  <Form.Item name="username">
+                                    <Input
+                                      size="large"
+                                      // value={user?.username}
+                                      disabled={true}
+                                    />
+                                  </Form.Item>
                                 </div>
                               </div>
-                            </div>
+                            </Form>
 
                             <div>
                               <h3 className="flex items-center gap-2 text-base font-bold text-slate-800 mb-4">
@@ -296,7 +478,10 @@ const UserDetail = () => {
                               {isEdit ? (
                                 <Button
                                   size="large"
-                                  onClick={() => setIsEdit((prev) => !prev)}
+                                  onClick={() => {
+                                    setIsEdit((prev) => !prev);
+                                    handleCancel();
+                                  }}
                                 >
                                   Hủy
                                 </Button>
@@ -306,7 +491,11 @@ const UserDetail = () => {
                               <Button
                                 type="primary"
                                 size="large"
-                                onClick={() => setIsEdit((prev) => !prev)}
+                                disabled={validationError}
+                                onClick={() => {
+                                  setIsEdit((prev) => !prev);
+                                  if (isEdit) handleEdit();
+                                }}
                               >
                                 {isEdit ? 'Lưu thay đổi' : 'Chỉnh sửa'}
                               </Button>

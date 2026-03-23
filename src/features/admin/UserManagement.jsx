@@ -26,6 +26,7 @@ import {
   Upload,
   Empty,
   Tabs,
+  Form,
 } from 'antd';
 import {
   renderSiderIconsMaterialSymbol,
@@ -61,16 +62,12 @@ const UserManagement = () => {
   const [notifCount] = useState(5);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 500);
+  const [form] = Form.useForm();
+  const [validationError, setValidationError] = useState(true);
 
-  const [roleFilter, setRoleFilter] = useState(undefined);
-  const [statusFilter, setStatusFilter] = useState(undefined);
+  const [roleFilter, setRoleFilter] = useState();
+  const debouncedFilter = useDebounce(roleFilter, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newUserForm, setNewUserForm] = useState({
-    roleName: undefined,
-    email: '',
-    fullName: '',
-    mssv: '',
-  });
 
   const {
     fetchUsers,
@@ -98,15 +95,17 @@ const UserManagement = () => {
   } = useCreateUser();
 
   const createUserRoleOptions = Array.from(rolesMap.entries()).map(
-    ([value, label]) => ({
-      value,
-      label,
-    }),
+    ([value, label]) => {
+      return {
+        value,
+        label,
+      };
+    },
   );
 
   useEffect(() => {
-    fetchUsers({ search: debouncedQuery });
-  }, [debouncedQuery]);
+    fetchUsers({ search: debouncedQuery, roleName: debouncedFilter });
+  }, [debouncedQuery, debouncedFilter]);
 
   const USER_COLUMNS = useMemo(
     () => [
@@ -176,7 +175,9 @@ const UserManagement = () => {
           <div className="flex justify-center align-middle">
             <button
               className="bg-white border border-slate-300 text-slate-700 hover:text-[#F37021] hover:border-[#F37021] px-3 py-2 rounded-md text-xs font-bold transition-all shadow-sm"
-              onClick={() => navigate(`/admin/student-management/${record.userId}`)}
+              onClick={() =>
+                navigate(`/admin/student-management/${record.userId}`)
+              }
             >
               Xem chi tiết
             </button>
@@ -195,9 +196,7 @@ const UserManagement = () => {
     } catch (err) {
       onError(err);
       if (err.response) {
-        message.error(
-          `${err.response.data.message}`,
-        );
+        message.error(`${err.response.data.message}`);
       } else {
         message.error(`Lỗi mạng: ${err.message}`);
       }
@@ -205,19 +204,14 @@ const UserManagement = () => {
   };
 
   const handleCreateUser = async () => {
-    const payload = {
-      roleName: newUserForm.roleName,
-      email: newUserForm.email.trim(),
-      fullName: newUserForm.fullName.trim(),
-      mssv: newUserForm.mssv.trim(),
-    };
+    const payload = Object.fromEntries(
+      Object.entries(form.getFieldsValue()).map(([key, value]) => [
+        key,
+        value.trim(),
+      ]),
+    );
 
-    if (
-      !payload.roleName ||
-      !payload.email ||
-      !payload.fullName ||
-      !payload.mssv
-    ) {
+    if (Object.values(payload).some((value) => value === '')) {
       message.warning('Vui lòng nhập đầy đủ thông tin người dùng.');
       return;
     }
@@ -226,12 +220,7 @@ const UserManagement = () => {
       await callCreateUserEndpoint(payload);
       message.success('Tạo người dùng thành công.');
       setIsModalOpen(false);
-      setNewUserForm({
-        roleName: undefined,
-        email: '',
-        fullName: '',
-        mssv: '',
-      });
+
       fetchUsers({ search: debouncedQuery, page: 0, size: 8 });
     } catch (err) {
       if (err?.response?.data?.message) {
@@ -290,28 +279,20 @@ const UserManagement = () => {
               placeholder="Tìm kiếm theo tên, email, MSSV"
               value={query}
               onChange={(e) => {
-                console.log(e.target.value);
                 setQuery(e.target.value);
               }}
               allowClear
             />
             <Select
               className="flex-1 min-w-[200px]"
-              options={allRoles}
+              options={createUserRoleOptions}
               size="large"
               placeholder="Vai trò"
               allowClear
               value={roleFilter}
-              onChange={(v) => setRoleFilter(v)}
-            />
-            <Select
-              className="flex-1 min-w-[200px]"
-              options={allStatus}
-              size="large"
-              placeholder="Trạng thái"
-              allowClear
-              value={statusFilter}
-              onChange={(v) => setStatusFilter(v)}
+              onChange={(v) => {
+                setRoleFilter(v);
+              }}
             />
             <Button
               className="flex-1 min-w-[150px]"
@@ -335,12 +316,10 @@ const UserManagement = () => {
               <Table
                 rowKey="userId"
                 columns={USER_COLUMNS}
-                //dataSource={filteredUsers}
                 loading={usersLoading}
                 dataSource={users}
                 size="small"
                 pagination={{
-                  //total: totalPages,
                   total: totalItems,
                   current: currentPage,
                   pageSize: 8,
@@ -392,73 +371,115 @@ const UserManagement = () => {
                   key: 'single',
                   label: 'Thêm 1 người dùng',
                   children: (
-                    <div className="space-y-4 pt-2">
+                    <Form
+                      form={form}
+                      onFieldsChange={() => {
+                        const errors = form.getFieldsError();
+                        const hasErrors = errors.some(
+                          (field) => field.errors.length !== 0,
+                        );
+                        const values = Object.entries(form.getFieldsValue());
+                        const isEmpty = values.some(([key, value]) => {
+                          return value === '' || value === undefined;
+                        });
+                        setValidationError(hasErrors || isEmpty);
+                      }}
+                      className="space-y-4 pt-2"
+                    >
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                             Vai trò
                           </label>
-                          <Select
-                            className="w-full"
-                            size="middle"
-                            options={createUserRoleOptions}
-                            placeholder="Chọn vai trò"
-                            value={newUserForm.roleName}
-                            onChange={(v) =>
-                              setNewUserForm((prev) => ({
-                                ...prev,
-                                roleName: v,
-                              }))
-                            }
-                          />
+                          <Form.Item
+                            name="roleName"
+                            rules={[
+                              {
+                                required: true,
+                                message: 'Không được để trống',
+                              },
+                            ]}
+                          >
+                            <Select
+                              allowClear
+                              className="w-full"
+                              size="middle"
+                              options={createUserRoleOptions}
+                              placeholder="Chọn vai trò"
+                            />
+                          </Form.Item>
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                             MSSV
                           </label>
-                          <Input
-                            size="middle"
-                            placeholder="Nhập MSSV"
-                            value={newUserForm.mssv}
-                            onChange={(e) =>
-                              setNewUserForm((prev) => ({
-                                ...prev,
-                                mssv: e.target.value,
-                              }))
-                            }
-                          />
+                          <Form.Item
+                            name="mssv"
+                            rules={[
+                              {
+                                required: true,
+                                message: 'Mã số sinh viên không được để trống',
+                              },
+                            ]}
+                          >
+                            <Input
+                              size="middle"
+                              placeholder="Nhập MSSV"
+                            />
+                          </Form.Item>
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                             Họ và tên
                           </label>
-                          <Input
-                            size="middle"
-                            placeholder="Nhập họ và tên"
-                            value={newUserForm.fullName}
-                            onChange={(e) =>
-                              setNewUserForm((prev) => ({
-                                ...prev,
-                                fullName: e.target.value,
-                              }))
-                            }
-                          />
+                          <Form.Item
+                            name="fullName"
+                            rules={[
+                              {
+                                required: true,
+                                message: 'Tên không được để trống',
+                              },
+                            ]}
+                          >
+                            <Input
+                              size="middle"
+                              placeholder="Nhập họ và tên"
+                            />
+                          </Form.Item>
                         </div>
                         <div>
                           <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                             Email
                           </label>
-                          <Input
-                            size="middle"
-                            placeholder="Nhập email"
-                            value={newUserForm.email}
-                            onChange={(e) =>
-                              setNewUserForm((prev) => ({
-                                ...prev,
-                                email: e.target.value,
-                              }))
-                            }
-                          />
+                          <Form.Item
+                            name="email"
+                            rules={[
+                              {
+                                required: true,
+                                message: 'Email không được để trống',
+                              },
+                              ({ getFieldValue }) => ({
+                                validator: (_, value) => {
+                                  if (
+                                    !value ||
+                                    getFieldValue('email').endsWith(
+                                      '@fpt.edu.vn',
+                                    )
+                                  ) {
+                                    return Promise.resolve();
+                                  }
+                                  return Promise.reject(
+                                    new Error('Email phải có đuôi @fpt.edu.vn'),
+                                  );
+                                },
+                              }),
+                            ]}
+                          >
+                            <Input
+                              size="middle"
+                              placeholder="Nhập email"
+                            />
+                          </Form.Item>
                         </div>
                       </div>
                       <div className="flex items-center justify-end gap-2 pt-2">
@@ -469,11 +490,12 @@ const UserManagement = () => {
                           type="primary"
                           loading={createUserLoading}
                           onClick={handleCreateUser}
+                          disabled={validationError}
                         >
                           Thêm người dùng
                         </Button>
                       </div>
-                    </div>
+                    </Form>
                   ),
                 },
                 {

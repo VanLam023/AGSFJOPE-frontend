@@ -4,3 +4,4 @@ export { default as useDebounce } from './useDebounce.jsx';
 export { default as useCreateUser } from './useCreateUser.jsx';
 export { default as useGetUserDetail } from './useGetUserDetail.jsx';
 export { default as useDeleteUser } from './useDeleteUser.jsx';
+export { default as useEditDetail } from './useEditDetail.jsx';

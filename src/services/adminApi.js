@@ -36,8 +36,19 @@ const getUserDetail = (userId) => {
   return axiosClient.get(`/admin/users/${userId}`);
 };
 
+const editUserDetail = ({ userId, fullName, email, username, mssv, phone, roleName}) => {
+  return axiosClient.put(`/admin/users/${userId}`, {
+    fullName,
+    email,
+    username,
+    mssv,
+    phone,
+    roleName
+  });
+}
+
 const deleteUser = (userId) => {
   return axiosClient.delete(`/admin/users/${userId}`);
 };
 
-export { importExcel, createUser, getAllUsers, getUserDetail, deleteUser };
+export { importExcel, createUser, getAllUsers, getUserDetail, deleteUser, editUserDetail };

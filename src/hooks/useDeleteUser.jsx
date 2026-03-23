@@ -13,18 +13,17 @@ const useDeleteUser = () => {
 
     try {
       const res = await deleteUser(userId);
-      const isSuccess = res.success === true;
+      const isSuccess = res.data.success === true;
 
       if (!isSuccess) {
-        const err = new Error(res.message ?? 'Xóa người dùng thất bại.');
+        const err = new Error(res.data.message ?? 'Xóa người dùng thất bại.');
         err.response = res;
         throw err;
       }
-      console.log(res)
+
       setDeletedUser(res.data ?? null);
       return true;
     } catch (err) {
-      console.log(err)
       setError(err);
       throw err;
     } finally {
