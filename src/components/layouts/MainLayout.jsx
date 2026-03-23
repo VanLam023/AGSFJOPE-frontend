@@ -206,7 +206,7 @@ const MainLayout = ({
 
         <Layout>
           <Header
-            className={`${styles.header} border-b border-slate-200`}
+            className={`${styles.header} border-b border-slate-200 z-50`}
             style={{
               position: 'sticky',
               top: 0,
