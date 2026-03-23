@@ -109,6 +109,11 @@ export default function UpdateBlockModal({ block, onClose, onSuccess }) {
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2 text-amber-800 text-sm">
+            <span className="material-symbols-outlined text-[18px]">warning</span>
+            <p>Lưu ý: Bạn không thể cập nhật giờ khi còn dưới 1 tuần trước ngày thi diễn ra. Vui lòng cân nhắc trước khi cập nhật.</p>
+          </div>
+
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-2 text-red-700 text-sm">
               <span className="material-symbols-outlined text-[18px]">error</span>

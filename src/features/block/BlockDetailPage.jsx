@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { message } from 'antd';
 import examApi from '../../services/examApi';
 import blockApi from '../../services/blockApi';
+import gradingApi from '../../services/gradingApi';
 import UpdateBlockModal from './UpdateBlockModal.jsx';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -21,34 +23,82 @@ function fmtTime(value) {
   });
 }
 
+function getBlockScheduleLockMessage(block) {
+  const now = Date.now();
+
+  if (block?.endTime) {
+    const end = new Date(block.endTime);
+    if (!Number.isNaN(end.getTime()) && now > end.getTime()) {
+      return 'Kì thi đã qua không được chỉnh sửa thời gian ca thi';
+    }
+  }
+
+  if (block?.startTime) {
+    const start = new Date(block.startTime);
+    if (!Number.isNaN(start.getTime())) {
+      const lockAt = start.getTime() - (7 * 24 * 60 * 60 * 1000);
+      if (now >= lockAt) {
+        return 'Không thể chỉnh sửa lịch trong vòng 7 ngày trước khi ca thi bắt đầu.';
+      }
+    }
+  }
+
+  return '';
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function BlockDetailPage({ examId, blockId, onBack, onOpenUploadPaper }) {
+export default function BlockDetailPage({ examId, blockId, onBack, onOpenUploadPaper, onOpenSubmissions }) {
   const [exam,           setExam]           = useState(null);
   const [block,          setBlock]          = useState(null);
   const [loading,        setLoading]        = useState(true);
   const [error,          setError]          = useState('');
   const [editingBlock,   setEditingBlock]   = useState(null);  // mở UpdateBlockModal
+  const [subStats,       setSubStats]       = useState(null);  // { total, graded }
 
-  const loadData = useCallback(() => {
+  const handleClickUpdateSchedule = () => {
+    const lockMessage = getBlockScheduleLockMessage(block);
+    if (lockMessage) {
+      message.warning(lockMessage);
+      return;
+    }
+    setEditingBlock(block);
+  };
+
+  const loadData = useCallback(async () => {
     if (!examId || !blockId) return;
     setLoading(true);
     setError('');
+    try {
+      const [examRes, blockRes] = await Promise.all([
+        examApi.getById(examId),
+        blockApi.getById(examId, blockId),
+      ]);
+      setExam(examRes?.data  ?? examRes  ?? null);
+      setBlock(blockRes?.data ?? blockRes ?? null);
 
-    Promise.all([
-      examApi.getById(examId),
-      blockApi.getById(examId, blockId),
-    ])
-      .then(([examRes, blockRes]) => {
-        setExam(examRes?.data  ?? examRes  ?? null);
-        setBlock(blockRes?.data ?? blockRes ?? null);
-      })
-      .catch(() => {
-        setError('Không thể tải thông tin block. Vui lòng thử lại.');
-        setExam(null);
-        setBlock(null);
-      })
-      .finally(() => setLoading(false));
+      // Fetch tiến độ nộp bài — dùng progress endpoint (có totalSubmissions kể cả chưa chấm)
+      try {
+        const pRes = await gradingApi.getProgress(examId, blockId);
+        const prog = pRes?.data ?? pRes;
+        setSubStats({
+          total:   prog?.totalSubmissions ?? 0,
+          graded:  prog?.gradedCount      ?? 0,
+          grading: prog?.gradingCount     ?? 0,
+          pending: prog?.pendingCount     ?? 0,
+          pct:     prog?.progressPercent  ?? 0,
+        });
+      } catch {
+        // Chưa có grading session nào → giữ null
+        setSubStats(null);
+      }
+    } catch {
+      setError('Không thể tải thông tin block. Vui lòng thử lại.');
+      setExam(null);
+      setBlock(null);
+    } finally {
+      setLoading(false);
+    }
   }, [examId, blockId]);
 
   useEffect(() => { loadData(); }, [loadData]);
@@ -179,7 +229,7 @@ export default function BlockDetailPage({ examId, blockId, onBack, onOpenUploadP
                     {/* Chỉnh sửa lịch thi */}
                     <button
                       type="button"
-                      onClick={() => setEditingBlock(block)}
+                      onClick={handleClickUpdateSchedule}
                       className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl border border-slate-300
                                  text-slate-600 text-sm font-bold hover:bg-slate-50 hover:border-slate-400
                                  transition-all shadow-sm hover:shadow"
@@ -202,46 +252,87 @@ export default function BlockDetailPage({ examId, blockId, onBack, onOpenUploadP
               </div>
 
             </div>
-
-            {/* Questions placeholder */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
-              <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-4">Danh sách câu hỏi</h4>
-              {block?.hasPaper ? (
-                <div className="rounded-2xl border border-blue-100 p-5 bg-gradient-to-r from-blue-50/80 to-indigo-50/70 text-sm text-blue-700 shadow-sm">
-                  Đề thi đã được upload. Danh sách câu hỏi sẽ được hiển thị tại đây.
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-slate-200 p-5 bg-slate-50/60 text-sm text-slate-500">
-                  Chưa có dữ liệu câu hỏi. Hãy upload đề thi để hiển thị danh sách câu hỏi và test case.
-                </div>
-              )}
-            </div>
           </div>
 
           {/* ─── Right sidebar ─── */}
           <div className="space-y-6">
             <div className="bg-white rounded-3xl shadow-[0_16px_40px_rgba(15,23,42,0.10)] border border-orange-100/60 p-6 flex flex-col gap-6 sticky top-24">
 
-              {/* Submission stats — placeholder until API available */}
+              {/* Submission stats — real data from grading/results */}
               <div className="space-y-4">
                 <h4 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Tiến độ nộp bài</h4>
-                <div className="flex items-end justify-between">
-                  <div className="flex flex-col">
-                    <span className="text-4xl font-black text-slate-900 leading-none">—</span>
-                    <span className="text-xs text-slate-500">Sinh viên đã hoàn thành</span>
+                {subStats === null ? (
+                  // Chưa có dữ liệu
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-end justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-4xl font-black text-slate-300 leading-none">—</span>
+                        <span className="text-xs text-slate-400">Chưa có dữ liệu</span>
+                      </div>
+                      <span className="text-2xl font-extrabold text-slate-300">—%</span>
+                    </div>
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-slate-200 w-0 rounded-full" />
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-2xl font-extrabold text-slate-400">—%</span>
+                ) : (
+                  <div className="flex flex-col gap-3">
+                    {/* Tổng bài nộp + % đã chấm */}
+                    <div className="flex items-end justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-4xl font-black text-slate-900 leading-none">{subStats.total}</span>
+                        <span className="text-xs text-slate-500 mt-0.5">Bài đã nộp</span>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-2xl font-extrabold ${subStats.pct === 100 ? 'text-emerald-500' : subStats.pct > 0 ? 'text-amber-500' : 'text-slate-400'}`}>
+                          {subStats.pct}%
+                        </span>
+                        <p className="text-[10px] text-slate-400">đã chấm xong</p>
+                      </div>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${subStats.pct === 100 ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                        style={{ width: `${subStats.pct}%` }}
+                      />
+                    </div>
+                    {/* Chi tiết 3 trạng thái */}
+                    <div className="flex flex-col gap-1 text-xs text-slate-500">
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                          Đã chấm xong:
+                        </span>
+                        <span className="font-bold text-slate-700">{subStats.graded}</span>
+                      </div>
+                      {subStats.grading > 0 && (
+                        <div className="flex items-center justify-between">
+                          <span className="flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                            Đang chấm:
+                          </span>
+                          <span className="font-bold text-slate-700">{subStats.grading}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full bg-slate-200" />
+                          Chờ chấm:
+                        </span>
+                        <span className="font-bold text-slate-700">{subStats.pending}</span>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 w-0 rounded-full" />
-                </div>
+                )}
               </div>
 
               {/* Actions */}
               <div className="space-y-3 pt-2">
-                <button className="w-full bg-gradient-to-r from-[#F37120] to-orange-500 hover:from-orange-600 hover:to-orange-600 text-white font-bold py-3
+                <button
+                  type="button"
+                  onClick={() => onOpenSubmissions?.(blockId)}
+                  className="w-full bg-gradient-to-r from-[#F37120] to-orange-500 hover:from-orange-600 hover:to-orange-600 text-white font-bold py-3
                                    rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-orange-500/25 active:scale-95">
                   <span className="material-symbols-outlined">list_alt</span>
                   Xem danh sách bài nộp

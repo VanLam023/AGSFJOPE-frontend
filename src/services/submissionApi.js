@@ -45,6 +45,18 @@ const submissionApi = {
     axiosClient.get(`/exams/${examId}/blocks/${blockId}/submission/download`, {
       responseType: 'blob',
     }),
+
+  /**
+   * Lấy toàn bộ danh sách bài nộp của một block (EXAM_STAFF / SYSTEM_ADMIN) có phân trang.
+   * GET /api/exams/{examId}/blocks/{blockId}/submissions
+   *
+   * @param {string} examId
+   * @param {string} blockId
+   * @param {Object} params  - { page=0, size=20, search='', status='' }
+   * @returns {Promise<{ success, message, data: SubmissionListItemResponse[], pagination }>}
+   */
+  getBlockSubmissions: (examId, blockId, params = {}) =>
+    axiosClient.get(`/exams/${examId}/blocks/${blockId}/submissions`, { params }),
 };
 
 export default submissionApi;
