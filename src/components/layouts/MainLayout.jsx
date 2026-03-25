@@ -93,7 +93,14 @@ const MainLayout = ({
   }, [collapsed, siderItems, siderIcons]);
 
   const selectedKey = useMemo(() => {
-    return findKeyByPath(menuItems, location.pathname) ?? '1';
+    return (
+      findKeyByPath(
+        menuItems,
+        location.pathname.split('/').length === 4
+          ? location.pathname.split('/').slice(0, -1).join('/')
+          : location.pathname,
+      ) ?? '1'
+    );
   }, [menuItems, location.pathname]);
 
   useEffect(() => {
