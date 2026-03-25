@@ -12,8 +12,10 @@ import ExamStaffDashboard from '../../features/exam-staff/ExamStaffDashboard.jsx
 import SystemAdminDashboard from '../../features/admin/SystemAdminDashboard.jsx';
 import SystemAdminDashboardOld from '../../features/admin/SystemAdminDashboardOld.jsx';
 import UserManagement from '../../features/admin/UserManagement.jsx';
+import PayOSConfigurationPage from '../../features/admin/PayOSConfigurationPage.jsx';
 
-import ProtectedRoute, { ROLE_HOME_MAP } from './ProtectedRoute.jsx';
+import ProtectedRoute from './ProtectedRoute.jsx';
+import { ROLE_HOME_MAP } from '../../constants/routes.js';
 import { useAuth } from '../context/authContext.js';
 import VerifyAccount from '../../features/auth/VerifyAccount.jsx';
 import UserDetail from '../../features/admin/UserDetail.jsx';
@@ -218,6 +220,15 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}>
             <UserDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/payos-configuration"
+        element={
+          <ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}>
+            <PayOSConfigurationPage />
           </ProtectedRoute>
         }
       />
