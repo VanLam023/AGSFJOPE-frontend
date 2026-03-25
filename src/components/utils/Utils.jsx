@@ -218,6 +218,12 @@ const mapRoleFromApi = (role) => {
 const mapUsersFromApi = (users) =>
   users.map((user, index) => mapUserFromApi({ user, index }));
 
+const trimPayload = (payload) => {
+  return Object.fromEntries(
+    Object.entries(payload).map(([key, value]) => [key, value.trim()]),
+  );
+};
+
 export {
   renderSiderIcons,
   renderSiderIconsMaterialSymbol,
@@ -228,4 +234,5 @@ export {
   renderRolePill,
   renderStatusPill,
   mapUsersFromApi,
+  trimPayload,
 };
