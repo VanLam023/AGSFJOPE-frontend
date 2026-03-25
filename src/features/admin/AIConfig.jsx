@@ -21,6 +21,7 @@ const AIConfig = () => {
   const [form] = Form.useForm();
   const [validationError, setValidationError] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
+  const [connectionTestPassed, setConnectionTestPassed] = useState(false);
   const {
     callGetAIConfigEndpoint,
     config: fetchedConfig,
@@ -67,17 +68,17 @@ const AIConfig = () => {
     try {
       const res = await callTestConnectionEndpoint(payload);
 
-      // message.success(
-      //   res.message.split(':')[1] + '. Vui lòng kiểm tra lại API key',
-      // );
       if (res.data.errorMessage) {
-        message.success(
+        setConnectionTestPassed(false);
+        message.error(
           res.message.split(':')[1] + '. Vui lòng kiểm tra lại API key',
         );
       } else {
+        setConnectionTestPassed(true);
         message.success(res.message.split(':')[1]);
       }
     } catch (err) {
+      setConnectionTestPassed(false);
       if (err.response.data.message) {
         message.error(
           err.response.data.message + '. Vui lòng kiểm tra lại API key',
@@ -92,7 +93,6 @@ const AIConfig = () => {
     try {
       const res = await callEditAIConfigEndpoint(payload);
 
-      //message.success('Cập nhật cấu hình AI thành công.');
       message.success(res.message.split(':')[1]);
 
       callGetAIConfigEndpoint();
@@ -111,6 +111,7 @@ const AIConfig = () => {
       language: config.language,
     });
     setValidationError(false);
+    setConnectionTestPassed(false);
   };
 
   return (
@@ -239,40 +240,59 @@ const AIConfig = () => {
                     <Button
                       size="large"
                       onClick={() => {
-                        setIsEdit((prev) => !prev);
+                        setIsEdit(false);
                         handleCancel();
                       }}
                     >
                       Hủy
                     </Button>
 
-                    <Button
-                      onClick={handleTestConnection}
-                      style={{ borderColor: '#F37021', color: '#F37021' }}
-                    >
-                      Test kết nối
-                    </Button>
+                    {!connectionTestPassed ? (
+                      <Button
+                        size="large"
+                        onClick={handleTestConnection}
+                        loading={testConnectionLoading}
+                        style={{ borderColor: '#F37021', color: '#F37021' }}
+                        disabled={validationError}
+                      >
+                        Test kết nối
+                      </Button>
+                    ) : (
+                      <Button
+                        size="large"
+                        type="primary"
+                        onClick={async () => {
+                          await handleEdit();
+                          setIsEdit(false);
+                          setConnectionTestPassed(false);
+                        }}
+                        loading={editConfigLoading}
+                        disabled={validationError}
+                      >
+                        Lưu cấu hình
+                      </Button>
+                    )}
                   </>
                 )}
-                <Button
-                  type="primary"
-                  // loading={createUserLoading}
-                  // onClick={handleCreateUser}
-                  onClick={() => {
-                    setIsEdit((prev) => !prev);
-                    if (isEdit) handleEdit();
-                  }}
-                  disabled={validationError}
-                >
-                  {isEdit ? 'Lưu cấu hình' : 'Cập nhật cấu hình'}
-                </Button>
+                {!isEdit && (
+                  <Button
+                    type="primary"
+                    size="large"
+                    onClick={() => {
+                      setIsEdit(true);
+                      setConnectionTestPassed(false);
+                    }}
+                  >
+                    Cập nhật cấu hình
+                  </Button>
+                )}
               </div>
             </div>
           </CardContainer>
-
+          {/* 
           <CardContainer>
             <div>Placeholder</div>
-          </CardContainer>
+          </CardContainer> */}
         </div>
       </ConfigProvider>
     </MainLayout>

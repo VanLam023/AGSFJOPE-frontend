@@ -19,6 +19,7 @@ import { ROLE_HOME_MAP } from '../../constants/routes.js';
 import { useAuth } from '../context/authContext.js';
 import VerifyAccount from '../../features/auth/VerifyAccount.jsx';
 import UserDetail from '../../features/admin/UserDetail.jsx';
+import SystemConfig from '../../features/admin/SystemConfig.jsx';
 import AIConfig from '../../features/admin/AIConfig.jsx';
 
 const normalizeRole = (role) =>
@@ -243,6 +244,14 @@ export default function AppRoutes() {
         }
       />
 
+      <Route
+        path="/admin/system-config"
+        element={
+          <ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}>
+            <SystemConfig />
+          </ProtectedRoute>
+        }
+      />
       {/* Route lạ */}
       <Route
         path="*"

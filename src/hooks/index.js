@@ -8,3 +8,5 @@ export { default as useEditDetail } from './useEditDetail.jsx';
 export { default as useGetAIConfig } from './useGetAIConfig.jsx';
 export { default as useUpdateAIConfig } from './useUpdateAIConfig.jsx';
 export { default as useTestConnection } from './useTestConnection.jsx';
+export { default as useGetSystemConfig } from './useGetSystemConfig.jsx';
+export { default as useGetSystemGradingModes } from './useGetSystemGradingModes.jsx';

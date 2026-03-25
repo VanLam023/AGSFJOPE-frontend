@@ -45,7 +45,8 @@ export const ADMIN_SIDEBAR_ITEMS_FLAT = [
   { key: '6', label: 'Model AI', to: '/admin/ai-config' },
   {
     key: '7',
-    label: 'Settings',
+    label: 'Hệ thống',
+    to: '/admin/system-config',
   },
 ];
 
@@ -81,7 +82,8 @@ export const ADMIN_SIDEBAR_ITEMS = [
       { key: '6', label: 'Model AI', to: '/admin/ai-config' },
       {
         key: '7',
-        label: 'Settings',
+        label: 'Hệ thống',
+        to: '/admin/system-config',
       },
     ],
   },

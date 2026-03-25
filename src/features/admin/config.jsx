@@ -53,24 +53,3 @@ export {
   LANGUAGE,
   AI_PROVIDER_MODELS,
 };
-
-// const aiProviders = [
-//   ["gemini", "Google Gemini"],
-//   ["google", "Google Gemini"],
-//   ["google-ai-studio", "Google AI Studio (Gemini)"],
-
-//   ["openai", "OpenAI"],
-//   ["chatgpt", "OpenAI ChatGPT"],
-
-//   ["openrouter", "OpenRouter"],
-//   ["deepseek", "DeepSeek"],
-//   ["mistral", "Mistral AI"],
-
-//   ["xai", "xAI (Grok)"],
-//   ["grok", "xAI Grok"],
-
-//   ["claude", "Anthropic Claude"],
-//   ["anthropic", "Anthropic Claude"],
-
-//   ["cohere", "Cohere"]
-// ];

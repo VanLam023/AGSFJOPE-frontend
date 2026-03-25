@@ -45,6 +45,15 @@ const editUserDetail = ({
   phone,
   roleName,
 }) => {
+const editUserDetail = ({
+  userId,
+  fullName,
+  email,
+  username,
+  mssv,
+  phone,
+  roleName,
+}) => {
   return axiosClient.put(`/admin/users/${userId}`, {
     fullName,
     email,
@@ -52,7 +61,9 @@ const editUserDetail = ({
     mssv,
     phone,
     roleName,
+    roleName,
   });
+};
 };
 
 const deleteUser = (userId) => {
@@ -80,6 +91,14 @@ const testAIConnection = ({ provider, model, apiKey }) => {
   });
 };
 
+const getSystemConfig = () => {
+  return axiosClient.get('/admin/config/system');
+};
+
+const getSystemGradingModes = () => {
+  return axiosClient.get('/admin/config/grading-modes');
+};
+
 export {
   importExcel,
   createUser,
@@ -90,4 +109,6 @@ export {
   getApiConfig,
   updateAiConfig,
   testAIConnection,
+  getSystemConfig,
+  getSystemGradingModes,
 };
