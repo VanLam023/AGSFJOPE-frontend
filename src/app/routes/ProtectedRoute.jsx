@@ -1,12 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/authContext.js';
-
-export const ROLE_HOME_MAP = {
-  SYSTEM_ADMIN: '/admin',
-  EXAM_STAFF: '/exam-staff',
-  LECTURER: '/lecturer',
-  STUDENT: '/student',
-};
+import { ROLE_HOME_MAP } from '../../constants/routes.js';
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
