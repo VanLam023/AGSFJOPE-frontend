@@ -4,7 +4,7 @@ import blockApi from '../../services/blockApi';
 import examApi from '../../services/examApi';
 import submissionApi from '../../services/submissionApi';
 import configApi from '../../services/configApi';
-
+import StudentLayout from '../../components/layouts/student';
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmtSize(bytes) {
   if (!bytes) return '0 B';
