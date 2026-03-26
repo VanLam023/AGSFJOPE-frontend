@@ -1,44 +1,44 @@
-import { Layout, Button, Menu, ConfigProvider } from 'antd';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { MenuUnfoldOutlined, MenuFoldOutlined } from '@ant-design/icons';
+import { Layout, Button, Menu, ConfigProvider } from "antd";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { MenuUnfoldOutlined, MenuFoldOutlined } from "@ant-design/icons";
 import React, {
   useState,
   useRef,
   useEffect,
   useMemo,
   useCallback,
-} from 'react';
-import styles from './MainLayout.module.css';
-import logoImg from '../../assets/logo.svg';
-import { Bell } from 'lucide-react';
-import { useAuth } from '../../app/context/authContext';
-import { sidebarItemsWithMaterialIcons } from '../utils/Utils';
-import axiosClient from '../../services/axiosClient';
+} from "react";
+import styles from "./MainLayout.module.css";
+import logoImg from "../../assets/logo.svg";
+import NotificationBell from "../notifications/NotificationBell";
+import { useAuth } from "../../app/context/authContext";
+import { sidebarItemsWithMaterialIcons } from "../utils/Utils";
+import axiosClient from "../../services/axiosClient";
 
 const { Header, Content, Sider } = Layout;
 
 const siderStyle = {
-  overflow: 'hidden',
-  height: '100vh',
-  position: 'sticky',
+  overflow: "hidden",
+  height: "100vh",
+  position: "sticky",
   insetInlineStart: 0,
   top: 0,
-  scrollbarWidth: 'thin',
-  scrollbarGutter: 'stable',
+  scrollbarWidth: "thin",
+  scrollbarGutter: "stable",
 };
 
 const ROLE_LABELS = {
-  SYSTEM_ADMIN: 'Quản trị',
-  ADMIN: 'Quản trị',
-  EXAM_STAFF: 'Khảo thí',
-  STAFF: 'Khảo thí',
-  LECTURER: 'Giảng viên',
-  TEACHER: 'Giảng viên',
-  STUDENT: 'Sinh viên',
+  SYSTEM_ADMIN: "Quản trị",
+  ADMIN: "Quản trị",
+  EXAM_STAFF: "Khảo thí",
+  STAFF: "Khảo thí",
+  LECTURER: "Giảng viên",
+  TEACHER: "Giảng viên",
+  STUDENT: "Sinh viên",
 };
 
 const normalizeRole = (role) =>
-  typeof role === 'string' ? role.trim().toUpperCase() : '';
+  typeof role === "string" ? role.trim().toUpperCase() : "";
 
 const findKeyByPath = (items, pathname) => {
   for (const item of items) {
@@ -69,13 +69,13 @@ const MainLayout = ({
   const { user, logout } = useAuth();
 
   const roleKey = normalizeRole(user?.roleName ?? user?.role);
-  const roleLabel = roleKey ? (ROLE_LABELS[roleKey] ?? roleKey) : 'Người dùng';
-  const userDisplay = user?.fullName ?? user?.username ?? 'Người dùng';
+  const roleLabel = roleKey ? (ROLE_LABELS[roleKey] ?? roleKey) : "Người dùng";
+  const userDisplay = user?.fullName ?? user?.username ?? "Người dùng";
   const userSubText = user?.email ?? user?.username ?? roleLabel;
 
   const menuItems = useMemo(() => {
     const items =
-      typeof siderItems === 'function' ? siderItems({ collapsed }) : siderItems;
+      typeof siderItems === "function" ? siderItems({ collapsed }) : siderItems;
 
     const attachLink = (item) => ({
       ...item,
@@ -96,10 +96,10 @@ const MainLayout = ({
     return (
       findKeyByPath(
         menuItems,
-        location.pathname.split('/').length === 4
-          ? location.pathname.split('/').slice(0, -1).join('/')
+        location.pathname.split("/").length === 4
+          ? location.pathname.split("/").slice(0, -1).join("/")
           : location.pathname,
-      ) ?? '1'
+      ) ?? "1"
     );
   }, [menuItems, location.pathname]);
 
@@ -113,8 +113,8 @@ const MainLayout = ({
       }
     };
 
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
   const handleLogout = useCallback(async () => {
@@ -126,14 +126,14 @@ const MainLayout = ({
     try {
       // Backend: POST /api/auth/logout
       // axiosClient đã tự gắn Authorization: Bearer <token>
-      await axiosClient.post('/auth/logout');
+      await axiosClient.post("/auth/logout");
     } catch (error) {
       // Dù backend logout lỗi thì vẫn xóa session local để tránh user bị kẹt
-      console.error('Logout API failed:', error);
+      console.error("Logout API failed:", error);
     } finally {
       logout(); // xóa token + user trong AuthContext hiện tại
-      localStorage.removeItem('refreshToken'); // backend có revoke refresh token, frontend cũng nên xóa local
-      navigate('/login', { replace: true });
+      localStorage.removeItem("refreshToken"); // backend có revoke refresh token, frontend cũng nên xóa local
+      navigate("/login", { replace: true });
       setLoggingOut(false);
     }
   }, [loggingOut, logout, navigate]);
@@ -143,21 +143,21 @@ const MainLayout = ({
       theme={{
         components: {
           Menu: {
-            itemColor: '#CBD5E1',
-            itemSelectedColor: '#F37021',
-            itemSelectedBg: '#291D1A',
-            itemHoverBg: 'rgba(255, 255, 255, 0.1)',
-            itemHoverColor: '#ffffff',
+            itemColor: "#CBD5E1",
+            itemSelectedColor: "#F37021",
+            itemSelectedBg: "#291D1A",
+            itemHoverBg: "rgba(255, 255, 255, 0.1)",
+            itemHoverColor: "#ffffff",
             collapsedWidth: 10,
-            groupTitleColor: '#A1A1AA',
+            groupTitleColor: "#A1A1AA",
             collapsedIconSize: 20,
           },
           Layout: {
-            siderBg: '#2D2D2D',
+            siderBg: "#2D2D2D",
           },
           Button: {
-            colorPrimaryHover: '#F37021E6',
-            colorPrimaryActive: '#D95F19',
+            colorPrimaryHover: "#F37021E6",
+            colorPrimaryActive: "#D95F19",
           },
         },
       }}
@@ -173,22 +173,14 @@ const MainLayout = ({
           <div className="flex flex-col h-full">
             {!collapsed ? (
               <div className={styles.logoWrapper}>
-                <img
-                  src={logoImg}
-                  alt="Logo"
-                  className={styles.logo}
-                />
+                <img src={logoImg} alt="Logo" className={styles.logo} />
                 <div className={collapsed ? styles.fadeOut : styles.fadeIn}>
                   <h1 className="font-bold">Chấm bài OOP</h1>
                   <p>{roleLabel}</p>
                 </div>
               </div>
             ) : (
-              <img
-                src={logoImg}
-                alt="Logo"
-                className={styles.logoCollapsed}
-              />
+              <img src={logoImg} alt="Logo" className={styles.logoCollapsed} />
             )}
 
             <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-b border-slate-600" />
@@ -203,7 +195,7 @@ const MainLayout = ({
             {actionBtn && (
               <div className="px-4 pb-3 mt-auto">
                 <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-t border-slate-600" />
-                {typeof actionBtn === 'function'
+                {typeof actionBtn === "function"
                   ? actionBtn({ collapsed })
                   : actionBtn}
               </div>
@@ -215,7 +207,7 @@ const MainLayout = ({
           <Header
             className={`${styles.header} border-b border-slate-200 z-50`}
             style={{
-              position: 'sticky',
+              position: "sticky",
               top: 0,
               zIndex: 1,
             }}
@@ -225,25 +217,20 @@ const MainLayout = ({
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
               style={{
-                fontSize: '16px',
+                fontSize: "16px",
                 width: 36,
                 height: 36,
-                position: 'relative',
+                position: "relative",
                 left: 32,
               }}
             />
 
             <div className={styles.uti}>
-              <Button
-                shape="circle"
-                color="default"
-                variant="filled"
-                icon={<Bell size="16px" />}
-              >
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#F37021] text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                  {notifCount}
-                </span>
-              </Button>
+              <NotificationBell
+                fallbackCount={notifCount}
+                buttonClassName="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:text-[#F37021] hover:bg-[#fff7f2] shadow-none"
+                iconClassName="h-4 w-4"
+              />
 
               <div className={styles.divider} />
 
@@ -269,7 +256,7 @@ const MainLayout = ({
                     className={`aspect-square w-10 rounded-full bg-slate-200 
                       ring-2 transition-all cursor-pointer
                       bg-cover bg-center bg-no-repeat
-                      ${headerDropdownOpen ? 'ring-[#F37021]' : 'ring-[#F37021]/20 group-hover:ring-[#F37021]/50'}`}
+                      ${headerDropdownOpen ? "ring-[#F37021]" : "ring-[#F37021]/20 group-hover:ring-[#F37021]/50"}`}
                     style={{
                       backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuCo9OzzsHT5Aj1roCt7Nv_ABU8KJRL7UBksbvyl8DFixLZmQ2vxz3SsOFXyWhWJCalc9K3AabCLNaCf3_kDh_9QDIhAzQ9qnUcXAFaH_lfs_mFpcJlPc1CQT9aYTuqZuXXIetZeDRKzu4GYopfz4IUuSuD26s3zs6lAxoPlSBwDwLZQucu91YX_cVtzA-0EIEaY6lqafYO2RGLh7Z6wYmcYsdUmozJEK5oFY4fPidEncDwgS9et7v3C6xbKSoT7OE1y69DF5Fm9bxNd")`,
                     }}
@@ -304,7 +291,7 @@ const MainLayout = ({
                       <span className="material-symbols-outlined text-[18px]">
                         logout
                       </span>
-                      {loggingOut ? 'Đang đăng xuất...' : 'Đăng xuất'}
+                      {loggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
                     </button>
                   </div>
                 )}
