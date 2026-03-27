@@ -256,7 +256,6 @@ export {
   renderRolePill,
   renderStatusPill,
   renderBooleanPill,
-  renderBooleanPill,
   mapUsersFromApi,
   trimPayload,
 };
