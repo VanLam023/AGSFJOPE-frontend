@@ -13,11 +13,16 @@ import {
   Form,
   Input,
   InputNumber,
+  message,
   Select,
 } from 'antd';
 import CardContainer from '../../components/CardContainer';
 import { renderBooleanPill } from '../../components/utils/Utils';
-import { useGetSystemConfig, useGetSystemGradingModes } from '../../hooks';
+import {
+  useGetSystemConfig,
+  useGetSystemGradingModes,
+  useUpdateSystemConfig,
+} from '../../hooks';
 
 const SystemConfig = () => {
   const [notifCount] = useState(5);
@@ -36,6 +41,12 @@ const SystemConfig = () => {
     data: gradingModesResponse,
     loading: getGradingModesLoading,
   } = useGetSystemGradingModes();
+  const { callUpdateSystemConfigEndpoint, loading: updateSystemConfigLoading } =
+    useUpdateSystemConfig();
+
+  const isFptEmail = (value) => {
+    return value.endsWith('@fpt.edu.vn');
+  };
 
   useEffect(() => {
     callGetSystemConfigEndpoint();
@@ -57,6 +68,7 @@ const SystemConfig = () => {
       smtpHost: systemData?.smtpHost,
       smtpPort: systemData?.smtpPort,
       smtpUsername: systemData?.smtpUsername,
+      smtpPassword: '',
       smtpFromEmail: systemData?.smtpFromEmail,
       defaultGradingMode:
         systemData?.defaultGradingMode ?? defaultModeFromModes,
@@ -65,18 +77,41 @@ const SystemConfig = () => {
 
   const handleCancel = () => {
     const systemData = config?.data ?? null;
-    const defaultModeFromModes = gradingModesResponse?.defaultMode;
+    const defaultModeFromModes = gradingModesResponse?.data?.defaultMode;
     form.setFieldsValue({
       maxUploadSizeMb: systemData?.maxUploadSizeMb,
       maxExamPaperMb: systemData?.maxExamPaperMb,
       smtpHost: systemData?.smtpHost,
       smtpPort: systemData?.smtpPort,
       smtpUsername: systemData?.smtpUsername,
+      smtpPassword: '',
       smtpFromEmail: systemData?.smtpFromEmail,
       defaultGradingMode:
         systemData?.defaultGradingMode ?? defaultModeFromModes,
     });
     setValidationError(false);
+  };
+
+  const handleEdit = async () => {
+    const payload = Object.fromEntries(
+      Object.entries(form.getFieldsValue()).map(([key, value]) => [
+        key,
+        typeof value === 'string' ? value.trim() : value,
+      ]),
+    );
+
+    try {
+      const res = await callUpdateSystemConfigEndpoint(payload);
+      message.success(res.message.split(':')[1]);
+      setIsEdit(false);
+      setValidationError(false);
+      callGetSystemConfigEndpoint();
+      callGetSystemGradingModesEndpoint();
+    } catch (err) {
+      message.error(
+        err?.response?.message || 'Cập nhật cấu hình hệ thống thất bại.',
+      );
+    }
   };
 
   const selectedMode = Form.useWatch('defaultGradingMode', form);
@@ -117,15 +152,17 @@ const SystemConfig = () => {
                 form={form}
                 layout="vertical"
                 disabled={
-                  !isEdit || getSystemConfigLoading || getGradingModesLoading
+                  !isEdit ||
+                  getSystemConfigLoading ||
+                  getGradingModesLoading ||
+                  updateSystemConfigLoading
                 }
                 onFieldsChange={() => {
                   const errors = form.getFieldsError();
                   const hasErrors = errors.some(
                     (field) => field.errors.length !== 0,
                   );
-                  // setValidationError(hasErrors);
-                  setValidationError(false);
+                  setValidationError(hasErrors);
                 }}
                 className="-space-y-2"
               >
@@ -158,6 +195,17 @@ const SystemConfig = () => {
                                 required: true,
                                 message: 'Không được để trống',
                               },
+                              {
+                                validator: (_, value) => {
+                                  if (Number(value) >= 1)
+                                    return Promise.resolve();
+                                  return Promise.reject(
+                                    new Error(
+                                      'Giá trị phải lớn hơn hoặc bằng 1',
+                                    ),
+                                  );
+                                },
+                              },
                             ]}
                             noStyle
                           >
@@ -184,6 +232,17 @@ const SystemConfig = () => {
                               {
                                 required: true,
                                 message: 'Không được để trống',
+                              },
+                              {
+                                validator: (_, value) => {
+                                  if (Number(value) >= 1)
+                                    return Promise.resolve();
+                                  return Promise.reject(
+                                    new Error(
+                                      'Giá trị phải lớn hơn hoặc bằng 1',
+                                    ),
+                                  );
+                                },
                               },
                             ]}
                             noStyle
@@ -223,6 +282,23 @@ const SystemConfig = () => {
                           name="smtpHost"
                           rules={[
                             { required: true, message: 'Không được để trống' },
+                            {
+                              validator: (_, value) => {
+                                if (!value) return Promise.resolve();
+                                const domainRegex =
+                                  /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
+                                const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+                                if (
+                                  domainRegex.test(value) ||
+                                  ipRegex.test(value)
+                                ) {
+                                  return Promise.resolve();
+                                }
+                                return Promise.reject(
+                                  new Error('SMTP Host không hợp lệ'),
+                                );
+                              },
+                            },
                           ]}
                         >
                           <Input />
@@ -239,10 +315,16 @@ const SystemConfig = () => {
                             {
                               validator: (_, value) => {
                                 if (!value) return Promise.resolve();
-                                if (/^\d+$/.test(String(value)))
+                                if (
+                                  /^\d+$/.test(String(value)) &&
+                                  Number(value) >= 1 &&
+                                  Number(value) <= 65535
+                                )
                                   return Promise.resolve();
                                 return Promise.reject(
-                                  new Error('Port chỉ được chứa số'),
+                                  new Error(
+                                    'Port phải trong khoảng từ 1 đến 65535',
+                                  ),
                                 );
                               },
                             },
@@ -263,9 +345,33 @@ const SystemConfig = () => {
                           name="smtpUsername"
                           rules={[
                             { required: true, message: 'Không được để trống' },
+                            // {
+                            //   validator: (_, value) => {
+                            //     if (!value) return Promise.resolve();
+                            //     if (isFptEmail(value)) return Promise.resolve();
+                            //     return Promise.reject(
+                            //       new Error(
+                            //         'SMTP Username phải là email @fpt.edu.vn',
+                            //       ),
+                            //     );
+                            //   },
+                            // },
                           ]}
                         >
                           <Input />
+                        </Form.Item>
+                      </div>
+                      <div>
+                        <label className="min-w-[180px] text-xs font-semibold text-slate-500">
+                          SMTP Password
+                        </label>
+                        <Form.Item
+                          name="smtpPassword"
+                          rules={[
+                            // { required: true, message: 'Không được để trống' },
+                          ]}
+                        >
+                          <Input.Password />
                         </Form.Item>
                       </div>
                       <div>
@@ -276,6 +382,10 @@ const SystemConfig = () => {
                           name="smtpFromEmail"
                           rules={[
                             { required: true, message: 'Không được để trống' },
+                            {
+                              type: 'email',
+                              message: 'Email không đúng định dạng',
+                            },
                           ]}
                         >
                           <Input placeholder="VD: noreply@domain.com" />
@@ -428,6 +538,8 @@ const SystemConfig = () => {
                         type="primary"
                         size="large"
                         disabled={validationError}
+                        loading={updateSystemConfigLoading}
+                        onClick={handleEdit}
                       >
                         Lưu cấu hình
                       </Button>

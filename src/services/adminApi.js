@@ -99,6 +99,32 @@ const getSystemGradingModes = () => {
   return axiosClient.get('/admin/config/grading-modes');
 };
 
+const getSystemGradingMode = (mode) => {
+  return axiosClient.get(`/admin/config/grading-modes/${mode}`);
+};
+
+const updateSystemConfig = ({
+  maxUploadSizeMb,
+  maxExamPaperMb,
+  smtpHost,
+  smtpPort,
+  smtpUsername,
+  smtpPassword,
+  smtpFromEmail,
+  defaultGradingMode,
+}) => {
+  return axiosClient.put('/admin/config/system', {
+    maxUploadSizeMb,
+    maxExamPaperMb,
+    smtpHost,
+    smtpPort,
+    smtpUsername,
+    smtpPassword,
+    smtpFromEmail,
+    defaultGradingMode,
+  });
+};
+
 export {
   importExcel,
   createUser,
@@ -111,4 +137,5 @@ export {
   testAIConnection,
   getSystemConfig,
   getSystemGradingModes,
+  updateSystemConfig,
 };
