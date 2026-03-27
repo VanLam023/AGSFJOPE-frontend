@@ -1,4 +1,3 @@
-import { color } from 'echarts';
 import { CARD_ADMIN_ICON } from '../../features/admin/config';
 
 // Sidebar cho sidebar khong dung materialIcon
@@ -163,6 +162,30 @@ const renderStatusPill = ({ status }) => {
   );
 };
 
+const renderBooleanPill = (value, { trueText = 'True', falseText = 'False' } = {}) => {
+  if (value === true) {
+    return (
+      <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {trueText}
+      </span>
+    );
+  }
+
+  if (value === false) {
+    return (
+      <span className="text-red-700 bg-red-50 border border-red-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {falseText}
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-slate-600 bg-slate-50 border border-slate-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+      —
+    </span>
+  );
+};
+
 const mapUserFromApi = ({ user, index }) => {
   return {
     key: index + 1,
@@ -223,7 +246,6 @@ const trimPayload = (payload) => {
     Object.entries(payload).map(([key, value]) => [key, value.trim()]),
   );
 };
-
 export {
   renderSiderIcons,
   renderSiderIconsMaterialSymbol,
@@ -233,6 +255,7 @@ export {
   getTrendIcon,
   renderRolePill,
   renderStatusPill,
+  renderBooleanPill,
   mapUsersFromApi,
   trimPayload,
 };
