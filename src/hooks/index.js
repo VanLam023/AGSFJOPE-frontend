@@ -11,3 +11,5 @@ export { default as useTestConnection } from './useTestConnection.jsx';
 export { default as useGetSystemConfig } from './useGetSystemConfig.jsx';
 export { default as useGetSystemGradingModes } from './useGetSystemGradingModes.jsx';
 export { default as useUpdateSystemConfig } from './useUpdateSystemConfig.jsx';
+export { default as useGetAuditLogs } from './useGetAuditLogs.jsx';
+export { default as useGetAuditLogDetail } from './useGetAuditLogDetail.jsx';

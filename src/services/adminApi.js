@@ -45,15 +45,6 @@ const editUserDetail = ({
   phone,
   roleName,
 }) => {
-const editUserDetail = ({
-  userId,
-  fullName,
-  email,
-  username,
-  mssv,
-  phone,
-  roleName,
-}) => {
   return axiosClient.put(`/admin/users/${userId}`, {
     fullName,
     email,
@@ -61,9 +52,7 @@ const editUserDetail = ({
     mssv,
     phone,
     roleName,
-    roleName,
   });
-};
 };
 
 const deleteUser = (userId) => {
@@ -106,21 +95,11 @@ const getSystemGradingMode = (mode) => {
 const updateSystemConfig = ({
   maxUploadSizeMb,
   maxExamPaperMb,
-  smtpHost,
-  smtpPort,
-  smtpUsername,
-  smtpPassword,
-  smtpFromEmail,
   defaultGradingMode,
 }) => {
   return axiosClient.put('/admin/config/system', {
     maxUploadSizeMb,
     maxExamPaperMb,
-    smtpHost,
-    smtpPort,
-    smtpUsername,
-    smtpPassword,
-    smtpFromEmail,
     defaultGradingMode,
   });
 };
@@ -137,5 +116,6 @@ export {
   testAIConnection,
   getSystemConfig,
   getSystemGradingModes,
+  getSystemGradingMode,
   updateSystemConfig,
 };

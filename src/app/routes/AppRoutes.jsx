@@ -21,6 +21,8 @@ import VerifyAccount from '../../features/auth/VerifyAccount.jsx';
 import UserDetail from '../../features/admin/UserDetail.jsx';
 import SystemConfig from '../../features/admin/SystemConfig.jsx';
 import AIConfig from '../../features/admin/AIConfig.jsx';
+import AuditLogsPage from '../../features/exam-staff/AuditLogsPage.jsx';
+import AuditLogDetailPage from '../../features/exam-staff/AuditLogDetailPage.jsx';
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
@@ -196,6 +198,23 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
             <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/exam-staff/audits/:auditLogId"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF', 'SYSTEM_ADMIN']}>
+            <AuditLogDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/audits"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF', 'SYSTEM_ADMIN']}>
+            <AuditLogsPage />
           </ProtectedRoute>
         }
       />

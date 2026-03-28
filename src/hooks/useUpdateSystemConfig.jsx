@@ -9,11 +9,6 @@ const useUpdateSystemConfig = () => {
   const callUpdateSystemConfigEndpoint = async ({
     maxUploadSizeMb,
     maxExamPaperMb,
-    smtpHost,
-    smtpPort,
-    smtpUsername,
-    smtpPassword,
-    smtpFromEmail,
     defaultGradingMode,
   }) => {
     setLoading(true);
@@ -23,11 +18,6 @@ const useUpdateSystemConfig = () => {
       const res = await updateSystemConfig({
         maxUploadSizeMb,
         maxExamPaperMb,
-        smtpHost,
-        smtpPort,
-        smtpUsername,
-        smtpPassword,
-        smtpFromEmail,
         defaultGradingMode,
       });
       setUpdatedConfig(res.data);
@@ -49,4 +39,3 @@ const useUpdateSystemConfig = () => {
 };
 
 export default useUpdateSystemConfig;
-

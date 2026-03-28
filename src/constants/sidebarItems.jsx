@@ -22,6 +22,7 @@ export const STAFF_SIDEBAR_ITEMS = [
   {
     key: '5',
     label: 'Nhật ký thao tác',
+    /** List: `/exam-staff/audits` — detail: `/exam-staff/audits/:auditLogId` (same item). */
     to: '/exam-staff/audits',
   },
 ];

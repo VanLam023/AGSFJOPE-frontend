@@ -260,7 +260,7 @@ const UserManagement = () => {
               itemActiveBg: '#F37021',
               colorPrimary: '#F37021',
               itemActiveColor: '#ffffff',
-              colorPrimaryHover: '#F37021E6',
+              colorPrimaryHover: '#ffffff',
             },
             Tabs: {
               inkBarColor: '#F37021',
