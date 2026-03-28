@@ -104,6 +104,39 @@ const updateSystemConfig = ({
   });
 };
 
+const cleanParams = (obj) =>
+  Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== undefined && v !== null),
+  );
+
+const getAdminDashboardOverview = ({ from, to } = {}) => {
+  return axiosClient.get('/admin/dashboard/overview', {
+    params: cleanParams({ from, to }),
+  });
+};
+
+const getAdminDashboardUserStats = ({ from, to } = {}) => {
+  return axiosClient.get('/admin/dashboard/user-stats', {
+    params: cleanParams({ from, to }),
+  });
+};
+
+const getAdminDashboardRecentActivities = ({ limit, from, to } = {}) => {
+  return axiosClient.get('/admin/dashboard/recent-activities', {
+    params: cleanParams({ limit, from, to }),
+  });
+};
+
+const getAdminDashboardSystemHealth = () => {
+  return axiosClient.get('/admin/dashboard/system-health');
+};
+
+const getAdminDashboardSystemActivity = ({ period } = {}) => {
+  return axiosClient.get('/admin/dashboard/system-activity', {
+    params: cleanParams({ period }),
+  });
+};
+
 export {
   importExcel,
   createUser,
@@ -118,4 +151,9 @@ export {
   getSystemGradingModes,
   getSystemGradingMode,
   updateSystemConfig,
+  getAdminDashboardOverview,
+  getAdminDashboardUserStats,
+  getAdminDashboardRecentActivities,
+  getAdminDashboardSystemHealth,
+  getAdminDashboardSystemActivity,
 };

@@ -13,3 +13,5 @@ export { default as useGetSystemGradingModes } from './useGetSystemGradingModes.
 export { default as useUpdateSystemConfig } from './useUpdateSystemConfig.jsx';
 export { default as useGetAuditLogs } from './useGetAuditLogs.jsx';
 export { default as useGetAuditLogDetail } from './useGetAuditLogDetail.jsx';
+export { default as useAdminDashboard } from './useAdminDashboard.jsx';
+export { default as useStaffDashboard } from './useStaffDashboard.jsx';

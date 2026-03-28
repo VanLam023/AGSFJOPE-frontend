@@ -1,27 +1,3 @@
-const recentExams = [
-  {
-    id: 1,
-    key: 1,
-    name: 'OOP Final Exam 2024',
-    semester: 'Summer 2024',
-    status: 'ONGOING',
-  },
-  {
-    id: 2,
-    key: 2,
-    name: 'Midterm Practical Test',
-    semester: 'Summer 2024',
-    status: 'UPCOMING',
-  },
-  {
-    id: 3,
-    key: 3,
-    name: 'Retake Workshop 2',
-    semester: 'Spring 2024',
-    status: 'COMPLETED',
-  },
-];
-
 const examStatusConfig = {
   ONGOING: {
     label: 'Đang diễn ra',
@@ -37,57 +13,48 @@ const examStatusConfig = {
   },
 };
 
+/** Align with backend AppealStatus where applicable */
 const appealStatusConfig = {
+  PENDING_PAYMENT: {
+    label: 'Chờ thanh toán',
+    icon: 'payments',
+    cls: 'bg-orange-100 text-orange-900 border-orange-200',
+  },
   PENDING: {
     label: 'Đang chờ',
-    // icon: 'schedule',
+    icon: 'schedule',
     cls: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+  },
+  PROCESSING: {
+    label: 'Đang xử lý',
+    icon: 'sync',
+    cls: 'bg-indigo-100 text-indigo-800 border-indigo-200',
   },
   ASSIGNED: {
     label: 'Đã được giao',
-    //    icon: 'person',
+    icon: 'person',
     cls: 'bg-blue-100 text-blue-800 border-blue-200',
   },
+  COMPLETED: {
+    label: 'Hoàn tất',
+    icon: 'check_circle',
+    cls: 'bg-slate-100 text-slate-800 border-slate-200',
+  },
+  APPROVED: {
+    label: 'Đã duyệt',
+    icon: 'task_alt',
+    cls: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  },
+  DENIED: {
+    label: 'Từ chối',
+    icon: 'cancel',
+    cls: 'bg-red-100 text-red-800 border-red-200',
+  },
+  CANCELLED: {
+    label: 'Đã hủy',
+    icon: 'block',
+    cls: 'bg-slate-200 text-slate-700 border-slate-300',
+  },
 };
 
-const pendingAppeals = [
-  {
-    id: 1,
-    student: {
-      name: 'Nguyen Van Luan',
-      mssv: 'HE150123',
-      initials: 'NL',
-      initialsColor: 'bg-[#F37021]/10 text-[#F37021] border-[#F37021]/20',
-    },
-    examName: 'OOP Final Exam 2024',
-    status: 'PENDING',
-  },
-  {
-    id: 2,
-    student: {
-      name: 'Tran Minh Hoang',
-      mssv: 'HE161244',
-      initials: 'TH',
-      initialsColor: 'bg-slate-200 text-slate-600 border-slate-300',
-    },
-    examName: 'OOP Final Exam 2024',
-    status: 'ASSIGNED',
-  },
-];
-
-const gradeDistribution = [
-  { range: '0-4', height: 15, active: false },
-  { range: '4-6', height: 35, active: false },
-  // { range: '6-8', height: '85%', active: true },
-  { range: '6-8', height: 100, active: true },
-  { range: '8-9', height: 60, active: false },
-  { range: '9-10', height: 40, active: false },
-];
-
-export {
-  recentExams,
-  examStatusConfig,
-  pendingAppeals,
-  appealStatusConfig,
-  gradeDistribution,
-};
+export { examStatusConfig, appealStatusConfig };

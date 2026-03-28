@@ -1,6 +1,20 @@
 const CARD_ADMIN_ICON = ['group', 'assignment', 'task', 'priority_high'];
 const PIE_COLOR = ['#1D4ED8', '#60A5FA', '#CBD5E1'];
 
+const ROLE_PIE_COLOR_BY_NAME = {
+  STUDENT: '#1D4ED8',
+  LECTURER: '#60A5FA',
+  EXAM_STAFF: '#34D399',
+  SYSTEM_ADMIN: '#F97316',
+};
+
+const ROLE_DASHBOARD_LABEL_VI = new Map([
+  ['STUDENT', 'Sinh viên'],
+  ['LECTURER', 'Giảng viên'],
+  ['EXAM_STAFF', 'Khảo thí'],
+  ['SYSTEM_ADMIN', 'Quản trị'],
+]);
+
 const AI_PROVIDERS = [
   ['gemini', 'Google Gemini'],
   ['openai', 'OpenAI'],
@@ -49,6 +63,8 @@ const LANGUAGE = [
 export {
   CARD_ADMIN_ICON,
   PIE_COLOR,
+  ROLE_PIE_COLOR_BY_NAME,
+  ROLE_DASHBOARD_LABEL_VI,
   AI_PROVIDERS,
   LANGUAGE,
   AI_PROVIDER_MODELS,
