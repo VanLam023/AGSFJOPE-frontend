@@ -12,7 +12,6 @@ import {
   Divider,
   Form,
   Input,
-  InputNumber,
   message,
   Select,
 } from 'antd';
@@ -109,7 +108,7 @@ const SystemConfig = () => {
       callGetSystemGradingModesEndpoint();
     } catch (err) {
       message.error(
-        err?.response?.message || 'Cập nhật cấu hình hệ thống thất bại.',
+        err?.message || 'Cập nhật cấu hình hệ thống thất bại.',
       );
     }
   };
@@ -278,61 +277,18 @@ const SystemConfig = () => {
                         <label className="min-w-[180px] text-xs font-semibold text-slate-500">
                           SMTP Host
                         </label>
-                        <Form.Item
-                          name="smtpHost"
-                          rules={[
-                            { required: true, message: 'Không được để trống' },
-                            {
-                              validator: (_, value) => {
-                                if (!value) return Promise.resolve();
-                                const domainRegex =
-                                  /^([a-zA-Z0-9]([a-zA-Z0-9\-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$/;
-                                const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-                                if (
-                                  domainRegex.test(value) ||
-                                  ipRegex.test(value)
-                                ) {
-                                  return Promise.resolve();
-                                }
-                                return Promise.reject(
-                                  new Error('SMTP Host không hợp lệ'),
-                                );
-                              },
-                            },
-                          ]}
-                        >
-                          <Input />
+                        <Form.Item name="smtpHost">
+                          <Input disabled />
                         </Form.Item>
                       </div>
                       <div>
                         <label className="min-w-[180px] text-xs font-semibold text-slate-500">
                           Port
                         </label>
-                        <Form.Item
-                          name="smtpPort"
-                          rules={[
-                            { required: true, message: 'Không được để trống' },
-                            {
-                              validator: (_, value) => {
-                                if (!value) return Promise.resolve();
-                                if (
-                                  /^\d+$/.test(String(value)) &&
-                                  Number(value) >= 1 &&
-                                  Number(value) <= 65535
-                                )
-                                  return Promise.resolve();
-                                return Promise.reject(
-                                  new Error(
-                                    'Port phải trong khoảng từ 1 đến 65535',
-                                  ),
-                                );
-                              },
-                            },
-                          ]}
-                        >
+                        <Form.Item name="smtpPort">
                           <Input
                             className="w-full"
-                            controls={false}
+                            disabled
                             placeholder="VD: 587"
                           />
                         </Form.Item>
@@ -341,54 +297,27 @@ const SystemConfig = () => {
                         <label className="min-w-[180px] text-xs font-semibold text-slate-500">
                           SMTP Username
                         </label>
-                        <Form.Item
-                          name="smtpUsername"
-                          rules={[
-                            { required: true, message: 'Không được để trống' },
-                            // {
-                            //   validator: (_, value) => {
-                            //     if (!value) return Promise.resolve();
-                            //     if (isFptEmail(value)) return Promise.resolve();
-                            //     return Promise.reject(
-                            //       new Error(
-                            //         'SMTP Username phải là email @fpt.edu.vn',
-                            //       ),
-                            //     );
-                            //   },
-                            // },
-                          ]}
-                        >
-                          <Input />
+                        <Form.Item name="smtpUsername">
+                          <Input disabled />
                         </Form.Item>
                       </div>
-                      <div>
+                      {/* <div>
                         <label className="min-w-[180px] text-xs font-semibold text-slate-500">
                           SMTP Password
                         </label>
-                        <Form.Item
-                          name="smtpPassword"
-                          rules={[
-                            // { required: true, message: 'Không được để trống' },
-                          ]}
-                        >
-                          <Input.Password />
+                        <Form.Item name="smtpPassword">
+                          <Input.Password disabled placeholder="••••••••" />
                         </Form.Item>
-                      </div>
+                      </div> */}
                       <div>
                         <label className="min-w-[180px] text-xs font-semibold text-slate-500">
                           Email gửi đi
                         </label>
-                        <Form.Item
-                          name="smtpFromEmail"
-                          rules={[
-                            { required: true, message: 'Không được để trống' },
-                            {
-                              type: 'email',
-                              message: 'Email không đúng định dạng',
-                            },
-                          ]}
-                        >
-                          <Input placeholder="VD: noreply@domain.com" />
+                        <Form.Item name="smtpFromEmail">
+                          <Input
+                            disabled
+                            placeholder="VD: noreply@domain.com"
+                          />
                         </Form.Item>
                       </div>
                     </div>
