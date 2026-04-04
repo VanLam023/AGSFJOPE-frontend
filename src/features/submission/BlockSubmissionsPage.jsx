@@ -5,6 +5,7 @@ import examApi from '../../services/examApi';
 import blockApi from '../../services/blockApi';
 import submissionApi from '../../services/submissionApi';
 import gradingApi from '../../services/gradingApi';
+import axiosClient from '../../services/axiosClient';
 
 /* ─── Helpers ────────────────────────────────────────────────────────────── */
 function fmtDateTime(value) {
@@ -45,6 +46,48 @@ function getResultBadge(gradingStatus) {
 }
 
 const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
+function isBrowserFileDownloadSupported() {
+  return (
+    typeof window !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    typeof Blob !== 'undefined' &&
+    typeof URL !== 'undefined' &&
+    typeof URL.createObjectURL === 'function'
+  );
+}
+
+function slugifyFilePart(value, fallback = 'block') {
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+  const normalized = raw
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+  return normalized || fallback;
+}
+
+function saveBlobFile(blob, fileName) {
+  if (!isBrowserFileDownloadSupported()) return false;
+
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = downloadUrl;
+  link.download = fileName || 'download';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(downloadUrl);
+  return true;
+}
+
+function extractApiErrorMessage(error, fallback) {
+  return error?.response?.data?.message || error?.message || fallback;
+}
 
 function normalizeSubmissionsPayload(raw) {
   if (!raw) return { data: [], pagination: {}, stats: {} };
@@ -106,6 +149,7 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
   const [optimisticRun, setOptimisticRun] = useState(null); // { active, total, scope: 'selected'|'all', startedAt }
   const [isTriggering, setIsTriggering] = useState(false);
   const [isStopping,   setIsStopping]   = useState(false);
+  const [exporting,    setExporting]    = useState({ gradeSheet: false, statisticsReport: false });
   const [selectedSubmissionIds, setSelectedSubmissionIds] = useState([]);
 
   // Controlled filter state (what the server sees)
@@ -603,9 +647,48 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
     },
   ];
 
-  /* ── CSV Export ───────────────────────────────────────────────────────── */
-  const handleExportExcel = useCallback(() => {
-    if (!rows.length) return;
+  /* ── Export helpers ───────────────────────────────────────────────────── */
+  const downloadProtectedFile = useCallback(async (endpoint, defaultFileName, unsupportedMessage) => {
+    if (!isBrowserFileDownloadSupported()) {
+      message.warning(unsupportedMessage || 'Web chưa hỗ trợ tải file ở màn này.');
+      return false;
+    }
+
+    try {
+      const response = await axiosClient.get(endpoint, { responseType: 'blob' });
+      const blob = response instanceof Blob
+        ? response
+        : response?.data instanceof Blob
+          ? response.data
+          : new Blob([response], { type: 'application/octet-stream' });
+
+      const ok = saveBlobFile(blob, defaultFileName);
+      if (!ok) {
+        message.warning(unsupportedMessage || 'Web chưa hỗ trợ tải file ở màn này.');
+        return false;
+      }
+      return true;
+    } catch (error) {
+      const status = Number(error?.response?.status || 0);
+      if (status === 404 || status === 405 || status === 501) {
+        message.warning(unsupportedMessage || 'Web chưa hỗ trợ tải file ở màn này.');
+        return false;
+      }
+      throw error;
+    }
+  }, []);
+
+  const handleExportCsv = useCallback(() => {
+    if (!rows.length) {
+      message.info('Hiện chưa có dữ liệu để xuất CSV.');
+      return;
+    }
+
+    if (!isBrowserFileDownloadSupported()) {
+      message.warning('Web chưa hỗ trợ xuất file CSV ở màn này.');
+      return;
+    }
+
     const headers = ['STT', 'Sinh viên', 'Mã SV', 'Email', 'Thời gian nộp', 'Dung lượng', 'Trạng thái', 'Điểm số', 'Kết quả'];
     const csvRows = rows.map((it, idx) => {
       const statusBadge = getSubmissionStatusBadge(it.submissionStatus);
@@ -625,18 +708,66 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
         resultBadge ? resultBadge.label : '—',
       ];
     });
+
     const escapeCell = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
-    const csv  = [headers, ...csvRows].map((r) => r.map(escapeCell).join(',')).join('\n');
+    const csv = [headers, ...csvRows].map((r) => r.map(escapeCell).join(',')).join('\n');
     const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url;
-    a.download = `danh-sach-bai-nop-${activeBlockId || 'block'}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }, [rows, activeBlockId, pagination]);
+    const fileName = `danh-sach-bai-nop-${slugifyFilePart(block?.name || activeBlockId, 'block')}.csv`;
+
+    const ok = saveBlobFile(blob, fileName);
+    if (!ok) {
+      message.warning('Web chưa hỗ trợ xuất file CSV ở màn này.');
+      return;
+    }
+
+    message.success('Đã bắt đầu tải file CSV.');
+  }, [rows, pagination, block?.name, activeBlockId]);
+
+  const handleExportGradeSheet = useCallback(async () => {
+    if (!activeExamId || !activeBlockId) {
+      message.warning('Thiếu thông tin exam hoặc block để xuất bảng điểm.');
+      return;
+    }
+
+    setExporting((prev) => ({ ...prev, gradeSheet: true }));
+    try {
+      const fileName = `bang-diem-${slugifyFilePart(block?.name || activeBlockId, 'block')}.xlsx`;
+      const ok = await downloadProtectedFile(
+        `/exams/${activeExamId}/blocks/${activeBlockId}/export/grade-sheet`,
+        fileName,
+        'Web chưa hỗ trợ xuất bảng điểm ở màn này.'
+      );
+      if (ok) message.success('Đã bắt đầu tải bảng điểm.');
+    } catch (error) {
+      message.error(extractApiErrorMessage(error, 'Không thể xuất bảng điểm lúc này.'));
+    } finally {
+      setExporting((prev) => ({ ...prev, gradeSheet: false }));
+    }
+  }, [activeExamId, activeBlockId, block?.name, downloadProtectedFile]);
+
+  const handleExportStatisticsReport = useCallback(async () => {
+    if (!activeExamId || !activeBlockId) {
+      message.warning('Thiếu thông tin exam hoặc block để xuất báo cáo thống kê.');
+      return;
+    }
+
+    setExporting((prev) => ({ ...prev, statisticsReport: true }));
+    try {
+      const fileName = `bao-cao-thong-ke-${slugifyFilePart(block?.name || activeBlockId, 'block')}.xlsx`;
+      const ok = await downloadProtectedFile(
+        `/exams/${activeExamId}/blocks/${activeBlockId}/export/statistics-report`,
+        fileName,
+        'Web chưa hỗ trợ xuất báo cáo thống kê ở màn này.'
+      );
+      if (ok) message.success('Đã bắt đầu tải báo cáo thống kê.');
+    } catch (error) {
+      message.error(extractApiErrorMessage(error, 'Không thể xuất báo cáo thống kê lúc này.'));
+    } finally {
+      setExporting((prev) => ({ ...prev, statisticsReport: false }));
+    }
+  }, [activeExamId, activeBlockId, block?.name, downloadProtectedFile]);
+
+  const isAnyExporting = exporting.gradeSheet || exporting.statisticsReport;
 
   /* ── Pagination helpers ───────────────────────────────────────────────── */
   const totalPages  = pagination.totalPages;
@@ -703,11 +834,28 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
         
         <div className="flex sm:flex-row flex-col items-center gap-3 relative z-10 w-full xl:w-auto">
           <button
-            onClick={handleExportExcel}
-            className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white/70 backdrop-blur-md rounded-2xl text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-900/5 hover:bg-white hover:shadow-md hover:ring-slate-900/10 transition-all hover:-translate-y-0.5"
+            onClick={handleExportCsv}
+            disabled={isAnyExporting}
+            className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white/70 backdrop-blur-md rounded-2xl text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-900/5 hover:bg-white hover:shadow-md hover:ring-slate-900/10 transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
           >
             <span className="material-symbols-outlined text-[20px] text-emerald-600">download</span>
             Xuất file CSV
+          </button>
+          <button
+            onClick={handleExportGradeSheet}
+            disabled={isAnyExporting}
+            className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white/70 backdrop-blur-md rounded-2xl text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-900/5 hover:bg-white hover:shadow-md hover:ring-slate-900/10 transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            <span className="material-symbols-outlined text-[20px] text-violet-600">table_view</span>
+            {exporting.gradeSheet ? 'Đang xuất bảng điểm...' : 'Xuất bảng điểm'}
+          </button>
+          <button
+            onClick={handleExportStatisticsReport}
+            disabled={isAnyExporting}
+            className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white/70 backdrop-blur-md rounded-2xl text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-900/5 hover:bg-white hover:shadow-md hover:ring-slate-900/10 transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+          >
+            <span className="material-symbols-outlined text-[20px] text-indigo-600">assessment</span>
+            {exporting.statisticsReport ? 'Đang xuất thống kê...' : 'Xuất thống kê'}
           </button>
           <button
             onClick={handleRefresh}
