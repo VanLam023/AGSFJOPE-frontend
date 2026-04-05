@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Suspense, lazy, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '../../components/layouts/MainLayout.jsx';
 import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems.jsx';
@@ -20,6 +20,8 @@ import BlockDetailPage from '../block/BlockDetailPage.jsx';
 import BlockSubmissionsPage from '../submission/BlockSubmissionsPage.jsx';
 import SubmissionDetailPage from '../submission/SubmissionDetailPage.jsx';
 import ExamStaffHomeDashboard from './ExamStaffHomeDashboard.jsx';
+
+const BlockStatisticsPage = lazy(() => import('./statistics/BlockStatisticsPage.jsx'));
 
 const icons = [
   DashboardIcon,
@@ -64,12 +66,17 @@ export default function ExamStaffDashboard() {
     location.pathname.startsWith('/exam-staff/exams/') &&
     location.pathname.includes('/blocks/') &&
     /\/submissions\/[^/]+$/.test(location.pathname);
+  const isStatisticsPage =
+    location.pathname.startsWith('/exam-staff/exams/') &&
+    location.pathname.includes('/blocks/') &&
+    location.pathname.endsWith('/statistics');
   const isBlockDetailPage =
     location.pathname.startsWith('/exam-staff/exams/') &&
     location.pathname.includes('/blocks/') &&
     !isUploadExamPaperPage &&
     !isBlockSubmissionsPage &&
-    !isSubmissionDetailPage;
+    !isSubmissionDetailPage &&
+    !isStatisticsPage;
   const isExamDetailPage =
     location.pathname.startsWith('/exam-staff/exams/') &&
     !isCreateExamPage &&
@@ -153,6 +160,22 @@ export default function ExamStaffDashboard() {
             )
           }
         />
+      ) : isStatisticsPage ? (
+        <Suspense
+          fallback={
+            <div className="max-w-6xl mx-auto px-6 sm:px-8 py-8 space-y-4 animate-pulse">
+              <div className="h-8 w-40 bg-slate-200 rounded-lg" />
+              <div className="h-28 bg-slate-100 rounded-3xl" />
+              <div className="h-96 bg-slate-100 rounded-3xl" />
+            </div>
+          }
+        >
+          <BlockStatisticsPage
+            examId={examId}
+            blockId={blockId}
+            onBack={() => navigate(`/exam-staff/exams/${examId}/blocks/${blockId}`)}
+          />
+        </Suspense>
       ) : isBlockDetailPage ? (
         <BlockDetailPage
           examId={examId}
@@ -163,6 +186,9 @@ export default function ExamStaffDashboard() {
           }
           onOpenSubmissions={(id) =>
             navigate(`/exam-staff/exams/${examId}/blocks/${id}/submissions`)
+          }
+          onOpenStatistics={(id) =>
+            navigate(`/exam-staff/exams/${examId}/blocks/${id}/statistics`)
           }
         />
       ) : isExamDetailPage ? (
