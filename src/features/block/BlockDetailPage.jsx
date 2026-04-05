@@ -48,7 +48,7 @@ function getBlockScheduleLockMessage(block) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export default function BlockDetailPage({ examId, blockId, onBack, onOpenUploadPaper, onOpenSubmissions }) {
+export default function BlockDetailPage({ examId, blockId, onBack, onOpenUploadPaper, onOpenSubmissions, onOpenStatistics }) {
   const [exam,           setExam]           = useState(null);
   const [block,          setBlock]          = useState(null);
   const [loading,        setLoading]        = useState(true);
@@ -241,6 +241,7 @@ export default function BlockDetailPage({ examId, blockId, onBack, onOpenUploadP
                     {/* Xem thống kê */}
                     <button
                       type="button"
+                      onClick={() => onOpenStatistics?.(blockId)}
                       className="flex items-center gap-1.5 px-3.5 h-10 rounded-xl border border-slate-300 text-slate-600 text-sm font-bold hover:bg-slate-50 hover:border-slate-400 transition-all shadow-sm hover:shadow"
                     >
                       <span className="material-symbols-outlined text-base">bar_chart</span>

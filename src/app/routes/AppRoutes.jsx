@@ -178,6 +178,14 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/exam-staff/exams/:examId/blocks/:blockId/statistics"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/exam-staff/exams/:examId/blocks/:blockId/upload-paper"
         element={
           <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
