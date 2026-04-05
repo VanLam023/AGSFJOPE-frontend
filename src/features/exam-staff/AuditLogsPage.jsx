@@ -104,7 +104,7 @@ const AuditLogsPage = () => {
     () => [
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold">
+          <p className="text-xs uppercase tracking-wider font-bold z-0">
             Thời gian
           </p>
         ),
@@ -112,14 +112,14 @@ const AuditLogsPage = () => {
         key: 'createdAt',
         width: 180,
         render: (v) => (
-          <span className="text-sm text-slate-800 whitespace-nowrap">
+          <span className="text-sm text-slate-800 whitespace-nowrap z-0">
             {formatDateTime(v)}
           </span>
         ),
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold">
+          <p className="text-xs uppercase tracking-wider font-bold z-0">
             Người dùng
           </p>
         ),
@@ -132,7 +132,7 @@ const AuditLogsPage = () => {
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold">Vai trò</p>
+          <p className="text-xs uppercase tracking-wider font-bold z-0">Vai trò</p>
         ),
         dataIndex: 'role',
         key: 'role',
@@ -143,7 +143,7 @@ const AuditLogsPage = () => {
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold">
+          <p className="text-xs uppercase tracking-wider font-bold z-0">
             Hành động
           </p>
         ),
@@ -158,7 +158,7 @@ const AuditLogsPage = () => {
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold">
+          <p className="text-xs uppercase tracking-wider font-bold z-0">
             Loại
           </p>
         ),
@@ -171,8 +171,8 @@ const AuditLogsPage = () => {
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold">
-            ID 
+          <p className="text-xs uppercase tracking-wider font-bold z-0">
+            ID{' '}
           </p>
         ),
         dataIndex: 'entityId',
@@ -229,7 +229,7 @@ const AuditLogsPage = () => {
       //   },
       {
         title: (
-          <p className="text-xs text-center uppercase tracking-wider font-bold">
+          <p className="text-xs text-center uppercase tracking-wider font-bold -z-50">
             Thao tác
           </p>
         ),
@@ -237,7 +237,7 @@ const AuditLogsPage = () => {
         width: 140,
         fixed: 'right',
         render: (_, record) => (
-          <div className="flex justify-center align-middle">
+          <div className="flex justify-center align-middle z-0">
             <button
               type="button"
               className="bg-white border border-slate-300 text-slate-700 hover:text-[#F37021] hover:border-[#F37021] px-3 py-2 rounded-md text-xs font-bold transition-all shadow-sm"
@@ -319,6 +319,7 @@ const AuditLogsPage = () => {
               </div>
 
               <Table
+                className="-z-5"
                 rowKey="auditLogId"
                 columns={columns}
                 dataSource={rows}

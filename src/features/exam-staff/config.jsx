@@ -13,7 +13,6 @@ const examStatusConfig = {
   },
 };
 
-/** Align with backend AppealStatus where applicable */
 const appealStatusConfig = {
   PENDING_PAYMENT: {
     label: 'Chờ thanh toán',
@@ -41,7 +40,7 @@ const appealStatusConfig = {
     cls: 'bg-slate-100 text-slate-800 border-slate-200',
   },
   APPROVED: {
-    label: 'Đã duyệt',
+    label: 'Đã phân công',
     icon: 'task_alt',
     cls: 'bg-emerald-100 text-emerald-800 border-emerald-200',
   },

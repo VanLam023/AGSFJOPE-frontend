@@ -6,6 +6,7 @@ const DashboardCard = ({
   icon,
   iconName,
   iconBackground,
+  color = null,
   title,
   trend = null,
   value,
@@ -14,18 +15,16 @@ const DashboardCard = ({
   const isAlert = variant === 'alert';
   const iconContent =
     iconName != null ? (
-      <span className="material-symbols-outlined">{iconName}</span>
+      <span className={`material-symbols-outlined text-[${color}]`}>
+        {iconName}
+      </span>
     ) : (
       icon
     );
 
   return (
-    <div
-      className={`${styles.card}`}
-      // style={`${iconName ? {material-symbols-outlined} : ''}`}
-    >
-      {/* Background icon here */}
-      {iconContent && (
+    <div className={`${styles.card}`}>
+      {iconContent && variant == 'default' && (
         <div className={`absolute -bottom-5 -right-6`}>
           <span className={`${styles.size36} material-symbols-outlined`}>
             {iconName}
@@ -52,9 +51,7 @@ const DashboardCard = ({
         {value}
       </h3>
       {trend != null && (
-        <div className={styles.trend}>
-          {getTrendIcon({ trend })}
-        </div>
+        <div className={styles.trend}>{getTrendIcon({ trend })}</div>
       )}
     </div>
   );

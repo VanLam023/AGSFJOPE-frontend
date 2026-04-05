@@ -162,7 +162,10 @@ const renderStatusPill = ({ status }) => {
   );
 };
 
-const renderBooleanPill = (value, { trueText = 'True', falseText = 'False' } = {}) => {
+const renderBooleanPill = (
+  value,
+  { trueText = 'True', falseText = 'False' } = {},
+) => {
   if (value === true) {
     return (
       <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
@@ -182,6 +185,54 @@ const renderBooleanPill = (value, { trueText = 'True', falseText = 'False' } = {
   return (
     <span className="text-slate-600 bg-slate-50 border border-slate-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
       —
+    </span>
+  );
+};
+
+const PAYMENT_STATUS_PILL_MAP = {
+  PENDING: {
+    label: 'Chờ thanh toán',
+    cls: 'text-amber-800 bg-amber-50 border-amber-200',
+  },
+  SUCCESS: {
+    label: 'Thành công',
+    cls: 'text-emerald-800 bg-emerald-50 border-emerald-200',
+  },
+  FAILED: {
+    label: 'Thất bại',
+    cls: 'text-red-800 bg-red-50 border-red-200',
+  },
+  REFUNDED: {
+    label: 'Đã hoàn tiền',
+    cls: 'text-indigo-800 bg-indigo-50 border-indigo-200',
+  },
+};
+
+const renderPaymentStatusPill = (paymentStatus) => {
+  if (paymentStatus == null || paymentStatus === '') {
+    return (
+      <span className="inline-flex items-center gap-1 border text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md text-sky-900 bg-sky-100 border-sky-300">
+        Chưa thanh toán
+      </span>
+    );
+  }
+
+  const key = String(paymentStatus).trim().toUpperCase();
+  const cfg = PAYMENT_STATUS_PILL_MAP[key];
+
+  if (cfg) {
+    return (
+      <span
+        className={`inline-flex items-center gap-1 border text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md ${cfg.cls}`}
+      >
+        {cfg.label}
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-slate-600 bg-slate-50 border border-slate-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+      {String(paymentStatus)}
     </span>
   );
 };
@@ -224,8 +275,6 @@ const getInitialsColor = (index) => {
 };
 
 const mapRoleFromApi = (role) => {
-  const roles = ['Sinh viên', 'Giảng viên', 'Cán bộ khảo thí', 'Quản trị viên'];
-
   const rolesMap = new Map([
     ['STUDENT', 'Sinh viên'],
     ['LECTURER', 'Giảng viên'],
@@ -246,6 +295,34 @@ const trimPayload = (payload) => {
     Object.entries(payload).map(([key, value]) => [key, value.trim()]),
   );
 };
+
+const formatDateTime = (iso) => {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+};
+
+const formatCount = (n) => {
+  if (n == null || n === '') return '—';
+  return Number(n).toLocaleString('vi-VN');
+};
+
+const formatScore = (n) => {
+  if (n == null || n === '') return '—';
+  return Number(n).toLocaleString('vi-VN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+};
 export {
   renderSiderIcons,
   renderSiderIconsMaterialSymbol,
@@ -256,6 +333,10 @@ export {
   renderRolePill,
   renderStatusPill,
   renderBooleanPill,
+  renderPaymentStatusPill,
   mapUsersFromApi,
   trimPayload,
+  formatDateTime,
+  formatCount,
+  formatScore,
 };
