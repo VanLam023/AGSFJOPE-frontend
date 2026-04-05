@@ -15,3 +15,6 @@ export { default as useGetAuditLogs } from './useGetAuditLogs.jsx';
 export { default as useGetAuditLogDetail } from './useGetAuditLogDetail.jsx';
 export { default as useAdminDashboard } from './useAdminDashboard.jsx';
 export { default as useStaffDashboard } from './useStaffDashboard.jsx';
+export { default as useStaffAppeals } from './useStaffAppeals.jsx';
+export { default as useStaffAppealDetail } from './useStaffAppealDetail.jsx';
+export { default as useStaffAppealLecturers } from './useStaffAppealLecturers.jsx';

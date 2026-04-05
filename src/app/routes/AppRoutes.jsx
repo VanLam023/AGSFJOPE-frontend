@@ -23,6 +23,8 @@ import SystemConfig from '../../features/admin/SystemConfig.jsx';
 import AIConfig from '../../features/admin/AIConfig.jsx';
 import AuditLogsPage from '../../features/exam-staff/AuditLogsPage.jsx';
 import AuditLogDetailPage from '../../features/exam-staff/AuditLogDetailPage.jsx';
+import AppealPage from '../../features/exam-staff/AppealPage.jsx';
+import AppealDetailPage from '../../features/exam-staff/AppealDetailPage.jsx';
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
@@ -202,6 +204,22 @@ export default function AppRoutes() {
         }
       />
 
+      <Route
+        path="/exam-staff/appeals"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <AppealPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/appeals/:appealId"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <AppealDetailPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/exam-staff/audits/:auditLogId"
         element={
