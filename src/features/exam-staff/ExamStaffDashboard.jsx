@@ -26,7 +26,7 @@ const BlockStatisticsPage = lazy(() => import('./statistics/BlockStatisticsPage.
 const icons = [
   DashboardIcon,
   ExamManagementIcon,
-  SubmissionsIcon,
+  // SubmissionsIcon,
   AppealsIcon,
   AuditLogIcon,
 ];
@@ -37,20 +37,30 @@ export default function ExamStaffDashboard() {
   const { examId, blockId, submissionId } = useParams();
   const [notifCount] = useState(5);
 
+  const dashboardIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff') + 1;
+  const examsIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/exams') + 1;
+  const appealsIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/appeals') +
+    1;
+  const auditsIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
+    1;
+
   const pathSelectedIndexMap = {
-    '/exam-staff': 1,
-    '/exam-staff/exams': 2,
-    '/exam-staff/exams/create': 2,
-    '/exam-staff/submissions': 3,
-    '/exam-staff/appeals': 4,
-    '/exam-staff/audits': 5,
+    '/exam-staff': dashboardIndex,
+    '/exam-staff/exams': examsIndex,
+    '/exam-staff/exams/create': examsIndex,
+    '/exam-staff/appeals': appealsIndex,
+    '/exam-staff/audits': auditsIndex,
   };
 
   const selectedIndex = location.pathname.startsWith('/exam-staff/exams')
-    ? 2
+    ? examsIndex
     : location.pathname.startsWith('/exam-staff/audits')
-      ? 5
-      : (pathSelectedIndexMap[location.pathname] ?? 1);
+      ? auditsIndex
+      : (pathSelectedIndexMap[location.pathname] ?? dashboardIndex);
 
   const isExamManagementPage = location.pathname === '/exam-staff/exams';
   const isCreateExamPage = location.pathname === '/exam-staff/exams/create';

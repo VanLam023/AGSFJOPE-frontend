@@ -16,7 +16,12 @@ import { ConfigProvider, DatePicker, Select, Empty, Table } from 'antd';
 import CardContainer from '../../components/CardContainer';
 import { useGetAuditLogs } from '../../hooks';
 import emptyImg from '../../assets/empty.png';
-
+import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils';
+import {
+  ADMIN_SIDEBAR_ITEMS,
+  ADMIN_ICONS,
+  ADMIN_SIDEBAR_ITEMS_FLAT,
+} from '../../constants/sidebarItems';
 dayjs.locale('vi');
 
 const { RangePicker } = DatePicker;
@@ -70,16 +75,6 @@ const AuditLogsPage = () => {
     AppealsIcon,
     AuditLogIcon,
   ];
-
-  const activeSidebarIndex =
-    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
-    1;
-
-  const renderedSiderIcons = icons.map((Icon, index) => {
-    const isActive = index + 1 === activeSidebarIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return Icon({ fill: color });
-  });
 
   useEffect(() => {
     const from =
@@ -136,7 +131,9 @@ const AuditLogsPage = () => {
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold z-0">Vai trò</p>
+          <p className="text-xs uppercase tracking-wider font-bold z-0">
+            Vai trò
+          </p>
         ),
         dataIndex: 'role',
         key: 'role',
@@ -162,9 +159,7 @@ const AuditLogsPage = () => {
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold z-0">
-            Loại
-          </p>
+          <p className="text-xs uppercase tracking-wider font-bold z-0">Loại</p>
         ),
         dataIndex: 'entityType',
         key: 'entityType',
@@ -175,9 +170,7 @@ const AuditLogsPage = () => {
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold z-0">
-            ID{' '}
-          </p>
+          <p className="text-xs uppercase tracking-wider font-bold z-0">ID </p>
         ),
         dataIndex: 'entityId',
         key: 'entityId',
@@ -192,45 +185,6 @@ const AuditLogsPage = () => {
           </span>
         ),
       },
-      //   {
-      //     title: (
-      //       <p className="text-xs uppercase tracking-wider font-bold">IP</p>
-      //     ),
-      //     dataIndex: 'ipAddress',
-      //     key: 'ipAddress',
-      //     width: 120,
-      //     render: (v) => <span className="text-sm text-slate-600">{v ?? '—'}</span>,
-      //   },
-      //   {
-      //     title: (
-      //       <p className="text-xs uppercase tracking-wider font-bold">
-      //         Giá trị cũ
-      //       </p>
-      //     ),
-      //     dataIndex: 'oldValues',
-      //     key: 'oldValues',
-      //     ellipsis: true,
-      //     render: (v) => (
-      //       <span className="text-xs text-slate-600" title={v ?? ''}>
-      //         {ellipsis(v, 64)}
-      //       </span>
-      //     ),
-      //   },
-      //   {
-      //     title: (
-      //       <p className="text-xs uppercase tracking-wider font-bold">
-      //         Giá trị mới
-      //       </p>
-      //     ),
-      //     dataIndex: 'newValues',
-      //     key: 'newValues',
-      //     ellipsis: true,
-      //     render: (v) => (
-      //       <span className="text-xs text-slate-600" title={v ?? ''}>
-      //         {ellipsis(v, 64)}
-      //       </span>
-      //     ),
-      //   },
       {
         title: (
           <p className="text-xs text-center uppercase tracking-wider font-bold -z-50">
@@ -246,7 +200,7 @@ const AuditLogsPage = () => {
               type="button"
               className="bg-white border border-slate-300 text-slate-700 hover:text-[#F37021] hover:border-[#F37021] px-3 py-2 rounded-md text-xs font-bold transition-all shadow-sm"
               onClick={() =>
-                navigate(`/exam-staff/audits/${record.auditLogId}`)
+                navigate(`/admin/audits/${record.auditLogId}`)
               }
             >
               Xem chi tiết
@@ -260,8 +214,13 @@ const AuditLogsPage = () => {
 
   return (
     <MainLayout
-      siderIcons={renderedSiderIcons}
-      siderItems={STAFF_SIDEBAR_ITEMS}
+      siderIcons={renderSiderIconsMaterialSymbol({ icons: ADMIN_ICONS })}
+      siderItems={({ collapsed }) => {
+        if (collapsed) {
+          return ADMIN_SIDEBAR_ITEMS_FLAT;
+        }
+        return ADMIN_SIDEBAR_ITEMS;
+      }}
       notifCount={notifCount}
     >
       <ConfigProvider
