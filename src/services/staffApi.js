@@ -87,18 +87,15 @@ const getStaffAppeals = ({
   });
 };
 
-/** GET /staff/appeals/lecturers — dropdown for assign (lecturer workload list) */
 const getStaffAppealLecturers = () =>
   axiosClient.get('/staff/appeals/lecturers');
 
-/** PUT /staff/appeals/{appealId}/assign — PENDING only */
 const assignStaffAppeal = (appealId, { lecturerId, deadlineAt }) =>
   axiosClient.put(`/staff/appeals/${appealId}/assign`, {
     lecturerId,
     deadlineAt,
   });
 
-/** PUT /staff/appeals/{appealId}/confirm — COMPLETED only */
 const confirmStaffAppeal = (appealId, { isApprove }) =>
   axiosClient.put(`/staff/appeals/${appealId}/confirm`, { isApprove });
 

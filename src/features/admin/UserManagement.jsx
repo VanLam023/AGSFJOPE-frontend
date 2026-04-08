@@ -48,6 +48,8 @@ import {
   useCreateUser,
 } from '../../hooks';
 import emptyImg from '../../assets/empty.png';
+import { getAllUsers } from '../../services/adminApi';
+import { exportToExcel } from '../../components/utils/exportExcel.js';
 
 const rolesMap = new Map([
   ['STUDENT', 'Sinh viên'],
@@ -68,6 +70,7 @@ const UserManagement = () => {
   const [roleFilter, setRoleFilter] = useState();
   const debouncedFilter = useDebounce(roleFilter, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isExportingUsers, setIsExportingUsers] = useState(false);
 
   const {
     fetchUsers,
@@ -231,6 +234,78 @@ const UserManagement = () => {
     }
   };
 
+  const handleExportUsers = async () => {
+    if (isExportingUsers) return;
+    setIsExportingUsers(true);
+    try {
+      const batchSize = 1000;
+      const collected = [];
+
+      const res = await getAllUsers({
+        page: 0,
+        size: batchSize,
+        search: debouncedQuery || undefined,
+        roleName: debouncedFilter || undefined,
+      });
+      const pageData = res?.data ?? {};
+      console.log(pageData);
+      const list = pageData?.content ?? [];
+      const total = pageData?.totalItems ?? 0;
+      collected.push(...list);
+
+      if (!collected.length) {
+        message.warning('Không có dữ liệu để xuất.');
+        return;
+      }
+
+      const roleLabel = (roleName) =>
+        rolesMap.get(roleName) ?? String(roleName ?? '—');
+
+      const columns = [
+        { header: 'MSSV', key: 'mssv', width: 18 },
+        { header: 'Họ và tên', key: 'fullName', width: 30 },
+        { header: 'Email', key: 'email', width: 36 },
+        { header: 'Vai trò', key: 'roleName', width: 22 },
+        { header: 'Trạng thái', key: 'status', width: 18 },
+        { header: 'Ngày tạo', key: 'createdAt', width: 24 },
+      ];
+
+      const rowsForExport = collected.map((u) => ({
+        mssv: String(u.mssv ?? ''),
+        fullName: String(u.fullName ?? ''),
+        email: String(u.email ?? ''),
+        roleName: roleLabel(u.roleName),
+        status: u.isActive ? 'Đang hoạt động' : 'Không hoạt động',
+        createdAt: u.createdAt
+          ? new Date(u.createdAt).toLocaleString('vi-VN')
+          : '—',
+      }));
+
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = String(now.getFullYear());
+      const fileName = `user_report-${dd}-${mm}-${yyyy}.xlsx`;
+
+      await exportToExcel({
+        fileName,
+        sheetName: 'Users',
+        columns,
+        rows: rowsForExport,
+      });
+
+      message.success('Xuất Excel thành công.');
+    } catch (err) {
+      if (err?.response?.data?.message) {
+        message.error(err.response.data.message);
+      } else {
+        message.error('Xuất Excel thất bại.');
+      }
+    } finally {
+      setIsExportingUsers(false);
+    }
+  };
+
   return (
     <MainLayout
       siderIcons={renderSiderIconsMaterialSymbol({ icons: ADMIN_ICONS })}
@@ -299,6 +374,8 @@ const UserManagement = () => {
               size="large"
               icon={<DownloadOutlined />}
               variant="outlined"
+              loading={isExportingUsers}
+              onClick={handleExportUsers}
             >
               Xuất Excel
             </Button>

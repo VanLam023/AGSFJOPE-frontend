@@ -3,13 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import viVN from 'antd/locale/vi_VN';
 import MainLayout from '../../components/layouts/MainLayout';
 import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
+
+import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils';
 import {
-  DashboardIcon,
-  ExamManagementIcon,
-  SubmissionsIcon,
-  AppealsIcon,
-  AuditLogIcon,
-} from '../../components/icons/SidebarIcons.jsx';
+  ADMIN_SIDEBAR_ITEMS,
+  ADMIN_ICONS,
+  ADMIN_SIDEBAR_ITEMS_FLAT,
+} from '../../constants/sidebarItems';
 import { ConfigProvider, message, Spin } from 'antd';
 import CardContainer from '../../components/CardContainer';
 import { useGetAuditLogDetail } from '../../hooks';
@@ -63,24 +63,6 @@ const AuditLogDetailPage = () => {
   const { callGetAuditLogDetailEndpoint, detail, loading } =
     useGetAuditLogDetail();
 
-  const icons = [
-    DashboardIcon,
-    ExamManagementIcon,
-    // SubmissionsIcon,
-    AppealsIcon,
-    AuditLogIcon,
-  ];
-
-  const activeSidebarIndex =
-    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
-    1;
-
-  const renderedSiderIcons = icons.map((Icon, index) => {
-    const isActive = index + 1 === activeSidebarIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return Icon({ fill: color });
-  });
-
   useEffect(() => {
     if (!auditLogId) return;
     callGetAuditLogDetailEndpoint(auditLogId).catch(() => {
@@ -90,8 +72,13 @@ const AuditLogDetailPage = () => {
 
   return (
     <MainLayout
-      siderIcons={renderedSiderIcons}
-      siderItems={STAFF_SIDEBAR_ITEMS}
+      siderIcons={renderSiderIconsMaterialSymbol({ icons: ADMIN_ICONS })}
+      siderItems={({ collapsed }) => {
+        if (collapsed) {
+          return ADMIN_SIDEBAR_ITEMS_FLAT;
+        }
+        return ADMIN_SIDEBAR_ITEMS;
+      }}
       notifCount={notifCount}
     >
       <ConfigProvider locale={viVN}>

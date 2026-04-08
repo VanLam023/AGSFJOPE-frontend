@@ -21,8 +21,8 @@ import VerifyAccount from '../../features/auth/VerifyAccount.jsx';
 import UserDetail from '../../features/admin/UserDetail.jsx';
 import SystemConfig from '../../features/admin/SystemConfig.jsx';
 import AIConfig from '../../features/admin/AIConfig.jsx';
-import AuditLogsPage from '../../features/exam-staff/AuditLogsPage.jsx';
-import AuditLogDetailPage from '../../features/exam-staff/AuditLogDetailPage.jsx';
+import AuditLogsPage from '../../features/admin/AuditLogsPage.jsx';
+import AuditLogDetailPage from '../../features/admin/AuditLogDetailPage.jsx';
 import AppealPage from '../../features/exam-staff/AppealPage.jsx';
 import AppealDetailPage from '../../features/exam-staff/AppealDetailPage.jsx';
 
@@ -221,17 +221,17 @@ export default function AppRoutes() {
         }
       />
       <Route
-        path="/exam-staff/audits/:auditLogId"
+        path="/admin/audits/:auditLogId"
         element={
-          <ProtectedRoute allowedRoles={['EXAM_STAFF', 'SYSTEM_ADMIN']}>
+          <ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}>
             <AuditLogDetailPage />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/exam-staff/audits"
+        path="/admin/audits"
         element={
-          <ProtectedRoute allowedRoles={['EXAM_STAFF', 'SYSTEM_ADMIN']}>
+          <ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}>
             <AuditLogsPage />
           </ProtectedRoute>
         }

@@ -37,7 +37,7 @@ dayjs.locale('vi');
 const icons = [
   DashboardIcon,
   ExamManagementIcon,
-  SubmissionsIcon,
+  // SubmissionsIcon,
   AppealsIcon,
   AuditLogIcon,
 ];
@@ -62,8 +62,12 @@ const AppealDetailPage = () => {
   const [assignSubmitting, setAssignSubmitting] = useState(false);
   const [confirmSubmitting, setConfirmSubmitting] = useState(false);
 
+  const activeSidebarIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/appeals') +
+    1;
+
   const renderedSiderIcons = icons.map((item, index) => {
-    const isActive = index + 1 === 4;
+    const isActive = index + 1 === activeSidebarIndex;
     const color = isActive ? '#F37021' : '#ffffff';
     return item({ fill: color });
   });

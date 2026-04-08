@@ -27,6 +27,7 @@ import { appealStatusConfig } from './config.jsx';
 import { useStaffAppeals } from '../../hooks';
 import useDebounce from '../../hooks/useDebounce.jsx';
 import { formatDateTime, formatCount } from '../../components/utils/Utils';
+import { exportToExcel } from '../../components/utils/exportExcel.js';
 
 const OVERVIEW_CARDS = [
   { key: 'total', title: 'Tổng đơn', field: 'total', iconName: 'inbox' },
@@ -70,7 +71,7 @@ const STATUS_FILTER_OPTIONS = [
 const icons = [
   DashboardIcon,
   ExamManagementIcon,
-  SubmissionsIcon,
+  // SubmissionsIcon,
   AppealsIcon,
   AuditLogIcon,
 ];
@@ -100,14 +101,19 @@ const AppealPage = () => {
   const [statusFilter, setStatusFilter] = useState(undefined);
   const [examNameFilter, setExamNameFilter] = useState(undefined);
   const [keywordInput, setKeywordInput] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
   const debouncedKeyword = useDebounce(keywordInput, 400);
   const [examNameOptions, setExamNameOptions] = useState([]);
   const filterKeyRef = useRef(null);
 
   const { fetchStaffAppeals, data, loading, error } = useStaffAppeals();
 
+  const activeSidebarIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/appeals') +
+    1;
+
   const renderedSiderIcons = icons.map((item, index) => {
-    const isActive = index + 1 === 4;
+    const isActive = index + 1 === activeSidebarIndex;
     const color = isActive ? '#F37021' : '#ffffff';
     return item({ fill: color });
   });
@@ -155,93 +161,83 @@ const AppealPage = () => {
     fetchStaffAppeals,
   ]);
 
-  //   const handleExportExcel = useCallback(async () => {
-  //     setExporting(true);
-  //     try {
-  //       const kw = debouncedKeyword || '';
-  //       const batchSize = 500;
-  //       const collected = [];
-  //       let total = Infinity;
-  //       for (let pageIdx = 0; pageIdx <= 200; pageIdx += 1) {
-  //         const envelope = await getStaffAppeals({
-  //           page: pageIdx,
-  //           size: batchSize,
-  //           status: statusFilter,
-  //           keyword: kw || undefined,
-  //           semester: semesterFilter,
-  //           examName: examNameFilter,
-  //         });
-  //         const pageData = envelope?.data ?? null;
-  //         const list = pageData?.appeals ?? [];
-  //         total = pageData?.totalElements ?? collected.length + list.length;
-  //         collected.push(...list);
-  //         if (list.length === 0 || collected.length >= total) {
-  //           break;
-  //         }
-  //         if (list.length < batchSize) {
-  //           break;
-  //         }
-  //       }
+  const handleExportExcel = async () => {
+    if (isExporting) return;
+    setIsExporting(true);
+    try {
+      const kw = debouncedKeyword || '';
+      const batchSize = 1000;
+      const collected = [];
 
-  //       if (!collected.length) {
-  //         message.warning('Không có dữ liệu để xuất.');
-  //         return;
-  //       }
+      const envelope = await getStaffAppeals({
+        page: 0,
+        size: batchSize,
+        status: statusFilter,
+        keyword: kw || undefined,
+        examName: examNameFilter,
+      });
+      const pageData = envelope?.data ?? null;
+      const list = pageData?.appeals ?? [];
+      const total = pageData?.totalElements ?? 0;
+      collected.push(...list);
 
-  //       const headers = [
-  //         'STT',
-  //         'Mã đơn',
-  //         'Sinh viên',
-  //         'MSSV',
-  //         'Kỳ học',
-  //         'Kỳ thi',
-  //         'Block',
-  //         'Trạng thái',
-  //         'Giảng viên',
-  //         'Hạn xử lý',
-  //       ];
-  //       const csvRows = collected.map((row, idx) => {
-  //         const cfg =
-  //           appealStatusConfig[row.status] ?? appealStatusConfig.PENDING;
-  //         return [
-  //           idx + 1,
-  //           row.appealCode ?? '',
-  //           row.studentName ?? '',
-  //           row.studentMssv ?? '',
-  //           row.semester ?? '',
-  //           row.examName ?? '',
-  //           row.blockName ?? '',
-  //           cfg.label,
-  //           row.assignedLecturerName ?? '',
-  //           formatDateTime(row.deadlineAt),
-  //         ];
-  //       });
-  //       const csv = [headers, ...csvRows]
-  //         .map((r) => r.map(escapeCsvCell).join(','))
-  //         .join('\n');
-  //       const blob = new Blob([`\uFEFF${csv}`], {
-  //         type: 'text/csv;charset=utf-8;',
-  //       });
-  //       const url = URL.createObjectURL(blob);
-  //       const a = document.createElement('a');
-  //       a.href = url;
-  //       a.download = `don-phuc-khao-${new Date().toISOString().slice(0, 10)}.csv`;
-  //       document.body.appendChild(a);
-  //       a.click();
-  //       a.remove();
-  //       URL.revokeObjectURL(url);
-  //       message.success('Đã xuất file.');
-  //     } catch {
-  //       message.error('Xuất file thất bại.');
-  //     } finally {
-  //       setExporting(false);
-  //     }
-  //   }, [
-  //     debouncedKeyword,
-  //     statusFilter,
-  //     semesterFilter,
-  //     examNameFilter,
-  //   ]);
+      if (!collected.length) {
+        message.warning('Không có dữ liệu để xuất.');
+        return;
+      }
+
+      const columns = [
+        { header: 'Mã đơn', key: 'appealCode', width: 18 },
+        { header: 'Sinh viên', key: 'studentName', width: 28 },
+        { header: 'MSSV', key: 'studentMssv', width: 18 },
+        { header: 'Kỳ thi', key: 'examName', width: 30 },
+        { header: 'Block', key: 'blockName', width: 16 },
+        { header: 'Trạng thái', key: 'status', width: 20 },
+        {
+          header: 'Giảng viên phụ trách',
+          key: 'assignedLecturerName',
+          width: 30,
+        },
+        { header: 'Hạn xử lý', key: 'deadlineAt', width: 24 },
+        { header: 'Ngày tạo', key: 'createdAt', width: 24 },
+      ];
+
+      const rowsForExport = collected.map((row) => {
+        const cfg =
+          appealStatusConfig[row.status] ?? appealStatusConfig.PENDING;
+        return {
+          appealCode: String(row.appealCode ?? ''),
+          studentName: String(row.studentName ?? ''),
+          studentMssv: String(row.studentMssv ?? ''),
+          examName: String(row.examName ?? ''),
+          blockName: String(row.blockName ?? ''),
+          status: String(cfg.label ?? ''),
+          assignedLecturerName: String(row.assignedLecturerName ?? '—'),
+          deadlineAt: formatDateTime(row.deadlineAt),
+          createdAt: formatDateTime(row.createdAt),
+        };
+      });
+
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2, '0');
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const yyyy = String(now.getFullYear());
+      const fileName = `appeal-report-${dd}-${mm}-${yyyy}.xlsx`;
+
+      await exportToExcel({
+        fileName,
+        sheetName: 'Appeals',
+        columns,
+        rows: rowsForExport,
+      });
+
+      message.success('Xuất Excel thành công.');
+    } catch {
+      message.error('Xuất Excel thất bại.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const rows = data?.appeals ?? [];
   const totalElements = data?.totalElements ?? 0;
@@ -322,7 +318,7 @@ const AppealPage = () => {
         ),
         dataIndex: 'blockName',
         key: 'blockName',
-        width: 40,
+        width: 30,
         ellipsis: true,
       },
       {
@@ -333,7 +329,7 @@ const AppealPage = () => {
         ),
         dataIndex: 'status',
         key: 'status',
-        width: 50,
+        width: 60,
         render: (status) => {
           const cfg = appealStatusConfig[status] ?? appealStatusConfig.PENDING;
           return (
@@ -485,6 +481,8 @@ const AppealPage = () => {
                   size="medium"
                   icon={<DownloadOutlined />}
                   variant="outlined"
+                  loading={isExporting}
+                  onClick={handleExportExcel}
                 >
                   Xuất Excel
                 </Button>

@@ -1,10 +1,7 @@
 import { useState, useCallback } from 'react';
 import { getStaffAppealLecturers } from '../services/staffApi';
 
-/**
- * GET /staff/appeals/lecturers — lecturers for assign dropdown.
- * Response: { success, message, data: Array<{ lecturerId, fullName, email, activeAppealCount }> }.
- */
+
 const useStaffAppealLecturers = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
