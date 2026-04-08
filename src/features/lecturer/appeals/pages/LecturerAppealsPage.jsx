@@ -70,9 +70,6 @@ export default function LecturerAppealsPage() {
           <div className="max-w-3xl">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#F37021]">Lecturer Appeal Workspace</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Quản lý và chấm các đơn phúc khảo được giao</h2>
-            <p className="mt-3 text-sm leading-6 text-slate-500">
-              Màn hình này hiển thị đầy đủ các field BE đang trả về cho từng đơn appeal: mã đơn, ID, sinh viên, kỳ thi, block, học kỳ, lý do, trạng thái, điểm gốc, điểm mới, ngày tạo, deadline và cờ quá hạn.
-            </p>
           </div>
           <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-6 text-orange-900 xl:max-w-sm">
             Ưu tiên mở các đơn có badge <span className="font-bold">Quá hạn</span> hoặc trạng thái <span className="font-bold">Đang xử lý</span> để hoàn tất review trước deadline.

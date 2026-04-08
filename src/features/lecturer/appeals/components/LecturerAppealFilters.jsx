@@ -57,10 +57,6 @@ export default function LecturerAppealFilters({
           Xóa bộ lọc
         </button>
       </div>
-
-      <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-sm leading-6 text-slate-700">
-        Tìm theo từ khóa tổng quát và lọc theo trạng thái review để giảng viên xử lý nhanh hơn.
-      </div>
     </section>
   );
 }
