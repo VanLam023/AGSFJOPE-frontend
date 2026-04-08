@@ -18,3 +18,6 @@ export { default as useStaffDashboard } from './useStaffDashboard.jsx';
 export { default as useStaffAppeals } from './useStaffAppeals.jsx';
 export { default as useStaffAppealDetail } from './useStaffAppealDetail.jsx';
 export { default as useStaffAppealLecturers } from './useStaffAppealLecturers.jsx';
+export { default as useLecturerDashboard } from './useLecturerDashboard.jsx';
+export { default as useLecturerAppeals } from './useLecturerAppeals.jsx';
+export { default as useLecturerAppealDetail } from './useLecturerAppealDetail.jsx';
