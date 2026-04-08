@@ -39,9 +39,6 @@ export default function LecturerAppealTable({
           <h2 className="text-lg font-black text-slate-900">
             Danh sách đơn phúc khảo
           </h2>
-          <p className="text-sm text-slate-500">
-            Mỗi đơn hiển thị gọn trong một dòng để dễ rà soát hơn.
-          </p>
         </div>
 
         <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 shadow-sm">
