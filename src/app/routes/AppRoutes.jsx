@@ -1,3 +1,4 @@
+import React, { Suspense, lazy } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import Login from '../../features/auth/Login.jsx';
 import ForgotPassword from '../../features/auth/ForgotPassword.jsx';
@@ -7,13 +8,10 @@ import StudentResultsPage from '../../features/student/StudentResultsPage.jsx';
 import StudentResultDetailPage from '../../features/student/StudentResultDetailPage.jsx';
 import SubmitCode from '../../features/submission/SubmitCode.jsx';
 import LandingPage from '../../pages/LandingPage.jsx';
-import LecturerDashboard from '../../features/lecturer/LecturerDashboard.jsx';
 import ExamStaffDashboard from '../../features/exam-staff/ExamStaffDashboard.jsx';
 import SystemAdminDashboard from '../../features/admin/SystemAdminDashboard.jsx';
-import SystemAdminDashboardOld from '../../features/admin/SystemAdminDashboardOld.jsx';
 import UserManagement from '../../features/admin/UserManagement.jsx';
 import PayOSConfigurationPage from '../../features/admin/PayOSConfigurationPage.jsx';
-
 import ProtectedRoute from './ProtectedRoute.jsx';
 import { ROLE_HOME_MAP } from '../../constants/routes.js';
 import { useAuth } from '../context/authContext.js';
@@ -25,6 +23,12 @@ import AuditLogsPage from '../../features/exam-staff/AuditLogsPage.jsx';
 import AuditLogDetailPage from '../../features/exam-staff/AuditLogDetailPage.jsx';
 import AppealPage from '../../features/exam-staff/AppealPage.jsx';
 import AppealDetailPage from '../../features/exam-staff/AppealDetailPage.jsx';
+
+const LecturerLayout = lazy(() => import('../../components/layouts/lecturer'));
+const LecturerDashboard = lazy(() => import('../../features/lecturer/LecturerDashboard.jsx'));
+const LecturerAppealsPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealsPage.jsx'));
+const LecturerAppealReviewPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealReviewPage.jsx'));
+const LecturerAppealSubmittedPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealSubmittedPage.jsx'));
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
@@ -39,6 +43,22 @@ const getDefaultRoute = (user, token) => {
   return '/';
 };
 
+function LecturerRouteFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-[#f7f7f8] via-[#f6f6f8] to-[#fffaf6] px-8 py-8">
+      <div className="mx-auto max-w-6xl space-y-4">
+        <div className="h-10 w-56 rounded-2xl bg-slate-100 animate-pulse" />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="h-32 rounded-2xl bg-slate-100 animate-pulse" />
+          <div className="h-32 rounded-2xl bg-slate-100 animate-pulse" />
+          <div className="h-32 rounded-2xl bg-slate-100 animate-pulse" />
+        </div>
+        <div className="h-72 rounded-2xl bg-slate-100 animate-pulse" />
+      </div>
+    </div>
+  );
+}
+
 export default function AppRoutes() {
   const { user, loading } = useAuth();
 
@@ -52,41 +72,19 @@ export default function AppRoutes() {
 
   return (
     <Routes>
-      <Route
-        path="/"
-        element={<LandingPage />}
-      />
+      <Route path="/" element={<LandingPage />} />
 
       <Route
         path="/login"
         element={
-          isLoggedIn ? (
-            <Navigate
-              to={defaultRoute}
-              replace
-            />
-          ) : (
-            <Login />
-          )
+          isLoggedIn ? <Navigate to={defaultRoute} replace /> : <Login />
         }
       />
 
-      <Route
-        path="/forgot-password"
-        element={<ForgotPassword />}
-      />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verify-account" element={<VerifyAccount />} />
 
-      <Route
-        path="/reset-password"
-        element={<ResetPassword />}
-      />
-
-      <Route
-        path="/verify-account"
-        element={<VerifyAccount />}
-      />
-
-      {/* Student routes */}
       <Route
         path="/student"
         element={
@@ -120,17 +118,22 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Lecturer routes */}
       <Route
         path="/lecturer"
         element={
           <ProtectedRoute allowedRoles={['LECTURER']}>
-            <LecturerDashboard />
+            <Suspense fallback={<LecturerRouteFallback />}>
+              <LecturerLayout />
+            </Suspense>
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<LecturerDashboard />} />
+        <Route path="appeals" element={<LecturerAppealsPage />} />
+        <Route path="appeals/:appealId" element={<LecturerAppealReviewPage />} />
+        <Route path="appeals/:appealId/submitted" element={<LecturerAppealSubmittedPage />} />
+      </Route>
 
-      {/* Exam Staff routes */}
       <Route
         path="/exam-staff"
         element={
@@ -211,7 +214,6 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/exam-staff/appeals"
         element={
@@ -245,7 +247,6 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Admin routes */}
       <Route
         path="/admin"
         element={
@@ -270,7 +271,6 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/admin/payos-configuration"
         element={
@@ -279,7 +279,6 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/admin/ai-config"
         element={
@@ -288,7 +287,6 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
       <Route
         path="/admin/system-config"
         element={
@@ -297,16 +295,8 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       />
-      {/* Route lạ */}
-      <Route
-        path="*"
-        element={
-          <Navigate
-            to={defaultRoute}
-            replace
-          />
-        }
-      />
+
+      <Route path="*" element={<Navigate to={defaultRoute} replace />} />
     </Routes>
   );
 }
