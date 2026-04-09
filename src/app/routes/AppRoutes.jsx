@@ -29,6 +29,9 @@ const LecturerDashboard = lazy(() => import('../../features/lecturer/LecturerDas
 const LecturerAppealsPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealsPage.jsx'));
 const LecturerAppealReviewPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealReviewPage.jsx'));
 const LecturerAppealSubmittedPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealSubmittedPage.jsx'));
+const StudentWalletPage = lazy(() => import('../../features/student/StudentWalletPage.jsx'));
+const StudentAppealsPage = lazy(() => import('../../features/student/StudentAppealsPage.jsx'));
+const StudentAppealCreatePage = lazy(() => import('../../features/student/StudentAppealCreatePage.jsx'));
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
@@ -114,6 +117,36 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['STUDENT']}>
             <StudentResultDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/wallet"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <Suspense fallback={<LecturerRouteFallback />}>
+              <StudentWalletPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/appeals"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <Suspense fallback={<LecturerRouteFallback />}>
+              <StudentAppealsPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/appeals/create/:submissionId"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <Suspense fallback={<LecturerRouteFallback />}>
+              <StudentAppealCreatePage />
+            </Suspense>
           </ProtectedRoute>
         }
       />
