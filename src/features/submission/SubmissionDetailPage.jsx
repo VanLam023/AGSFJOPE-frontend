@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import gradingApi from '../../services/gradingApi';
 import {
   AlertBox,
@@ -24,6 +24,7 @@ export default function SubmissionDetailPage({
   isStudentView = false,
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const prefill = location?.state?.prefill ?? null;
 
   const [loading, setLoading] = useState(!prefill);
@@ -128,8 +129,28 @@ export default function SubmissionDetailPage({
   }, [blockId, examId, submissionId]);
 
   const handleAppeal = useCallback(() => {
-    message.info('Tính năng nộp đơn phúc khảo đang được hệ thống phát triển, vui lòng quay lại sau.');
-  }, []);
+    if (!submissionId) {
+      message.error('Thiếu submissionId để tạo yêu cầu phúc khảo.');
+      return;
+    }
+
+    navigate(`/student/appeals/create/${submissionId}`, {
+      state: {
+        prefill: {
+          submissionId,
+          examId,
+          blockId,
+          examName: prefill?.examName || detail?.examName || detail?.blockName,
+          semesterName: prefill?.semesterName || detail?.semesterName,
+          blockName: prefill?.blockName || detail?.blockName,
+          totalScore: detail?.totalScore,
+          maxScore: detail?.maxScore,
+          gradedAt: detail?.gradedAt,
+          status: detail?.status,
+        },
+      },
+    });
+  }, [blockId, detail?.blockName, detail?.examName, detail?.gradedAt, detail?.maxScore, detail?.semesterName, detail?.status, detail?.totalScore, examId, navigate, prefill?.blockName, prefill?.examName, prefill?.semesterName, submissionId]);
 
   const toggleQuestion = useCallback((index) => {
     setOpenQuestion((prev) => (prev === index ? -1 : index));

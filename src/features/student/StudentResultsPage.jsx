@@ -302,7 +302,21 @@ export default function StudentResultsPage() {
                         {r.gradingResultId ? (
                           <Link
                             to={`/student/results/${r.submissionId}`}
-                            state={{ examId: r.examId, blockId: r.blockId }}
+                            state={{
+                              examId: r.examId,
+                              blockId: r.blockId,
+                              prefill: {
+                                submissionId: r.submissionId,
+                                gradingResultId: r.gradingResultId,
+                                examName: r.examName,
+                                semesterName: r.semester,
+                                blockName: r.blockName,
+                                totalScore: r.totalScore,
+                                maxScore: r.maxScore,
+                                gradedAt: r.gradedAt,
+                                status: r.gradingStatus,
+                              },
+                            }}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#F37021]/10 text-[#F37021] text-xs font-bold hover:bg-[#F37021]/20 transition-colors"
                           >
                             <span className="material-symbols-outlined text-[14px]">visibility</span>
