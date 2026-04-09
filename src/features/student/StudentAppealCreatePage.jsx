@@ -181,7 +181,6 @@ export default function StudentAppealCreatePage() {
             <h2 className="text-base font-black text-[#F37021]">Lưu ý trước khi gửi phúc khảo</h2>
             <ul className="list-disc space-y-1 pl-5">
               <li>Chỉ gửi phúc khảo cho bài nộp đã có kết quả chấm.</li>
-              <li>Phí phúc khảo sẽ được backend trừ trực tiếp từ ví sinh viên khi tạo đơn thành công.</li>
               <li>Nêu rõ câu hỏi hoặc phần bài làm muốn xem xét lại để giảng viên xử lý nhanh hơn.</li>
             </ul>
           </div>
