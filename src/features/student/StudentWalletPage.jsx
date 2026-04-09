@@ -333,7 +333,7 @@ export default function StudentWalletPage() {
       <section className="rounded-3xl border border-slate-200 bg-white/95 px-6 py-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Student wallet</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Ví sinh viên</p>
             <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Quản lý ví, nạp tiền và rút tiền</h1>
           </div>
 

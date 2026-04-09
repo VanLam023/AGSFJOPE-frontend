@@ -248,7 +248,7 @@ export function extractWalletErrorMessage(error, fallback = 'Đã xảy ra lỗi
   if (serverMessage) return serverMessage;
 
   if (!error?.response) {
-    return 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend hoặc mạng.';
+    return 'Không thể kết nối lúc này. Vui lòng kiểm tra mạng và thử lại.';
   }
 
   if (status === 400) return 'Dữ liệu gửi lên chưa hợp lệ. Vui lòng kiểm tra lại.';

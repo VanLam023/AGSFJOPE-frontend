@@ -156,7 +156,7 @@ export default function StudentAppealsPage() {
       <section className="rounded-3xl border border-slate-200 bg-white/95 px-6 py-6 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Student appeal center</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Theo dõi phúc khảo</p>
             <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Theo dõi tất cả yêu cầu phúc khảo</h1>
           </div>
 

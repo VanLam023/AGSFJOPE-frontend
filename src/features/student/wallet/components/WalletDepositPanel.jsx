@@ -144,7 +144,7 @@ export default function WalletDepositPanel({
                 </div>
               ) : (
                 <div className="flex min-h-[160px] w-full max-w-[260px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white/70 p-5 text-center text-sm leading-6 text-slate-500">
-                  QR thanh toán sẽ xuất hiện tại đây khi backend trả về dữ liệu PayOS hợp lệ.
+                  QR thanh toán sẽ xuất hiện tại đây khi lệnh nạp sẵn sàng.
                 </div>
               )}
             </div>
