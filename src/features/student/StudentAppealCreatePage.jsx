@@ -32,6 +32,8 @@ export default function StudentAppealCreatePage() {
 
   const [detail, setDetail] = useState(resolveAppealCreatePrefill(location.state?.prefill, submissionId));
   const [walletBalance, setWalletBalance] = useState(null);
+  const [hasWallet, setHasWallet] = useState(false);
+  const [appealFee, setAppealFee] = useState(200000);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [reason, setReason] = useState('');
@@ -69,9 +71,15 @@ export default function StudentAppealCreatePage() {
 
       if (walletResponse.status === 'fulfilled') {
         const wallet = unwrapApiData(walletResponse.value);
-        setWalletBalance(wallet?.balance ?? 0);
+        const resolvedHasWallet = typeof wallet?.hasWallet === 'boolean'
+          ? wallet.hasWallet
+          : Boolean(wallet?.walletId);
+
+        setHasWallet(resolvedHasWallet);
+        setWalletBalance(resolvedHasWallet ? Number(wallet?.balance ?? 0) : 0);
+        setAppealFee(Number(wallet?.appealFee ?? 200000) || 200000);
       } else {
-        setWalletBalance(null);
+        throw walletResponse.reason;
       }
 
       if (resultResponse.status === 'rejected') {
@@ -100,15 +108,28 @@ export default function StudentAppealCreatePage() {
     setReasonError('');
   }, []);
 
+  const hasEnoughBalance = useMemo(() => hasWallet && Number(walletBalance ?? 0) >= Number(appealFee ?? 0), [appealFee, hasWallet, walletBalance]);
+
   const canSubmit = useMemo(
-    () => !submitting && !loading && !!detail?.submissionId && agreed,
-    [agreed, detail?.submissionId, loading, submitting],
+    () => !submitting && !loading && !!detail?.submissionId && agreed && hasEnoughBalance,
+    [agreed, detail?.submissionId, hasEnoughBalance, loading, submitting],
   );
 
   const handleSubmit = useCallback(async () => {
+    const normalizedReason = normalizeAppealReason(reason).trim();
     const validationError = validateAppealReason(reason);
     if (validationError) {
       setReasonError(validationError);
+      return;
+    }
+
+    if (!hasWallet) {
+      message.warning('Bạn cần mở ví và nạp tiền trước khi gửi yêu cầu phúc khảo.');
+      return;
+    }
+
+    if (!hasEnoughBalance) {
+      message.warning('Số dư hiện tại chưa đủ để thanh toán phí phúc khảo.');
       return;
     }
 
@@ -123,7 +144,7 @@ export default function StudentAppealCreatePage() {
     try {
       const response = await appealApi.createAppeal({
         submissionId: detail?.submissionId || submissionId,
-        reason,
+        reason: normalizedReason,
       });
 
       const payload = unwrapApiData(response);
@@ -139,7 +160,7 @@ export default function StudentAppealCreatePage() {
     } finally {
       setSubmitting(false);
     }
-  }, [agreed, detail?.submissionId, navigate, reason, submissionId]);
+  }, [agreed, detail?.submissionId, hasEnoughBalance, hasWallet, navigate, reason, submissionId]);
 
   const headerActions = (
     <div className="flex items-center gap-2">
@@ -181,6 +202,7 @@ export default function StudentAppealCreatePage() {
             <h2 className="text-base font-black text-[#F37021]">Lưu ý trước khi gửi phúc khảo</h2>
             <ul className="list-disc space-y-1 pl-5">
               <li>Chỉ gửi phúc khảo cho bài nộp đã có kết quả chấm.</li>
+              <li>Phí phúc khảo sẽ được trừ từ ví sinh viên khi gửi yêu cầu thành công.</li>
               <li>Nêu rõ câu hỏi hoặc phần bài làm muốn xem xét lại để giảng viên xử lý nhanh hơn.</li>
             </ul>
           </div>
@@ -191,7 +213,7 @@ export default function StudentAppealCreatePage() {
         <div className="rounded-3xl border border-slate-200 bg-white p-16 shadow-sm">
           <div className="flex flex-col items-center gap-4">
             <div className="h-12 w-12 animate-spin rounded-full border-4 border-[#F37021]/30 border-t-[#F37021]" />
-            <p className="text-sm font-medium text-slate-500">Đang tải dữ liệu bài nộp và ví sinh viên...</p>
+            <p className="text-sm font-medium text-slate-500">Đang tải thông tin bài nộp và ví sinh viên...</p>
           </div>
         </div>
       ) : loadError ? (
@@ -222,7 +244,12 @@ export default function StudentAppealCreatePage() {
               <InfoRow label="Học kỳ" value={detail?.semesterName || '—'} />
               <InfoRow label="Ngày chấm" value={formatDateTime(detail?.gradedAt)} />
               <InfoRow label="Điểm hiện tại" value={`${formatScore(detail?.totalScore)} / ${formatScore(detail?.maxScore)}`} accent />
-              <InfoRow label="Số dư ví hiện tại" value={walletBalance == null ? '—' : formatCurrency(walletBalance)} />
+              <InfoRow label="Phí phúc khảo" value={formatCurrency(appealFee)} />
+              <InfoRow
+                label={hasWallet ? 'Số dư ví hiện tại' : 'Trạng thái ví'}
+                value={hasWallet ? formatCurrency(walletBalance) : 'Chưa có ví sinh viên'}
+                accent={hasWallet && hasEnoughBalance}
+              />
             </div>
           </section>
 
@@ -257,24 +284,37 @@ export default function StudentAppealCreatePage() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-5 py-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-slate-700">Thanh toán bằng ví sinh viên</p>
-                    <p className="mt-1 text-sm text-slate-500">
-                      Hệ thống sẽ trừ phí phúc khảo theo cấu hình backend ngay khi tạo đơn thành công.
+              {!hasWallet ? (
+                <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
+                  <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-amber-800">Bạn chưa có ví sinh viên</p>
+                      <p className="mt-1 text-sm leading-6 text-amber-700">
+                        Hãy mở ví và nạp tiền trước khi gửi yêu cầu phúc khảo.
+                      </p>
+                    </div>
+
+                    <Link
+                      to="/student/wallet"
+                      className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-amber-200 bg-white px-4 text-sm font-bold text-amber-800 transition-colors hover:bg-amber-100"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
+                      Mở ví
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <div className={`rounded-2xl border px-5 py-4 ${hasEnoughBalance ? 'border-emerald-200 bg-emerald-50' : 'border-rose-200 bg-rose-50'}`}>
+                  <div className="flex flex-col gap-2">
+                    <p className={`text-sm font-bold ${hasEnoughBalance ? 'text-emerald-800' : 'text-rose-800'}`}>
+                      {hasEnoughBalance ? 'Số dư hiện tại đủ để gửi phúc khảo' : 'Số dư hiện tại chưa đủ'}
+                    </p>
+                    <p className={`text-sm leading-6 ${hasEnoughBalance ? 'text-emerald-700' : 'text-rose-700'}`}>
+                      Số dư hiện tại: <span className="font-bold">{formatCurrency(walletBalance)}</span> · Phí thủ tục: <span className="font-bold">{formatCurrency(appealFee)}</span>
                     </p>
                   </div>
-
-                  <Link
-                    to="/student/wallet"
-                    className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition-colors hover:border-[#F37021]/30 hover:text-[#F37021]"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">account_balance_wallet</span>
-                    Mở ví
-                  </Link>
                 </div>
-              </div>
+              )}
 
               <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm leading-6 text-slate-600">
                 <input
@@ -284,7 +324,7 @@ export default function StudentAppealCreatePage() {
                   className="mt-1 h-4 w-4 rounded border-slate-300 text-[#F37021] focus:ring-[#F37021]"
                 />
                 <span>
-                  Tôi xác nhận thông tin cung cấp là chính xác và đồng ý để hệ thống trừ phí phúc khảo từ ví sinh viên khi gửi yêu cầu.
+                  Tôi xác nhận thông tin cung cấp là chính xác và đồng ý thanh toán phí phúc khảo bằng ví sinh viên khi gửi yêu cầu.
                 </span>
               </label>
             </div>

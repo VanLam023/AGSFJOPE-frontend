@@ -44,13 +44,12 @@ export function formatShortDate(value) {
 export function normalizeAppealReason(value) {
   return String(value ?? '')
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+    .replace(/\r\n/g, '\n')
     .slice(0, MAX_REASON_LENGTH);
 }
 
 export function validateAppealReason(value) {
-  const reason = normalizeAppealReason(value);
+  const reason = normalizeAppealReason(value).trim();
 
   if (!reason) {
     return 'Vui lòng nhập lý do phúc khảo.';
@@ -70,15 +69,15 @@ export function extractAppealErrorMessage(error, fallback = 'Đã xảy ra lỗi
   if (serverMessage) return serverMessage;
 
   if (!error?.response) {
-    return 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend hoặc mạng.';
+    return 'Không thể kết nối lúc này. Vui lòng kiểm tra mạng và thử lại.';
   }
 
   if (status === 400) return 'Dữ liệu phúc khảo chưa hợp lệ. Vui lòng kiểm tra lại.';
   if (status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
   if (status === 403) return 'Bạn không có quyền thực hiện thao tác phúc khảo này.';
-  if (status === 404) return 'Không tìm thấy bài nộp hoặc dữ liệu phúc khảo tương ứng.';
+  if (status === 404) return 'Không tìm thấy bài nộp hoặc thông tin phúc khảo tương ứng.';
   if (status === 409) return 'Bài nộp này đã có đơn phúc khảo hoặc đang ở trạng thái không cho phép.';
-  if (status >= 500) return 'Máy chủ đang gặp lỗi. Vui lòng thử lại sau ít phút.';
+  if (status >= 500) return 'Hệ thống đang bận. Vui lòng thử lại sau ít phút.';
 
   return fallback;
 }
