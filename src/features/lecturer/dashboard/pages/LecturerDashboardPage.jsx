@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
 import useLecturerDashboard from '../../../../hooks/useLecturerDashboard';
 import { DASHBOARD_CARD_CONFIG } from '../helpers/lecturerDashboardHelpers';
+import { getLecturerAppealDetailPath } from '../../appeals/helpers/appealHelpers';
 import LecturerDashboardCard from '../components/LecturerDashboardCard';
 import LecturerAssignedAppealsTable from '../components/LecturerAssignedAppealsTable';
 import LecturerUpcomingDeadlines from '../components/LecturerUpcomingDeadlines';
@@ -28,8 +29,8 @@ export default function LecturerDashboardPage() {
     });
   }, [setPageMeta]);
 
-  const handleOpenAppeal = (appealId) => {
-    navigate(`/lecturer/appeals/${appealId}`);
+  const handleOpenAppeal = (appealId, status) => {
+    navigate(getLecturerAppealDetailPath(appealId, status));
   };
 
   return (

@@ -2,8 +2,111 @@ const CURRENCY_FORMATTER = new Intl.NumberFormat('vi-VN');
 const DEFAULT_MIN_REASON_LENGTH = 10;
 const MAX_REASON_LENGTH = 2000;
 
+const RECEIVED_STATUSES = ['PENDING_PAYMENT', 'PENDING'];
+const ASSIGNED_STATUSES = ['PROCESSING', 'COMPLETED'];
+const DONE_STATUSES = ['APPROVED', 'DENIED', 'CANCELLED'];
+
+function toScoreNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function getNestedPayload(response) {
+  const raw = response?.data ?? response ?? null;
+  return raw?.data ?? raw ?? null;
+}
+
+function resolveQuestionScoreValue(value) {
+  if (value && typeof value === 'object') {
+    return getScoreCandidates(value, [
+      'oldScore',
+      'originalScore',
+      'currentScore',
+      'answerScore',
+      'questionScore',
+      'score',
+      'newScore',
+      'value',
+      'reviewedScore',
+    ]);
+  }
+
+  return toScoreNumber(value);
+}
+
+function sumFromQuestionScores(questionScores) {
+  if (!questionScores || typeof questionScores !== 'object') return null;
+
+  const entries = Object.values(questionScores)
+    .map((value) => resolveQuestionScoreValue(value))
+    .filter((value) => value != null);
+
+  if (!entries.length) return null;
+  return Number(entries.reduce((total, value) => total + value, 0).toFixed(2));
+}
+
+function resolveAnswerScore(answer) {
+  return toScoreNumber(
+    answer?.questionScore
+    ?? answer?.score
+    ?? answer?.answerScore
+    ?? answer?.rawTestCaseScore,
+  );
+}
+
+function sumFromAnswers(answers) {
+  if (!Array.isArray(answers) || !answers.length) return null;
+
+  const entries = answers
+    .map((answer) => resolveAnswerScore(answer))
+    .filter((value) => value != null);
+
+  if (!entries.length) return null;
+  return Number(entries.reduce((total, value) => total + value, 0).toFixed(2));
+}
+
+function extractQuestionNumberFromKey(rawKey) {
+  const matched = String(rawKey ?? '').match(/(\d+)/);
+  if (!matched) return null;
+  const questionNumber = Number(matched[1]);
+  return Number.isFinite(questionNumber) ? questionNumber : null;
+}
+
+function buildQuestionKey(questionNumber, fallbackKey = null) {
+  if (Number.isFinite(Number(questionNumber))) {
+    return `q${Number(questionNumber)}`;
+  }
+  return String(fallbackKey || '').trim() || null;
+}
+
+function extractReviewScore(rawValue) {
+  if (rawValue && typeof rawValue === 'object') {
+    return getScoreCandidates(rawValue, ['score', 'newScore', 'value', 'reviewedScore']);
+  }
+  return toScoreNumber(rawValue);
+}
+
+function getScoreCandidates(item, keys = []) {
+  for (const key of keys) {
+    const resolved = toScoreNumber(item?.[key]);
+    if (resolved != null) return resolved;
+  }
+  return null;
+}
+
 export function unwrapApiData(response) {
-  return response?.data ?? response ?? null;
+  return getNestedPayload(response);
+}
+
+export function resolveAppealsList(data) {
+  const payload = getNestedPayload(data);
+
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.appeals)) return payload.appeals;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(data?.appeals)) return data.appeals;
+  return [];
 }
 
 export function formatCurrency(value) {
@@ -82,15 +185,36 @@ export function extractAppealErrorMessage(error, fallback = 'Đã xảy ra lỗi
   return fallback;
 }
 
+export function getAppealLifecycleStage(status) {
+  const normalized = String(status || '').toUpperCase();
+
+  if (RECEIVED_STATUSES.includes(normalized)) return 'RECEIVED';
+  if (ASSIGNED_STATUSES.includes(normalized)) return 'ASSIGNED';
+  if (DONE_STATUSES.includes(normalized)) return 'DONE';
+  return 'UNKNOWN';
+}
+
+export function matchesAppealStatusFilter(status, filter) {
+  if (!filter || filter === 'ALL') return true;
+
+  const stage = getAppealLifecycleStage(status);
+
+  if (filter === 'RECEIVED') return stage === 'RECEIVED';
+  if (filter === 'ASSIGNED') return stage === 'ASSIGNED';
+  if (filter === 'DONE') return stage === 'DONE';
+
+  return String(status || '').toUpperCase() === String(filter || '').toUpperCase();
+}
+
 export function getAppealStatusMeta(status) {
   const normalized = String(status || '').toUpperCase();
 
   const map = {
     PENDING_PAYMENT: {
-      label: 'Chờ thanh toán',
-      className: 'border-amber-200 bg-amber-50 text-amber-700',
-      dotClassName: 'bg-amber-500',
-      accentClassName: 'border-l-amber-400',
+      label: 'Đã tiếp nhận',
+      className: 'border-sky-200 bg-sky-50 text-sky-700',
+      dotClassName: 'bg-sky-500',
+      accentClassName: 'border-l-sky-400',
     },
     PENDING: {
       label: 'Đã tiếp nhận',
@@ -99,13 +223,13 @@ export function getAppealStatusMeta(status) {
       accentClassName: 'border-l-sky-400',
     },
     PROCESSING: {
-      label: 'Đang chấm',
+      label: 'Đã phân công',
       className: 'border-indigo-200 bg-indigo-50 text-indigo-700',
       dotClassName: 'bg-indigo-500',
       accentClassName: 'border-l-indigo-400',
     },
     COMPLETED: {
-      label: 'Đang duyệt',
+      label: 'Đã phân công',
       className: 'border-violet-200 bg-violet-50 text-violet-700',
       dotClassName: 'bg-violet-500',
       accentClassName: 'border-l-violet-400',
@@ -139,31 +263,24 @@ export function getAppealStatusMeta(status) {
 }
 
 export function isAppealFinalStatus(status) {
-  const normalized = String(status || '').toUpperCase();
-  return ['APPROVED', 'DENIED', 'CANCELLED'].includes(normalized);
+  return getAppealLifecycleStage(status) === 'DONE';
 }
 
 export function getAppealProgressSteps(status) {
-  const normalized = String(status || '').toUpperCase();
+  const stage = getAppealLifecycleStage(status);
 
   const stepIndexMap = {
-    PENDING_PAYMENT: 0,
-    PENDING: 1,
-    PROCESSING: 2,
-    COMPLETED: 3,
-    APPROVED: 4,
-    DENIED: 4,
-    CANCELLED: 4,
+    RECEIVED: 0,
+    ASSIGNED: 1,
+    DONE: 2,
   };
 
-  const currentStep = stepIndexMap[normalized] ?? 0;
+  const currentStep = stepIndexMap[stage] ?? 0;
 
   const labels = [
-    'Tạo đơn',
     'Đã tiếp nhận',
-    'Đang chấm',
-    'Duyệt kết quả',
-    'Hoàn tất',
+    'Đã phân công',
+    'Hoàn thành đơn',
   ];
 
   return labels.map((label, index) => {
@@ -177,11 +294,128 @@ export function getAppealProgressSteps(status) {
   });
 }
 
-export function getAppealScoreSummary(item) {
-  const originalScore = Number(item?.originalScore);
-  const newScore = Number(item?.newScore);
-  const hasOriginal = Number.isFinite(originalScore);
-  const hasNew = Number.isFinite(newScore);
+export function resolveAppealScores(item, gradingDetail = null) {
+  const originalScore =
+    sumFromQuestionScores(item?.originalQuestionScores)
+    ?? sumFromQuestionScores(item?.oldQuestionScores)
+    ?? sumFromAnswers(item?.gradingDetail?.answers)
+    ?? sumFromAnswers(item?.answers)
+    ?? sumFromAnswers(gradingDetail?.answers)
+    ?? getScoreCandidates(item, ['originalScore', 'oldScore', 'currentScore', 'initialScore'])
+    ?? toScoreNumber(gradingDetail?.totalScore)
+    ?? null;
+
+  const newScore =
+    getScoreCandidates(item, ['newScore', 'reviewedScore', 'finalScore'])
+    ?? sumFromQuestionScores(item?.newQuestionScores)
+    ?? sumFromQuestionScores(item?.reviewedQuestionScores)
+    ?? null;
+
+  return {
+    originalScore,
+    newScore,
+    hasOriginal: originalScore != null,
+    hasNew: newScore != null,
+    changed:
+      originalScore != null
+      && newScore != null
+      && Math.abs(newScore - originalScore) > 0.00001,
+  };
+}
+
+
+export function buildOriginalQuestionScoresMap(gradingDetail = null) {
+  const answers = Array.isArray(gradingDetail?.answers) ? gradingDetail.answers : [];
+
+  return answers.reduce((accumulator, answer, index) => {
+    const questionNumber = Number(answer?.questionNumber ?? index + 1);
+    const key = buildQuestionKey(questionNumber, answer?.questionId || answer?.answerId || `q${index + 1}`);
+    const score = resolveAnswerScore(answer);
+
+    if (key && score != null) {
+      accumulator[key] = score;
+    }
+
+    return accumulator;
+  }, {});
+}
+
+export function normalizeReviewedQuestionScores(source = null) {
+  const scoreSource =
+    source?.newQuestionScores
+    ?? source?.reviewedQuestionScores
+    ?? source
+    ?? {};
+
+  if (!scoreSource || typeof scoreSource !== 'object') return {};
+
+  return Object.entries(scoreSource).reduce((accumulator, [rawKey, rawValue]) => {
+    const score = extractReviewScore(rawValue);
+    if (score == null) return accumulator;
+
+    const questionNumber = extractQuestionNumberFromKey(rawKey);
+    const normalizedKey = buildQuestionKey(questionNumber, rawKey);
+
+    if (normalizedKey) {
+      accumulator[normalizedKey] = score;
+    }
+
+    return accumulator;
+  }, {});
+}
+
+export function mergeQuestionScoreMaps(originalScores = {}, reviewedScores = {}) {
+  return {
+    ...(originalScores || {}),
+    ...(reviewedScores || {}),
+  };
+}
+
+export function sumQuestionScoreMap(scoreMap = {}) {
+  if (!scoreMap || typeof scoreMap !== 'object') return null;
+
+  const entries = Object.values(scoreMap)
+    .map((value) => resolveQuestionScoreValue(value))
+    .filter((value) => value != null);
+
+  if (!entries.length) return null;
+  return Number(entries.reduce((total, value) => total + value, 0).toFixed(2));
+}
+
+export function resolveSubmissionScoreComparison(item, gradingDetail = null) {
+  const fallbackScores = resolveAppealScores(item, gradingDetail);
+  const originalQuestionScores = buildOriginalQuestionScoresMap(gradingDetail);
+  const reviewedQuestionScores = normalizeReviewedQuestionScores(item);
+  const mergedQuestionScores = mergeQuestionScoreMaps(originalQuestionScores, reviewedQuestionScores);
+
+  const originalTotal =
+    sumQuestionScoreMap(originalQuestionScores)
+    ?? fallbackScores.originalScore
+    ?? null;
+
+  const computedReviewedTotal = sumQuestionScoreMap(mergedQuestionScores);
+  const hasReviewedQuestionScores = Object.keys(reviewedQuestionScores).length > 0;
+  const newTotal =
+    fallbackScores.newScore
+    ?? (hasReviewedQuestionScores ? (computedReviewedTotal ?? null) : null);
+
+  return {
+    originalTotal,
+    newTotal,
+    originalQuestionScores,
+    reviewedQuestionScores,
+    mergedQuestionScores,
+    hasOriginal: originalTotal != null,
+    hasNew: newTotal != null,
+    changed:
+      originalTotal != null
+      && newTotal != null
+      && Math.abs(newTotal - originalTotal) > 0.00001,
+  };
+}
+
+export function getAppealScoreSummary(item, gradingDetail = null) {
+  const { originalScore, newScore, hasOriginal, hasNew, changed } = resolveAppealScores(item, gradingDetail);
 
   if (!hasOriginal) {
     return {
@@ -189,6 +423,8 @@ export function getAppealScoreSummary(item) {
       originalText: '—',
       newText: '—',
       changed: false,
+      originalScore: null,
+      newScore: null,
     };
   }
 
@@ -196,8 +432,10 @@ export function getAppealScoreSummary(item) {
     return {
       variant: 'single',
       originalText: formatScore(originalScore),
-      newText: '',
+      newText: '—',
       changed: false,
+      originalScore,
+      newScore: null,
     };
   }
 
@@ -205,7 +443,9 @@ export function getAppealScoreSummary(item) {
     variant: 'delta',
     originalText: formatScore(originalScore),
     newText: formatScore(newScore),
-    changed: Math.abs(newScore - originalScore) > 0.00001,
+    changed,
+    originalScore,
+    newScore,
   };
 }
 
@@ -225,12 +465,13 @@ export function buildAppealSearchIndex(item) {
 }
 
 export function resolveAppealOverview(data) {
-  const appeals = Array.isArray(data?.appeals) ? data.appeals : [];
+  const appeals = resolveAppealsList(data);
+
   return {
-    totalAppeals: Number(data?.totalAppeals ?? appeals.length ?? 0),
-    processingCount: Number(data?.processingCount ?? 0),
-    approvedCount: Number(data?.approvedCount ?? 0),
-    deniedCount: Number(data?.deniedCount ?? 0),
+    totalAppeals: appeals.length,
+    receivedCount: appeals.filter((item) => getAppealLifecycleStage(item?.status) === 'RECEIVED').length,
+    assignedCount: appeals.filter((item) => getAppealLifecycleStage(item?.status) === 'ASSIGNED').length,
+    doneCount: appeals.filter((item) => getAppealLifecycleStage(item?.status) === 'DONE').length,
     appeals,
   };
 }
@@ -245,4 +486,24 @@ export function resolveAppealCreatePrefill(prefill, submissionId) {
     maxScore: prefill?.maxScore,
     gradedAt: prefill?.gradedAt,
   };
+}
+
+export function findAppealById(appeals, appealId) {
+  return resolveAppealsList(appeals).find((item) => String(item?.appealId) === String(appealId)) || null;
+}
+
+export function findAppealBySubmissionId(appeals, submissionId) {
+  return resolveAppealsList(appeals).find((item) => String(item?.submissionId) === String(submissionId)) || null;
+}
+
+export function getAppealReviewerName(appeal) {
+  return (
+    appeal?.reviewedByName
+    || appeal?.reviewerName
+    || appeal?.lecturerName
+    || appeal?.assignedLecturerName
+    || appeal?.assignedLecturer?.fullName
+    || appeal?.assignedLecturer?.fullname
+    || ''
+  );
 }

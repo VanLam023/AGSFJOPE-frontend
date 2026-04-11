@@ -10,24 +10,24 @@ export const LECTURER_APPEAL_STATUS_META = {
     className: 'bg-slate-100 text-slate-700 border-slate-200',
   },
   PROCESSING: {
-    label: 'Đang xử lý',
+    label: 'Được phân công',
     className: 'bg-blue-50 text-blue-700 border-blue-200',
   },
   COMPLETED: {
-    label: 'Đã gửi review',
+    label: 'Đã hoàn thành',
     className: 'bg-amber-50 text-amber-700 border-amber-200',
   },
   APPROVED: {
-    label: 'Đã duyệt',
-    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    label: 'Đã hoàn thành',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
   },
   DENIED: {
-    label: 'Từ chối',
-    className: 'bg-red-50 text-red-700 border-red-200',
+    label: 'Đã hoàn thành',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
   },
   CANCELLED: {
-    label: 'Đã hủy',
-    className: 'bg-slate-100 text-slate-600 border-slate-200',
+    label: 'Đã hoàn thành',
+    className: 'bg-amber-50 text-amber-700 border-amber-200',
   },
 };
 
@@ -38,10 +38,55 @@ export function getLecturerAppealStatusMeta(status) {
   };
 }
 
+export function isLecturerAppealEditable(status) {
+  return String(status || '').toUpperCase() === 'PROCESSING';
+}
+
+export function getLecturerAppealDetailPath(appealId, status) {
+  if (!appealId) return '/lecturer/appeals';
+  return isLecturerAppealEditable(status)
+    ? `/lecturer/appeals/${appealId}`
+    : `/lecturer/appeals/${appealId}/submitted`;
+}
+
 export function getLecturerAppealActionLabel(status) {
-  const key = String(status || '').toUpperCase();
-  if (key === 'PROCESSING') return 'Chấm lại';
-  return 'Xem kết quả';
+  return isLecturerAppealEditable(status) ? 'Chấm lại' : 'Xem kết quả';
+}
+
+export function splitReviewCommentToLines(comment) {
+  const raw = String(comment || '').trim();
+  if (!raw) return [];
+
+  return raw
+    .replace(/\s+/g, ' ')
+    .replace(/([.!?;:])\s+(?=[A-ZÀ-ỸĂÂÊÔƠƯĐ])/g, '$1\n')
+    .replace(/([.!?;:])\s+(?=\d+\.)/g, '$1\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+export function validateReviewQuestionScore(value, maxScore) {
+  if (value === '' || value == null) {
+    return 'Vui lòng nhập điểm cho câu này.';
+  }
+
+  const numericValue = Number(value);
+  const numericMaxScore = Number(maxScore ?? 0);
+
+  if (Number.isNaN(numericValue)) {
+    return 'Điểm không hợp lệ.';
+  }
+
+  if (numericValue < 0) {
+    return 'Điểm không được nhỏ hơn 0.';
+  }
+
+  if (numericMaxScore > 0 && numericValue > numericMaxScore) {
+    return `Điểm không được vượt quá ${formatScore(numericMaxScore)}.`;
+  }
+
+  return '';
 }
 
 export function buildQuestionRows(questionScoreMap) {

@@ -33,6 +33,7 @@ const LecturerAppealSubmittedPage = lazy(() => import('../../features/lecturer/a
 const StudentWalletPage = lazy(() => import('../../features/student/StudentWalletPage.jsx'));
 const StudentAppealsPage = lazy(() => import('../../features/student/StudentAppealsPage.jsx'));
 const StudentAppealCreatePage = lazy(() => import('../../features/student/StudentAppealCreatePage.jsx'));
+const StudentAppealDetailPage = lazy(() => import('../../features/student/StudentAppealDetailPage.jsx'));
 
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
@@ -147,6 +148,16 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRoles={['STUDENT']}>
             <Suspense fallback={<LecturerRouteFallback />}>
               <StudentAppealCreatePage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/appeals/:appealId"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <Suspense fallback={<LecturerRouteFallback />}>
+              <StudentAppealDetailPage />
             </Suspense>
           </ProtectedRoute>
         }

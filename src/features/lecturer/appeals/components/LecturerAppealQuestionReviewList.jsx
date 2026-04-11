@@ -4,6 +4,7 @@ import {
   getQuestionTestCaseSummary,
   getReviewQuestionTone,
   getTestCaseStatusMeta,
+  splitReviewCommentToLines,
 } from '../helpers/appealHelpers';
 
 function TestCaseItem({ item, index }) {
@@ -48,6 +49,22 @@ function GuardRuleTag({ show }) {
       <span className="material-symbols-outlined mr-1 text-[13px]">warning</span>
       Bị đánh dấu
     </span>
+  );
+}
+
+function AiReviewContent({ comment }) {
+  const lines = splitReviewCommentToLines(comment);
+
+  if (!lines.length) {
+    return <p className="mt-2 text-sm leading-6 text-slate-500">Không có nhận xét OOP.</p>;
+  }
+
+  return (
+    <div className="mt-2 space-y-2 text-sm leading-6 text-slate-600">
+      {lines.map((line, index) => (
+        <p key={`${line}-${index}`}>{line}</p>
+      ))}
+    </div>
   );
 }
 
@@ -130,11 +147,7 @@ function QuestionCard({ question, isOpen, onToggle }) {
 
           <DetailBlock title="Điểm OOP">
             <p className="text-2xl font-black text-slate-900">{formatScore(question?.rawOopScore)}</p>
-            {!!aiReview?.comment ? (
-              <p className="mt-2 text-sm leading-6 text-slate-600">{aiReview.comment}</p>
-            ) : (
-              <p className="mt-2 text-sm leading-6 text-slate-500">Không có nhận xét OOP.</p>
-            )}
+            <AiReviewContent comment={aiReview?.comment} />
           </DetailBlock>
         </div>
       ) : null}

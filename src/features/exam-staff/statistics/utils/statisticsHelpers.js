@@ -33,10 +33,6 @@ export const buildMetricCards = (statistics) => {
   const appealFinancial = statistics?.appealFinancial ?? {};
 
   const totalSubmissions = toNumber(statistics?.totalSubmissions);
-  const gradedSubmissions = toNumber(statistics?.gradedSubmissions);
-  const gradingRate = totalSubmissions > 0
-    ? (gradedSubmissions / totalSubmissions) * 100
-    : 0;
 
   return [
     {
@@ -46,22 +42,6 @@ export const buildMetricCards = (statistics) => {
       helper: 'Tổng số submission trong block',
       icon: 'upload_file',
       accent: 'text-orange-500',
-    },
-    {
-      key: 'graded',
-      title: 'Đã chấm',
-      value: gradedSubmissions.toLocaleString('vi-VN'),
-      helper: 'Số bài đã có kết quả chấm',
-      icon: 'task_alt',
-      accent: 'text-emerald-500',
-    },
-    {
-      key: 'gradingRate',
-      title: 'Tỷ lệ chấm',
-      value: formatPercent(gradingRate),
-      helper: 'Dựa trên submission đã nộp',
-      icon: 'pace',
-      accent: 'text-sky-500',
     },
     {
       key: 'average',
@@ -80,6 +60,14 @@ export const buildMetricCards = (statistics) => {
       accent: 'text-lime-500',
     },
     {
+      key: 'failRate',
+      title: 'Tỷ lệ fail',
+      value: formatPercent(scoreAnalysis?.failRate),
+      helper: `${toNumber(scoreAnalysis?.failCount).toLocaleString('vi-VN')} bài chưa đạt`,
+      icon: 'gpp_bad',
+      accent: 'text-rose-500',
+    },
+    {
       key: 'oopAverage',
       title: 'Điểm OOP TB',
       value: formatScore(aiOopAnalysis?.avgOopScore),
@@ -91,16 +79,24 @@ export const buildMetricCards = (statistics) => {
       key: 'appeals',
       title: 'Đơn phúc khảo',
       value: toNumber(appealFinancial?.totalAppeals).toLocaleString('vi-VN'),
-      helper: `${toNumber(appealFinancial?.approvedCount).toLocaleString('vi-VN')} approved • ${toNumber(appealFinancial?.deniedCount).toLocaleString('vi-VN')} denied`,
+      helper: `${toNumber(appealFinancial?.approvedCount).toLocaleString('vi-VN')} đã duyệt • ${toNumber(appealFinancial?.deniedCount).toLocaleString('vi-VN')} từ chối`,
       icon: 'gavel',
-      accent: 'text-rose-500',
+      accent: 'text-sky-500',
     },
     {
-      key: 'netRevenue',
-      title: 'Doanh thu ròng',
-      value: formatCurrency(appealFinancial?.netRevenue),
-      helper: `Thu: ${formatCurrency(appealFinancial?.totalFeesCollected)}`,
+      key: 'feesCollected',
+      title: 'Phí phúc khảo thu được',
+      value: formatCurrency(appealFinancial?.totalFeesCollected),
+      helper: 'Tổng tiền thu từ các đơn đã thanh toán',
       icon: 'payments',
+      accent: 'text-emerald-500',
+    },
+    {
+      key: 'refunded',
+      title: 'Tiền hoàn cho sinh viên',
+      value: formatCurrency(appealFinancial?.totalRefunded),
+      helper: 'Tổng tiền hoàn ở các đơn được duyệt',
+      icon: 'undo',
       accent: 'text-cyan-500',
     },
   ];
@@ -108,7 +104,7 @@ export const buildMetricCards = (statistics) => {
 
 export const normalizeDistribution = (distribution) => {
   const items = ensureArray(distribution).map((item) => ({
-    range: item?.range ?? '—',
+    range: item?.range ?? item?.label ?? '—',
     count: toNumber(item?.count),
     percentage: toNumber(item?.percentage),
   }));
@@ -149,32 +145,37 @@ export const buildOopViolationItems = (statistics) => {
 
   return [
     {
-      key: 'encapsulation',
-      label: 'Encapsulation',
+      key: 'encap',
+      label: 'Encap',
+      fullLabel: 'Encapsulation',
       count: toNumber(aiOopAnalysis?.encapsulationViolations),
       rate: toNumber(aiOopAnalysis?.encapsulationViolationRate),
     },
     {
-      key: 'inheritance',
-      label: 'Inheritance',
+      key: 'inherit',
+      label: 'Inherit',
+      fullLabel: 'Inheritance',
       count: toNumber(aiOopAnalysis?.inheritanceViolations),
       rate: toNumber(aiOopAnalysis?.inheritanceViolationRate),
     },
     {
-      key: 'polymorphism',
-      label: 'Polymorphism',
+      key: 'poly',
+      label: 'Poly',
+      fullLabel: 'Polymorphism',
       count: toNumber(aiOopAnalysis?.polymorphismViolations),
       rate: toNumber(aiOopAnalysis?.polymorphismViolationRate),
     },
     {
-      key: 'designQuality',
-      label: 'Design quality',
+      key: 'design',
+      label: 'Design',
+      fullLabel: 'Design Quality',
       count: toNumber(aiOopAnalysis?.designQualityViolations),
       rate: toNumber(aiOopAnalysis?.designQualityViolationRate),
     },
     {
-      key: 'codeIntegrity',
-      label: 'Code integrity',
+      key: 'integrity',
+      label: 'Integrity',
+      fullLabel: 'Code Integrity',
       count: toNumber(aiOopAnalysis?.codeIntegrityViolations),
       rate: toNumber(aiOopAnalysis?.codeIntegrityViolationRate),
     },
@@ -187,22 +188,22 @@ export const buildAppealStatusItems = (statistics) => {
   return [
     {
       key: 'pending',
-      label: 'Pending',
+      label: 'Chờ phân công',
       count: toNumber(appealFinancial?.pendingCount),
     },
     {
       key: 'processing',
-      label: 'Processing',
+      label: 'Đã phân công',
       count: toNumber(appealFinancial?.processingCount),
     },
     {
       key: 'approved',
-      label: 'Approved',
+      label: 'Đã duyệt',
       count: toNumber(appealFinancial?.approvedCount),
     },
     {
       key: 'denied',
-      label: 'Denied',
+      label: 'Từ chối',
       count: toNumber(appealFinancial?.deniedCount),
     },
   ];
@@ -222,7 +223,7 @@ export const buildAppealFinanceCards = (statistics) => {
     },
     {
       key: 'refunded',
-      title: 'Tổng hoàn trả',
+      title: 'Tiền hoàn cho sinh viên',
       value: toNumber(appealFinancial?.totalRefunded),
       icon: 'undo',
       accent: 'text-amber-600',

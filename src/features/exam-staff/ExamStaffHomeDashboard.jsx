@@ -53,7 +53,7 @@ export default function ExamStaffHomeDashboard() {
     pendingAppeals,
     loading,
     errors,
-  } = useStaffDashboard({ recentExamsLimit: 5, pendingAppealsLimit: 10 });
+  } = useStaffDashboard({ recentExamsLimit: 5, pendingAppealsLimit: 5 });
 
   const metricCards = useMemo(() => {
     const o = overview;
@@ -262,7 +262,7 @@ export default function ExamStaffHomeDashboard() {
                 {record.studentName ?? '—'}
               </p>
               <p className="text-xs text-slate-500 uppercase tracking-wide mt-0.5 font-medium">
-                {record.studentMssv ?? '—'}
+                MSSV {record.studentMssv ?? '—'}
               </p>
             </div>
           </div>
@@ -271,11 +271,11 @@ export default function ExamStaffHomeDashboard() {
       {
         title: (
           <p className="text-xs uppercase tracking-wider font-bold">
-            TÊN KỲ THI
+            HỌC KỲ
           </p>
         ),
-        dataIndex: 'examName',
-        key: 'examName',
+        dataIndex: 'semester',
+        key: 'semester',
         ellipsis: true,
       },
       {
@@ -323,12 +323,12 @@ export default function ExamStaffHomeDashboard() {
         ),
         key: 'action',
         width: 130,
-        render: () => (
+        render: (_, record) => (
           <div className="flex justify-center align-middle">
             <button
               type="button"
               className="bg-white text-nowrap border border-slate-300 text-slate-700 hover:text-[#F37021] hover:border-[#F37021] px-3 py-2 rounded-md text-xs font-bold transition-all shadow-sm"
-              onClick={() => navigate('/exam-staff/appeals')}
+              onClick={() => record.appealId && navigate(`/exam-staff/appeals/${record.appealId}`)}
             >
               Xem chi tiết
             </button>

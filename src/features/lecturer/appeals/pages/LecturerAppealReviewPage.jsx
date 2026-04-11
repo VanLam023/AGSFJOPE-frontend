@@ -16,7 +16,9 @@ import {
   downloadBlob,
   formatAppealDate,
   formatAppealScore,
+  isLecturerAppealEditable,
   sumReviewQuestionScores,
+  validateReviewQuestionScore,
 } from '../helpers/appealHelpers';
 
 export default function LecturerAppealReviewPage() {
@@ -27,15 +29,16 @@ export default function LecturerAppealReviewPage() {
 
   const [lecturerComment, setLecturerComment] = useState('');
   const [reviewQuestions, setReviewQuestions] = useState([]);
+  const [questionErrors, setQuestionErrors] = useState({});
   const [reviewAction, setReviewAction] = useState('change');
   const [openQuestion, setOpenQuestion] = useState(-1);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [downloadLoading, setDownloadLoading] = useState(false);
 
-  const readOnly = useMemo(() => {
-    const status = String(data?.status || '').toUpperCase();
-    return status !== 'PROCESSING';
-  }, [data?.status]);
+  const readOnly = useMemo(
+    () => !isLecturerAppealEditable(data?.status),
+    [data?.status],
+  );
 
   useEffect(() => {
     setPageMeta({
@@ -62,6 +65,7 @@ export default function LecturerAppealReviewPage() {
 
     setLecturerComment(data.lecturerComment ?? '');
     setReviewQuestions(builtQuestions);
+    setQuestionErrors({});
     setReviewAction(hasScoreChanged ? 'change' : 'keep');
     setOpenQuestion(builtQuestions.length ? 0 : -1);
   }, [data]);
@@ -87,32 +91,49 @@ export default function LecturerAppealReviewPage() {
     [changedQuestionTotal, originalQuestionTotal, reviewAction],
   );
 
+  const validateQuestionList = (questions) => {
+    const nextErrors = {};
+
+    questions.forEach((question) => {
+      const errorMessage = validateReviewQuestionScore(question?.editedScore, question?.maxScore);
+      if (errorMessage) {
+        nextErrors[question.id] = errorMessage;
+      }
+    });
+
+    return nextErrors;
+  };
+
   const handleQuestionScoreChange = (questionId, value) => {
+    const targetQuestion = reviewQuestions.find((question) => question.id === questionId);
+    if (!targetQuestion) return;
+
+    const errorMessage = validateReviewQuestionScore(value, targetQuestion.maxScore);
+
+    if (errorMessage && errorMessage.includes('không được vượt quá')) {
+      message.warning(`${targetQuestion.questionTitle}: ${errorMessage}`);
+    }
+
     setReviewQuestions((prev) =>
-      prev.map((question) => {
-        if (question.id !== questionId) return question;
-
-        const maxScore = Number(question.maxScore ?? 0);
-        const nextValue = value === '' ? '' : Number(value);
-
-        if (nextValue === '') {
-          return {
-            ...question,
-            editedScore: '',
-          };
-        }
-
-        if (Number.isNaN(nextValue)) {
-          return question;
-        }
-
-        return {
-          ...question,
-          editedScore:
-            maxScore > 0 ? Math.min(Math.max(nextValue, 0), maxScore) : Math.max(nextValue, 0),
-        };
-      }),
+      prev.map((question) => (
+        question.id === questionId
+          ? {
+              ...question,
+              editedScore: value,
+            }
+          : question
+      )),
     );
+
+    setQuestionErrors((prev) => {
+      const next = { ...prev };
+      if (errorMessage) {
+        next[questionId] = errorMessage;
+      } else {
+        delete next[questionId];
+      }
+      return next;
+    });
   };
 
   const handleDownload = async () => {
@@ -138,25 +159,6 @@ export default function LecturerAppealReviewPage() {
       return;
     }
 
-    if (reviewAction === 'change') {
-      const hasInvalidScore = reviewQuestions.some((question) => {
-        const numericScore = Number(question.editedScore);
-        const maxScore = Number(question.maxScore ?? 0);
-
-        return (
-          question.editedScore === '' ||
-          Number.isNaN(numericScore) ||
-          numericScore < 0 ||
-          (maxScore > 0 && numericScore > maxScore)
-        );
-      });
-
-      if (hasInvalidScore) {
-        message.warning('Vui lòng kiểm tra lại điểm của từng câu trước khi gửi.');
-        return;
-      }
-    }
-
     const questionsForSubmit =
       reviewAction === 'keep'
         ? reviewQuestions.map((question) => ({
@@ -164,6 +166,16 @@ export default function LecturerAppealReviewPage() {
             editedScore: question.originalScore,
           }))
         : reviewQuestions;
+
+    if (reviewAction === 'change') {
+      const nextErrors = validateQuestionList(questionsForSubmit);
+      setQuestionErrors(nextErrors);
+
+      if (Object.keys(nextErrors).length > 0) {
+        message.warning('Vui lòng kiểm tra lại điểm của từng câu trước khi gửi.');
+        return;
+      }
+    }
 
     const payload = {
       newScore: Number(computedNewScore.toFixed(2)),
@@ -250,8 +262,8 @@ export default function LecturerAppealReviewPage() {
                 <LecturerAppealStatusBadge status={data.status} />
               </div>
               <p className="mt-1 text-sm text-slate-500">
-                Student: <span className="font-semibold text-slate-800">{data.studentName || '—'}</span>{' '}
-                (ID: {data.studentMssv || '—'})
+                Sinh viên: <span className="font-semibold text-slate-800">{data.studentName || '—'}</span>{' '}
+                (MSSV: {data.studentMssv || '—'})
               </p>
             </div>
           </div>
@@ -268,8 +280,8 @@ export default function LecturerAppealReviewPage() {
         </div>
       </section>
 
-      <div className="grid grid-cols-12 gap-6 items-start">
-        <div className="col-span-12 lg:col-span-3 space-y-6">
+      <div className="grid grid-cols-12 items-start gap-6">
+        <div className="col-span-12 space-y-6 lg:col-span-3">
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
             <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/70 px-5 py-4">
               <span className="material-symbols-outlined text-[20px] text-[#F37021]">info</span>
@@ -320,8 +332,16 @@ export default function LecturerAppealReviewPage() {
           <LecturerAppealReviewForm
             readOnly={readOnly}
             reviewAction={reviewAction}
-            onActionChange={setReviewAction}
+            onActionChange={(value) => {
+              setReviewAction(value);
+              if (value === 'keep') {
+                setQuestionErrors({});
+                return;
+              }
+              setQuestionErrors(validateQuestionList(reviewQuestions));
+            }}
             questions={reviewQuestions}
+            questionErrors={questionErrors}
             originalScore={data.originalScore}
             computedNewScore={computedNewScore}
             lecturerComment={lecturerComment}

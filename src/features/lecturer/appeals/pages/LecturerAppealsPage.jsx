@@ -3,13 +3,21 @@ import { useNavigate, useOutletContext } from 'react-router-dom';
 import { message } from 'antd';
 import useDebounce from '../../../../hooks/useDebounce';
 import useLecturerAppeals from '../../../../hooks/useLecturerAppeals';
+import { useAuth } from '../../../../app/context/authContext';
 import LecturerAppealOverviewCards from '../components/LecturerAppealOverviewCards';
 import LecturerAppealFilters from '../components/LecturerAppealFilters';
 import LecturerAppealTable from '../components/LecturerAppealTable';
+import { getLecturerAppealDetailPath } from '../helpers/appealHelpers';
+
+const HIDDEN_STATUSES = new Set(['PENDING', 'PENDING_PAYMENT']);
+
+const normalizeValue = (value) =>
+  typeof value === 'string' ? value.trim().toLowerCase() : String(value ?? '').trim().toLowerCase();
 
 export default function LecturerAppealsPage() {
   const navigate = useNavigate();
   const { setPageMeta } = useOutletContext();
+  const { user } = useAuth();
 
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState('');
@@ -32,7 +40,7 @@ export default function LecturerAppealsPage() {
   useEffect(() => {
     setPageMeta({
       title: 'Danh sách phúc khảo',
-      subtitle: 'Tận dụng toàn bộ dữ liệu lecturer appeal backend đang trả về.',
+      subtitle: 'Theo dõi các đơn phúc khảo đã được phân công cho bạn.',
       breadcrumbs: [
         { label: 'Dashboard', to: '/lecturer' },
         { label: 'Phúc khảo' },
@@ -63,6 +71,59 @@ export default function LecturerAppealsPage() {
     setPage(0);
   };
 
+  const currentLecturerId = normalizeValue(user?.userId);
+  const currentLecturerEmail = normalizeValue(user?.email);
+  const currentLecturerName = normalizeValue(user?.fullName ?? user?.fullname ?? user?.username);
+
+  const filteredRows = useMemo(() => {
+    const rows = Array.isArray(data?.appeals) ? data.appeals : [];
+
+    return rows.filter((row) => {
+      const normalizedStatus = String(row?.status || '').toUpperCase();
+      if (HIDDEN_STATUSES.has(normalizedStatus)) {
+        return false;
+      }
+
+      const assignedId = normalizeValue(row?.assignedLecturerId);
+      const assignedEmail = normalizeValue(row?.assignedLecturerEmail);
+      const assignedName = normalizeValue(row?.assignedLecturerName);
+      const hasAssignmentIdentity = Boolean(assignedId || assignedEmail || assignedName);
+
+      if (!hasAssignmentIdentity) {
+        return true;
+      }
+
+      if (currentLecturerId && assignedId && currentLecturerId === assignedId) {
+        return true;
+      }
+
+      if (currentLecturerEmail && assignedEmail && currentLecturerEmail === assignedEmail) {
+        return true;
+      }
+
+      if (currentLecturerName && assignedName && currentLecturerName === assignedName) {
+        return true;
+      }
+
+      return false;
+    });
+  }, [currentLecturerEmail, currentLecturerId, currentLecturerName, data?.appeals]);
+
+  const totalElements = useMemo(() => {
+    const serverTotal = Number(data?.totalElements ?? 0);
+    const serverRows = Array.isArray(data?.appeals) ? data.appeals.length : 0;
+
+    if (filteredRows.length === serverRows) {
+      return serverTotal;
+    }
+
+    if (!page) {
+      return filteredRows.length;
+    }
+
+    return serverTotal;
+  }, [data?.appeals, data?.totalElements, filteredRows.length, page]);
+
   return (
     <div className="space-y-6">
       <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -72,7 +133,7 @@ export default function LecturerAppealsPage() {
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Quản lý và chấm các đơn phúc khảo được giao</h2>
           </div>
           <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-6 text-orange-900 xl:max-w-sm">
-            Ưu tiên mở các đơn có badge <span className="font-bold">Quá hạn</span> hoặc trạng thái <span className="font-bold">Đang xử lý</span> để hoàn tất review trước deadline.
+            Chỉ hiển thị các đơn đã được phân công cho chính bạn. Các đơn chờ phân công sẽ không xuất hiện ở màn hình này.
           </div>
         </div>
       </section>
@@ -91,13 +152,13 @@ export default function LecturerAppealsPage() {
       />
 
       <LecturerAppealTable
-        rows={data?.appeals ?? []}
+        rows={filteredRows}
         loading={loading}
         page={data?.currentPage ?? page}
         size={data?.pageSize ?? size}
-        totalElements={data?.totalElements ?? 0}
+        totalElements={totalElements}
         onPageChange={setPage}
-        onOpenAppeal={(appealId) => navigate(`/lecturer/appeals/${appealId}`)}
+        onOpenAppeal={(appealId, appealStatus) => navigate(getLecturerAppealDetailPath(appealId, appealStatus))}
       />
     </div>
   );

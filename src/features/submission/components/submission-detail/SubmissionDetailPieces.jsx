@@ -6,6 +6,43 @@ import {
   tcStatusClass,
 } from './submissionDetail.helpers.js';
 
+function ScoreDeltaDisplay({ originalValue, nextValue, maxScore, emphasize = false }) {
+  const hasOriginal = Number.isFinite(Number(originalValue));
+  const hasNext = Number.isFinite(Number(nextValue));
+
+  if (!hasOriginal && !hasNext) {
+    return (
+      <>
+        <span className="text-5xl font-black text-slate-400">—</span>
+        {Number.isFinite(Number(maxScore)) ? (
+          <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span>
+        ) : null}
+      </>
+    );
+  }
+
+  if (!hasNext) {
+    return (
+      <>
+        <span className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-600">
+          {num(originalValue)}
+        </span>
+        <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span>
+      </>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-end justify-center gap-2 lg:justify-end">
+      <span className="text-2xl font-bold text-slate-400 line-through">{num(originalValue)}</span>
+      <span className={`text-5xl font-black ${emphasize ? 'text-[#F37021]' : 'text-emerald-600'}`}>
+        {num(nextValue)}
+      </span>
+      <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span>
+    </div>
+  );
+}
+
 export const TopActions = React.memo(function TopActions({
   onBack,
   isStudentView,
@@ -97,7 +134,7 @@ export const AlertBox = React.memo(function AlertBox({ type = 'error', text }) {
   );
 });
 
-export const OverviewHeader = React.memo(function OverviewHeader({ detail, status }) {
+export const OverviewHeader = React.memo(function OverviewHeader({ detail, status, scoreComparison }) {
   return (
     <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden">
       <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
@@ -136,10 +173,12 @@ export const OverviewHeader = React.memo(function OverviewHeader({ detail, statu
           <div className="bg-slate-50/80 border border-slate-100 rounded-3xl p-6 w-full lg:w-auto text-center lg:text-right shadow-inner shrink-0">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Final Grade</p>
             <div className="flex items-baseline justify-center lg:justify-end gap-1.5">
-              <span className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-600">
-                {num(detail?.totalScore)}
-              </span>
-              <span className="text-xl font-bold text-slate-400">/ {num(detail?.maxScore)}</span>
+              <ScoreDeltaDisplay
+                originalValue={scoreComparison?.originalTotal}
+                nextValue={scoreComparison?.newTotal}
+                maxScore={detail?.maxScore}
+                emphasize
+              />
             </div>
           </div>
         </div>
@@ -148,12 +187,23 @@ export const OverviewHeader = React.memo(function OverviewHeader({ detail, statu
   );
 });
 
-export const QuestionCard = React.memo(function QuestionCard({ ans, index, isOpen, onToggle }) {
+export const QuestionCard = React.memo(function QuestionCard({
+  ans,
+  index,
+  isOpen,
+  onToggle,
+  reviewedScore,
+  originalScore,
+  reviewerName,
+}) {
   const testCases = Array.isArray(ans?.testCaseResults) ? ans.testCaseResults : [];
   const passCount = testCases.filter(
     (x) => String(x?.status || '').toUpperCase() === 'PASS_TESTCASE'
   ).length;
   const oopScore = ans?.aiReview?.oopScore;
+  const baseOriginalQuestionScore = Number.isFinite(Number(originalScore)) ? Number(originalScore) : Number(ans?.questionScore);
+  const nextQuestionScore = Number(reviewedScore);
+  const hasReviewedScore = Number.isFinite(nextQuestionScore);
 
   return (
     <div className={`bg-white rounded-2xl border border-slate-200/60 shadow-[0_2px_10px_rgb(0,0,0,0.02)] overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] group border-l-4 ${questionTone(ans)}`}>
@@ -173,7 +223,7 @@ export const QuestionCard = React.memo(function QuestionCard({ ans, index, isOpe
             </p>
             <div className="flex items-center flex-wrap gap-2 mt-1.5 text-[12px] font-medium text-slate-500">
               <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">
-                Weight: {num(ans?.maxScore)} pts
+                Điểm tối đa: {num(ans?.maxScore)}
               </span>
               {ans?.guardRuleTriggered && (
                 <span className="text-rose-600 font-bold uppercase tracking-wider text-[10px] bg-rose-50 px-2 py-0.5 rounded-md border border-rose-100 flex items-center gap-1">
@@ -188,7 +238,14 @@ export const QuestionCard = React.memo(function QuestionCard({ ans, index, isOpe
         <div className="flex items-center gap-6 shrink-0 ml-auto md:ml-0">
           <div className="text-right">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Score</p>
-            <p className="text-lg font-black text-slate-800">{num(ans?.questionScore)}</p>
+            {hasReviewedScore ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-400 line-through">{num(baseOriginalQuestionScore)}</span>
+                <span className="text-lg font-black text-emerald-600">{num(nextQuestionScore)}</span>
+              </div>
+            ) : (
+              <p className="text-lg font-black text-slate-800">{num(baseOriginalQuestionScore)}</p>
+            )}
           </div>
           <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 ${isOpen ? 'rotate-180 bg-indigo-50 text-indigo-600' : ''}`}>
             <span className="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
@@ -238,37 +295,60 @@ export const QuestionCard = React.memo(function QuestionCard({ ans, index, isOpe
 
                 <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-[0_2px_8px_rgb(0,0,0,0.04)]">
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                    Test Case Score
+                    Điểm câu
                   </span>
-                  <span className={`text-2xl font-black ${ans?.guardRuleTriggered ? 'text-rose-500 line-through opacity-60' : 'text-emerald-500'}`}>
-                    {num(ans?.rawTestCaseScore)}
-                  </span>
+                  {hasReviewedScore ? (
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold text-slate-400 line-through">
+                        {num(baseOriginalQuestionScore)}
+                      </span>
+                      <span className="text-2xl font-black text-emerald-600">
+                        {num(nextQuestionScore)}
+                      </span>
+                    </div>
+                  ) : (
+                    <span className={`text-2xl font-black ${ans?.guardRuleTriggered ? 'text-rose-500 line-through opacity-60' : 'text-emerald-500'}`}>
+                      {num(baseOriginalQuestionScore)}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full ring-1 ring-slate-900/5 hover:shadow-lg transition-all duration-300">
-              <div className="flex-1">
-                <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[16px] text-indigo-500 bg-indigo-50 p-1 rounded-md">psychology</span>
-                  AI Code Review
-                </p>
+            <div className="space-y-6">
+              {reviewerName ? (
+                <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm ring-1 ring-slate-900/5">
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-slate-400 bg-slate-100 p-1 rounded-md">person</span>
+                    Người chấm lại
+                  </p>
+                  <p className="text-sm font-semibold text-slate-800">{reviewerName}</p>
+                </div>
+              ) : null}
 
-                {ans?.aiReview ? (
-                  <div className="space-y-4 text-sm">
-                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
-                      <span className="text-sm font-semibold text-slate-600">OOP Score</span>
-                      <span className="text-2xl font-black text-indigo-600">{num(oopScore)}</span>
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col h-full ring-1 ring-slate-900/5 hover:shadow-lg transition-all duration-300">
+                <div className="flex-1">
+                  <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[16px] text-indigo-500 bg-indigo-50 p-1 rounded-md">psychology</span>
+                    AI Code Review
+                  </p>
+
+                  {ans?.aiReview ? (
+                    <div className="space-y-4 text-sm">
+                      <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-sm font-semibold text-slate-600">OOP Score</span>
+                        <span className="text-2xl font-black text-indigo-600">{num(oopScore)}</span>
+                      </div>
+                      <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 whitespace-pre-wrap text-slate-700 leading-7">
+                        {ans?.aiReview?.comment || 'Không có nhận xét AI.'}
+                      </div>
                     </div>
-                    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 whitespace-pre-wrap text-slate-700 leading-7">
-                      {ans?.aiReview?.comment || 'Không có nhận xét AI.'}
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 font-medium">
+                      Chưa có dữ liệu AI review cho câu này.
                     </div>
-                  </div>
-                ) : (
-                  <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 font-medium">
-                    Chưa có dữ liệu AI review cho câu này.
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -335,6 +415,9 @@ export const QuestionsSection = React.memo(function QuestionsSection({
   answers,
   openQuestion,
   onToggleQuestion,
+  reviewedQuestionScores,
+  originalQuestionScores,
+  reviewerName,
 }) {
   return (
     <>
@@ -346,15 +429,21 @@ export const QuestionsSection = React.memo(function QuestionsSection({
       </div>
 
       <div className="space-y-5">
-        {answers.map((ans, idx) => (
-          <QuestionCard
-            key={ans?.answerId || idx}
-            ans={ans}
-            index={idx}
-            isOpen={openQuestion === idx}
-            onToggle={() => onToggleQuestion(idx)}
-          />
-        ))}
+        {answers.map((ans, idx) => {
+          const questionKey = `q${ans?.questionNumber ?? idx + 1}`;
+          return (
+            <QuestionCard
+              key={ans?.answerId || idx}
+              ans={ans}
+              index={idx}
+              isOpen={openQuestion === idx}
+              onToggle={() => onToggleQuestion(idx)}
+              reviewedScore={reviewedQuestionScores?.[questionKey]}
+              originalScore={originalQuestionScores?.[questionKey]}
+              reviewerName={reviewerName}
+            />
+          );
+        })}
       </div>
     </>
   );
@@ -365,10 +454,18 @@ export const SummarySidebar = React.memo(function SummarySidebar({
   displaySubmissionStatus,
   tcSummary,
   gradingDurationLabel,
+  appealRecord,
+  appealScores,
+  reviewerName,
 }) {
   const cleanedNote = detail?.note
     ?.replace('Chế độ: OOP chỉ nhận xét, không tính điểm.', '')
     .trim();
+
+  const reviewedTestCaseScore =
+    Number.isFinite(Number(appealScores?.newScore)) && Number.isFinite(Number(detail?.oopScore))
+      ? Number(appealScores.newScore) - Number(detail.oopScore)
+      : null;
 
   return (
     <div className="sticky top-8 space-y-6">
@@ -401,11 +498,20 @@ export const SummarySidebar = React.memo(function SummarySidebar({
                 {displaySubmissionStatus}
               </span>
             </div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100/80 gap-4">
               <span className="text-sm font-medium text-slate-500">Tổng điểm TestCase</span>
-              <span className="text-base font-black text-slate-800 bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-100">
-                {num(detail?.testCaseScore)}
-              </span>
+              {reviewedTestCaseScore != null ? (
+                <div className="flex items-center gap-2 text-right">
+                  <span className="text-sm font-bold text-slate-400 line-through">{num(detail?.testCaseScore)}</span>
+                  <span className="text-base font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-100">
+                    {num(reviewedTestCaseScore)}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-base font-black text-slate-800 bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-100">
+                  {num(detail?.testCaseScore)}
+                </span>
+              )}
             </div>
             <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">
               <span className="text-sm font-medium text-slate-500">Tổng điểm OOP</span>
@@ -445,6 +551,25 @@ export const SummarySidebar = React.memo(function SummarySidebar({
               </p>
             </div>
           )}
+
+          {appealRecord ? (
+            <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 shadow-inner">
+              <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[16px]">assignment_turned_in</span>
+                Thông tin chấm lại
+              </p>
+              <div className="space-y-2 text-sm text-slate-700">
+                <p>
+                  Người chấm lại:{' '}
+                  <span className="font-semibold text-slate-900">{reviewerName || 'Chưa cập nhật'}</span>
+                </p>
+                <p>
+                  Trạng thái phúc khảo:{' '}
+                  <span className="font-semibold text-slate-900">{appealRecord?.status || '—'}</span>
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

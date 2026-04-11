@@ -9,18 +9,16 @@ import AppealOverviewCards from './appeals/components/AppealOverviewCards';
 import {
   buildAppealSearchIndex,
   extractAppealErrorMessage,
+  matchesAppealStatusFilter,
   resolveAppealOverview,
   unwrapApiData,
 } from './appeals/helpers/appealHelpers';
 
 const STATUS_OPTIONS = [
   { value: 'ALL', label: 'Tất cả trạng thái' },
-  { value: 'PENDING', label: 'Đã tiếp nhận' },
-  { value: 'PROCESSING', label: 'Đang chấm' },
-  { value: 'COMPLETED', label: 'Đang duyệt' },
-  { value: 'APPROVED', label: 'Đã chấp nhận' },
-  { value: 'DENIED', label: 'Đã từ chối' },
-  { value: 'CANCELLED', label: 'Đã hủy' },
+  { value: 'RECEIVED', label: 'Đã tiếp nhận' },
+  { value: 'ASSIGNED', label: 'Đã phân công' },
+  { value: 'DONE', label: 'Hoàn thành đơn' },
 ];
 
 function SuccessBanner({ createdAppeal, onClose }) {
@@ -36,7 +34,7 @@ function SuccessBanner({ createdAppeal, onClose }) {
           <div>
             <h2 className="text-lg font-black tracking-tight">Đã gửi yêu cầu phúc khảo</h2>
             <p className="mt-1 text-sm leading-6">
-              Yêu cầu của bạn đã được tạo thành công và phí phúc khảo đã được xử lý theo ví sinh viên.
+              Yêu cầu của bạn đã được tạo thành công và đang chờ hệ thống xử lý.
             </p>
           </div>
         </div>
@@ -113,8 +111,7 @@ export default function StudentAppealsPage() {
     const normalizedKeyword = searchKeyword.trim().toLowerCase();
 
     return (overview.appeals || []).filter((item) => {
-      const normalizedStatus = String(item?.status || '').toUpperCase();
-      const matchesStatus = statusFilter === 'ALL' || normalizedStatus === statusFilter;
+      const matchesStatus = matchesAppealStatusFilter(item?.status, statusFilter);
       const matchesKeyword = !normalizedKeyword
         || buildAppealSearchIndex(item).includes(normalizedKeyword);
       return matchesStatus && matchesKeyword;
@@ -232,7 +229,7 @@ export default function StudentAppealsPage() {
           {filteredAppeals.length === 0 ? (
             <AppealEmptyState hasFilter={Boolean(searchKeyword || statusFilter !== 'ALL')} />
           ) : (
-            <section className="space-y-4">
+            <section className="space-y-3">
               {filteredAppeals.map((appeal) => (
                 <AppealListCard key={appeal.appealId || appeal.appealCode} appeal={appeal} />
               ))}

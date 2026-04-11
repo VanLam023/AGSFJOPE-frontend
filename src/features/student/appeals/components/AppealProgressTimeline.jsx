@@ -3,10 +3,11 @@ import { getAppealProgressSteps } from '../helpers/appealHelpers';
 
 export default function AppealProgressTimeline({ status }) {
   const steps = getAppealProgressSteps(status);
+  const columnsClassName = steps.length === 3 ? 'grid-cols-3' : 'grid-cols-5';
 
   return (
-    <div className="relative mt-5 grid grid-cols-5 gap-3">
-      <div className="pointer-events-none absolute left-[10%] right-[10%] top-4 h-0.5 bg-slate-200" />
+    <div className={`relative mt-2 grid ${columnsClassName} gap-3`}>
+      <div className="pointer-events-none absolute left-[16%] right-[16%] top-4 h-0.5 bg-slate-200" />
 
       {steps.map((step) => (
         <div key={step.label} className="relative z-[1] flex flex-col items-center gap-2 text-center">
@@ -28,9 +29,11 @@ export default function AppealProgressTimeline({ status }) {
             )}
           </div>
 
-          <span className={`text-[11px] font-bold ${
-            step.isDone || step.isCurrent ? 'text-slate-700' : 'text-slate-400'
-          }`}>
+          <span
+            className={`text-[11px] font-bold ${
+              step.isDone || step.isCurrent ? 'text-slate-700' : 'text-slate-400'
+            }`}
+          >
             {step.label}
           </span>
         </div>

@@ -10,7 +10,7 @@ const useStaffAppealDetail = () => {
   const [error, setError] = useState(null);
   const [data, setData] = useState(null);
 
-  const fetchStaffAppealDetail = async (appealId) => {
+  const fetchStaffAppealDetail = useCallback(async (appealId) => {
     if (!appealId) {
       setData(null);
       return null;
@@ -28,7 +28,7 @@ const useStaffAppealDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   return {
     fetchStaffAppealDetail,

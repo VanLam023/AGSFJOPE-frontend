@@ -7,7 +7,6 @@ import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
 import {
   DashboardIcon,
   ExamManagementIcon,
-  SubmissionsIcon,
   AppealsIcon,
   WithdrawalsIcon,
   AuditLogIcon,
@@ -72,27 +71,30 @@ const STATUS_FILTER_OPTIONS = [
 const icons = [
   DashboardIcon,
   ExamManagementIcon,
-  // SubmissionsIcon,
   AppealsIcon,
   WithdrawalsIcon,
   AuditLogIcon,
 ];
 
-async function collectAllExamNames() {
-  const examNames = new Set();
+async function collectAllSemesters() {
+  const semesters = new Set();
+
   for (let pageIdx = 0; pageIdx <= 100; pageIdx += 1) {
     const envelope = await getStaffAppeals({ page: pageIdx, size: 500 });
     const pageData = envelope?.data ?? null;
     const list = pageData?.appeals ?? [];
     const total = pageData?.totalElements ?? 0;
-    list.forEach((r) => {
-      if (r.examName?.trim()) examNames.add(r.examName.trim());
+
+    list.forEach((row) => {
+      if (row.semester?.trim()) semesters.add(row.semester.trim());
     });
+
     if (list.length === 0 || (pageIdx + 1) * 500 >= total) {
       break;
     }
   }
-  return Array.from(examNames).sort((a, b) => a.localeCompare(b));
+
+  return Array.from(semesters).sort((a, b) => a.localeCompare(b, 'vi'));
 }
 
 const AppealPage = () => {
@@ -101,11 +103,11 @@ const AppealPage = () => {
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState(undefined);
-  const [examNameFilter, setExamNameFilter] = useState(undefined);
+  const [semesterFilter, setSemesterFilter] = useState(undefined);
   const [keywordInput, setKeywordInput] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [semesterOptions, setSemesterOptions] = useState([]);
   const debouncedKeyword = useDebounce(keywordInput, 400);
-  const [examNameOptions, setExamNameOptions] = useState([]);
   const filterKeyRef = useRef(null);
 
   const { fetchStaffAppeals, data, loading, error } = useStaffAppeals();
@@ -121,16 +123,14 @@ const AppealPage = () => {
   });
 
   useEffect(() => {
-    collectAllExamNames()
-      .then((names) => {
-        setExamNameOptions(names);
-      })
+    collectAllSemesters()
+      .then((items) => setSemesterOptions(items))
       .catch(() => {});
   }, []);
 
   useEffect(() => {
     const kw = debouncedKeyword || '';
-    const key = `${statusFilter ?? ''}|${kw}|${examNameFilter ?? ''}`;
+    const key = `${statusFilter ?? ''}|${kw}|${semesterFilter ?? ''}`;
 
     if (filterKeyRef.current === null) {
       filterKeyRef.current = key;
@@ -140,25 +140,18 @@ const AppealPage = () => {
       filterKeyRef.current !== null && filterKeyRef.current !== key;
     const pageToUse = filtersChanged ? 0 : page;
 
-    // if (filtersChanged) {
-    //   filterKeyRef.current = key;
-    //   if (page !== 0) {
-    //     queueMicrotask(() => setPage(0));
-    //   }
-    // }
-
     fetchStaffAppeals({
       page: pageToUse,
       size,
       status: statusFilter,
       keyword: kw,
-      examName: examNameFilter,
+      semester: semesterFilter,
     }).catch(() => message.error('Không tải được danh sách phúc khảo.'));
   }, [
     page,
     size,
     statusFilter,
-    examNameFilter,
+    semesterFilter,
     debouncedKeyword,
     fetchStaffAppeals,
   ]);
@@ -166,22 +159,18 @@ const AppealPage = () => {
   const handleExportExcel = async () => {
     if (isExporting) return;
     setIsExporting(true);
-    try {
-      const kw = debouncedKeyword || '';
-      const batchSize = 1000;
-      const collected = [];
 
+    try {
       const envelope = await getStaffAppeals({
         page: 0,
-        size: batchSize,
+        size: 1000,
         status: statusFilter,
-        keyword: kw || undefined,
-        examName: examNameFilter,
+        keyword: debouncedKeyword || undefined,
+        semester: semesterFilter,
       });
+
       const pageData = envelope?.data ?? null;
-      const list = pageData?.appeals ?? [];
-      const total = pageData?.totalElements ?? 0;
-      collected.push(...list);
+      const collected = pageData?.appeals ?? [];
 
       if (!collected.length) {
         message.warning('Không có dữ liệu để xuất.');
@@ -192,7 +181,7 @@ const AppealPage = () => {
         { header: 'Mã đơn', key: 'appealCode', width: 18 },
         { header: 'Sinh viên', key: 'studentName', width: 28 },
         { header: 'MSSV', key: 'studentMssv', width: 18 },
-        { header: 'Kỳ thi', key: 'examName', width: 30 },
+        { header: 'Học kỳ', key: 'semester', width: 18 },
         { header: 'Block', key: 'blockName', width: 16 },
         { header: 'Trạng thái', key: 'status', width: 20 },
         {
@@ -200,22 +189,21 @@ const AppealPage = () => {
           key: 'assignedLecturerName',
           width: 30,
         },
-        { header: 'Hạn xử lý', key: 'deadlineAt', width: 24 },
-        { header: 'Ngày tạo', key: 'createdAt', width: 24 },
+        { header: 'Ngày nộp đơn', key: 'createdAt', width: 24 },
       ];
 
       const rowsForExport = collected.map((row) => {
         const cfg =
           appealStatusConfig[row.status] ?? appealStatusConfig.PENDING;
+
         return {
           appealCode: String(row.appealCode ?? ''),
           studentName: String(row.studentName ?? ''),
           studentMssv: String(row.studentMssv ?? ''),
-          examName: String(row.examName ?? ''),
+          semester: String(row.semester ?? ''),
           blockName: String(row.blockName ?? ''),
           status: String(cfg.label ?? ''),
           assignedLecturerName: String(row.assignedLecturerName ?? '—'),
-          deadlineAt: formatDateTime(row.deadlineAt),
           createdAt: formatDateTime(row.createdAt),
         };
       });
@@ -276,15 +264,13 @@ const AppealPage = () => {
         ),
         dataIndex: 'appealCode',
         key: 'appealCode',
-        width: 50,
+        width: 70,
         ellipsis: true,
-        render: (v) => {
-          return (
-            <span className="text-sm font-mono font-semibold text-slate-800">
-              {v.replace('#PK-', '') ?? '—'}
-            </span>
-          );
-        },
+        render: (value) => (
+          <span className="text-sm font-mono font-semibold text-slate-800">
+            {value?.replace('#PK-', '') ?? '—'}
+          </span>
+        ),
       },
       {
         title: (
@@ -293,26 +279,27 @@ const AppealPage = () => {
           </p>
         ),
         key: 'student',
-        width: 60,
+        width: 90,
         render: (_, row) => (
           <div>
             <p className="text-sm font-medium text-slate-800 m-0">
               {row.studentName ?? '—'}
             </p>
-            <p className="text-xs text-slate-500 m-0">
-              {row.studentMssv ?? '—'}
+            <p className="text-xs text-slate-500 m-0 font-medium">
+              MSSV {row.studentMssv ?? '—'}
             </p>
           </div>
         ),
       },
       {
         title: (
-          <p className="text-xs uppercase tracking-wider font-bold">Kỳ thi</p>
+          <p className="text-xs uppercase tracking-wider font-bold">Học kỳ</p>
         ),
-        dataIndex: 'examName',
-        width: 65,
-        key: 'examName',
+        dataIndex: 'semester',
+        width: 50,
+        key: 'semester',
         ellipsis: true,
+        render: (value) => value ?? '—',
       },
       {
         title: (
@@ -346,7 +333,6 @@ const AppealPage = () => {
           );
         },
       },
-
       {
         title: (
           <p className="text-xs uppercase tracking-wider font-bold">
@@ -357,20 +343,20 @@ const AppealPage = () => {
         key: 'assignedLecturerName',
         width: 50,
         ellipsis: true,
-        render: (v) => v ?? '—',
+        render: (value) => value ?? '—',
       },
       {
         title: (
           <p className="text-xs uppercase tracking-wider font-bold">
-            Hạn xử lý
+            Ngày nộp đơn
           </p>
         ),
-        dataIndex: 'deadlineAt',
-        key: 'deadlineAt',
+        dataIndex: 'createdAt',
+        key: 'createdAt',
         width: 50,
-        render: (v) => (
+        render: (value) => (
           <span className="text-xs text-slate-600 whitespace-nowrap">
-            {formatDateTime(v)}
+            {formatDateTime(value)}
           </span>
         ),
       },
@@ -381,7 +367,7 @@ const AppealPage = () => {
           </p>
         ),
         key: 'action',
-        width: 50, // fixed: 'right',
+        width: 50,
         render: (_, record) => (
           <div className="flex justify-center">
             <button
@@ -429,6 +415,7 @@ const AppealPage = () => {
           <div className="flex gap-2 items-center">
             <h1 className="text-xl font-semibold m-0">Đơn phúc khảo</h1>
           </div>
+
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
             {metricCards.map((item) => (
               <DashboardCard
@@ -442,6 +429,7 @@ const AppealPage = () => {
               />
             ))}
           </div>
+
           <CardContainer className="p-0 overflow-hidden">
             <div className="px-4 py-3 space-y-6">
               <div className="flex flex-wrap items-center gap-3 pt-2 border-b border-slate-100 pb-4">
@@ -451,9 +439,10 @@ const AppealPage = () => {
                   placeholder="Tìm theo tên hoặc MSSV"
                   allowClear
                   value={keywordInput}
-                  onChange={(e) => setKeywordInput(e.target.value)}
-                  onSearch={(v) => setKeywordInput(v)}
+                  onChange={(event) => setKeywordInput(event.target.value)}
+                  onSearch={(value) => setKeywordInput(value)}
                 />
+
                 <Select
                   className="flex-1"
                   placeholder="Trạng thái"
@@ -461,23 +450,24 @@ const AppealPage = () => {
                   size="medium"
                   options={STATUS_FILTER_OPTIONS}
                   value={statusFilter}
-                  onChange={(v) => setStatusFilter(v)}
+                  onChange={(value) => setStatusFilter(value)}
                 />
 
                 <Select
                   className="flex-1"
-                  placeholder="Kỳ thi (tên)"
+                  placeholder="Học kỳ"
                   allowClear
                   showSearch
                   optionFilterProp="label"
                   size="medium"
-                  options={examNameOptions.map((n) => ({
-                    value: n,
-                    label: n,
+                  options={semesterOptions.map((item) => ({
+                    value: item,
+                    label: item,
                   }))}
-                  value={examNameFilter}
-                  onChange={(v) => setExamNameFilter(v)}
+                  value={semesterFilter}
+                  onChange={(value) => setSemesterFilter(value)}
                 />
+
                 <Button
                   className="min-w-[140px]"
                   size="medium"
@@ -512,9 +502,9 @@ const AppealPage = () => {
                   pageSize: apiPageSize,
                   total: totalElements,
                   showSizeChanger: false,
-                  onChange: (p, ps) => {
-                    setPage(p - 1);
-                    setSize(ps);
+                  onChange: (nextPage, nextSize) => {
+                    setPage(nextPage - 1);
+                    setSize(nextSize);
                   },
                 }}
               />

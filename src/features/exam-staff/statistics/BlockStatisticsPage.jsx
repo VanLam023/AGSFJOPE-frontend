@@ -1,8 +1,6 @@
 import React, { Suspense, lazy, useCallback, useMemo, useState } from 'react';
 import { message } from 'antd';
-import { useNavigate } from 'react-router-dom';
 import statisticsApi from '../../../services/statisticsApi';
-import StatisticsBlocksComparisonTable from './components/StatisticsBlocksComparisonTable.jsx';
 import StatisticsHeader from './components/StatisticsHeader.jsx';
 import StatisticsMetricCards from './components/StatisticsMetricCards.jsx';
 import useBlockStatisticsData from './hooks/useBlockStatisticsData.js';
@@ -10,7 +8,6 @@ import {
   buildAiOverviewSummary,
   buildAppealFinanceCards,
   buildAppealStatusItems,
-  buildComparisonRows,
   buildMetricCards,
   buildPassFailSummary,
   buildOopViolationItems,
@@ -46,17 +43,13 @@ function ChartSkeleton({ className = 'h-[320px]' }) {
 }
 
 export default function BlockStatisticsPage({ examId, blockId, onBack }) {
-  const navigate = useNavigate();
   const [exportingExcel, setExportingExcel] = useState(false);
   const {
     exam,
     currentBlock,
-    examBlocks,
     statistics,
-    comparisonMap,
     loading,
     error,
-    comparisonLoading,
     reload,
   } = useBlockStatisticsData({ examId, blockId });
 
@@ -70,10 +63,6 @@ export default function BlockStatisticsPage({ examId, blockId, onBack }) {
   const oopViolationItems = useMemo(() => buildOopViolationItems(statistics), [statistics]);
   const appealStatusItems = useMemo(() => buildAppealStatusItems(statistics), [statistics]);
   const appealFinanceCards = useMemo(() => buildAppealFinanceCards(statistics), [statistics]);
-  const comparisonRows = useMemo(
-    () => buildComparisonRows(examBlocks, comparisonMap),
-    [examBlocks, comparisonMap],
-  );
 
   const handleExportExcel = useCallback(async () => {
     if (!examId || !blockId) return;
@@ -94,11 +83,6 @@ export default function BlockStatisticsPage({ examId, blockId, onBack }) {
       setExportingExcel(false);
     }
   }, [blockId, currentBlock?.name, examId]);
-
-  const handleOpenBlock = useCallback((targetBlockId) => {
-    if (!examId || !targetBlockId) return;
-    navigate(`/exam-staff/exams/${examId}/blocks/${targetBlockId}/statistics`);
-  }, [examId, navigate]);
 
   if (loading) {
     return (
@@ -183,7 +167,7 @@ export default function BlockStatisticsPage({ examId, blockId, onBack }) {
             </Suspense>
           </div>
           <div className="xl:col-span-2">
-            <Suspense fallback={<ChartSkeleton className="h-[340px]" />}>
+            <Suspense fallback={<ChartSkeleton className="h-[420px]" />}>
               <StatisticsOopViolationChart items={oopViolationItems} />
             </Suspense>
           </div>
@@ -197,12 +181,6 @@ export default function BlockStatisticsPage({ examId, blockId, onBack }) {
             <StatisticsAppealFinanceChart cards={appealFinanceCards} />
           </Suspense>
         </div>
-
-        <StatisticsBlocksComparisonTable
-          rows={comparisonRows}
-          loading={comparisonLoading}
-          onOpenBlock={handleOpenBlock}
-        />
       </div>
     </div>
   );

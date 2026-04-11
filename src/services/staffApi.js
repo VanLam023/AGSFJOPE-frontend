@@ -99,6 +99,9 @@ const assignStaffAppeal = (appealId, { lecturerId, deadlineAt }) =>
 const confirmStaffAppeal = (appealId, { isApprove }) =>
   axiosClient.put(`/staff/appeals/${appealId}/confirm`, { isApprove });
 
+const cancelStaffAppeal = (appealId) =>
+  axiosClient.put(`/staff/appeals/${appealId}/cancel`);
+
 const getStaffWithdrawals = ({ status } = {}) =>
   axiosClient.get('/staff/withdrawals', {
     params: cleanParams({ status }),
@@ -119,6 +122,7 @@ export {
   getStaffAppealLecturers,
   assignStaffAppeal,
   confirmStaffAppeal,
+  cancelStaffAppeal,
   getStaffWithdrawals,
   processStaffWithdrawal,
 };

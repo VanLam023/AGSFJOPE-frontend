@@ -29,7 +29,7 @@ export default function LecturerUpcomingDeadlines({ items, loading, onOpenAppeal
             <button
               key={item.appealId}
               type="button"
-              onClick={() => onOpenAppeal(item.appealId)}
+              onClick={() => onOpenAppeal(item.appealId, item.status)}
               className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-4 text-left hover:border-[#F37021]/50 hover:bg-orange-50/40 transition-colors"
             >
               <div className="flex items-start justify-between gap-3">

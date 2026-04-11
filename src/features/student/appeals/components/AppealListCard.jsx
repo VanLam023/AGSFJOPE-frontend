@@ -5,6 +5,7 @@ import AppealStatusBadge from './AppealStatusBadge';
 import {
   formatDateTime,
   getAppealScoreSummary,
+  getAppealReviewerName,
   isAppealFinalStatus,
 } from '../helpers/appealHelpers';
 
@@ -33,13 +34,13 @@ function ScorePanel({ appeal }) {
   return (
     <div className="text-right">
       <div className="flex items-center justify-end gap-2">
-        <span className={`text-sm font-bold ${score.changed ? 'text-slate-400 line-through' : 'text-slate-700'}`}>
+        <span className="text-sm font-bold text-slate-400 line-through">
           {score.originalText}
         </span>
-        <span className={`material-symbols-outlined text-[18px] ${score.changed ? 'text-emerald-500' : 'text-slate-300'}`}>
-          {score.changed ? 'arrow_upward' : 'arrow_right_alt'}
+        <span className="material-symbols-outlined text-[18px] text-emerald-500">
+          arrow_upward
         </span>
-        <span className={`text-3xl font-black ${score.changed ? 'text-emerald-600' : 'text-slate-800'}`}>
+        <span className="text-3xl font-black text-emerald-600">
           {score.newText}
         </span>
       </div>
@@ -52,10 +53,12 @@ function ScorePanel({ appeal }) {
 
 export default function AppealListCard({ appeal }) {
   const finalStatus = isAppealFinalStatus(appeal?.status);
+  const score = getAppealScoreSummary(appeal);
+  const reviewerName = getAppealReviewerName(appeal);
 
   return (
-    <article className={`overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm border-l-4`}>
-      <div className="p-6">
+    <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="p-5 lg:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-3">
@@ -75,72 +78,65 @@ export default function AppealListCard({ appeal }) {
           <ScorePanel appeal={appeal} />
         </div>
 
-        {!finalStatus && (
-          <div className="border-t border-slate-100 pt-5">
-            <AppealProgressTimeline status={appeal?.status} />
-          </div>
-        )}
-
-        <div className="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Lý do phúc khảo</p>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-              {appeal?.reason || '—'}
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
-            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">
-              {appeal?.lecturerComment ? 'Phản hồi giảng viên' : 'Thông tin xử lý'}
-            </p>
-
-            {appeal?.lecturerComment ? (
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                {appeal.lecturerComment}
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1 text-sm text-slate-600">
+              <p>
+                Điểm cũ:{' '}
+                <span className={score.newScore != null ? 'font-bold text-slate-400 line-through' : 'font-bold text-slate-800'}>
+                  {score.originalText}
+                </span>
               </p>
-            ) : (
-              <div className="mt-2 space-y-2 text-sm text-slate-600">
-                <p>
-                  Giảng viên phụ trách:{' '}
-                  <span className="font-semibold text-slate-800">
-                    {appeal?.assignedLecturerName || 'Chưa phân công'}
-                  </span>
-                </p>
-                <p>
-                  Hạn xử lý:{' '}
-                  <span className="font-semibold text-slate-800">
-                    {formatDateTime(appeal?.deadlineAt)}
-                  </span>
-                </p>
-              </div>
-            )}
+              <p>
+                Điểm mới:{' '}
+                <span className={`font-bold ${score.newScore != null ? 'text-emerald-600' : 'text-slate-800'}`}>
+                  {score.newText}
+                </span>
+              </p>
+            </div>
+
+            <div className="space-y-1 text-sm text-slate-600 xl:text-right">
+              <p>
+                Giảng viên:{' '}
+                <span className="font-semibold text-slate-800">{reviewerName || 'Chưa phân công'}</span>
+              </p>
+              <p>
+                Hoàn tất:{' '}
+                <span className="font-semibold text-slate-800">{formatDateTime(appeal?.completedAt)}</span>
+              </p>
+            </div>
           </div>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-slate-100 bg-white p-4">
+          <AppealProgressTimeline status={appeal?.status} />
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 text-sm text-slate-500">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-            <span>
-              Điểm gốc: <span className="font-bold text-slate-800">{appeal?.originalScore ?? '—'}</span>
-            </span>
-            <span>
-              Điểm mới: <span className="font-bold text-slate-800">{appeal?.newScore ?? '—'}</span>
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
             {appeal?.submissionId ? (
               <Link
                 to={`/student/results/${appeal.submissionId}`}
+                state={{ appealId: appeal?.appealId, fromAppeal: true }}
                 className="font-semibold text-[#F37021] transition-colors hover:text-orange-500"
               >
-                Xem bài nộp
+                Xem kết quả bài nộp
               </Link>
             ) : null}
-            {appeal?.assignedLecturerName ? (
-              <span>Giảng viên: <span className="font-semibold text-slate-700">{appeal.assignedLecturerName}</span></span>
-            ) : null}
-            {appeal?.completedAt ? (
-              <span>Hoàn tất: <span className="font-semibold text-slate-700">{formatDateTime(appeal.completedAt)}</span></span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              to={`/student/appeals/${appeal?.appealId}`}
+              state={{ appeal }}
+              className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 px-4 font-bold text-slate-700 transition-colors hover:border-[#F37021] hover:text-[#F37021]"
+            >
+              Xem chi tiết đơn
+            </Link>
+            {finalStatus ? (
+              <span className="inline-flex h-10 items-center rounded-2xl bg-emerald-50 px-4 text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
+                Đơn đã xử lý xong
+              </span>
             ) : null}
           </div>
         </div>
