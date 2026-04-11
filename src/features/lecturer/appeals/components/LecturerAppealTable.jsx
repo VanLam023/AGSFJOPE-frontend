@@ -110,7 +110,7 @@ export default function LecturerAppealTable({
                     </td>
 
                     <td className="px-4 py-4 text-sm text-slate-600">
-                      {formatAppealDate(row.createdAt)}
+                      {formatAppealDate(row.assignedAt || row.createdAt)}
                     </td>
 
                     <td className="px-4 py-4">
@@ -133,7 +133,7 @@ export default function LecturerAppealTable({
                     <td className="px-4 py-4 text-center">
                       <button
                         type="button"
-                        onClick={() => onOpenAppeal(row.appealId)}
+                        onClick={() => onOpenAppeal(row.appealId, row.status)}
                         className="rounded-lg bg-[#F37021] px-3 py-1.5 text-xs font-bold text-white transition-all hover:bg-[#de611d]"
                       >
                         {getLecturerAppealActionLabel(row.status)}
