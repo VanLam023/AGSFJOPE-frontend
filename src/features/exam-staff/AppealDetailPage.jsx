@@ -21,6 +21,7 @@ import {
   ExamManagementIcon,
   SubmissionsIcon,
   AppealsIcon,
+  WithdrawalsIcon,
   AuditLogIcon,
 } from '../../components/icons/SidebarIcons.jsx';
 import { appealStatusConfig } from './config.jsx';
@@ -39,6 +40,7 @@ const icons = [
   ExamManagementIcon,
   // SubmissionsIcon,
   AppealsIcon,
+  WithdrawalsIcon,
   AuditLogIcon,
 ];
 

@@ -9,21 +9,16 @@ export const STAFF_SIDEBAR_ITEMS = [
     label: 'Quản lí kỳ thi',
     to: '/exam-staff/exams',
   },
-  // {
-  //   key: '3',
-  //   label: 'Bài nộp',
-  //   to: '/exam-staff/submissions',
-  // },
   {
     key: '3',
     label: 'Đơn phúc khảo',
     to: '/exam-staff/appeals',
   },
-  // {
-  //   key: '4',
-  //   label: 'Nhật ký thao tác',
-  //   to: '/exam-staff/audits',
-  // },
+  {
+    key: '4',
+    label: 'Yêu cầu rút tiền',
+    to: '/exam-staff/withdrawals',
+  },
 ];
 
 export const ADMIN_ICONS = [
@@ -39,9 +34,7 @@ export const ADMIN_ICONS = [
 
 export const ADMIN_SIDEBAR_ITEMS_FLAT = [
   { key: '1', label: 'Bảng điều khiển', to: '/admin' },
-  // { key: '2', label: 'Số liệu hệ thống' },
   { key: '3', label: 'Người dùng & Roles', to: '/admin/student-management' },
-  // { key: '4', label: 'Quy tắc chấm điểm' },
   { key: '5', label: 'Cấu hình PayOS', to: '/admin/payos-configuration' },
   { key: '6', label: 'Model AI', to: '/admin/ai-config' },
   {
@@ -63,7 +56,6 @@ export const ADMIN_SIDEBAR_ITEMS = [
     type: 'group',
     children: [
       { key: '1', label: 'Bảng điều khiển', to: '/admin' },
-      // { key: '2', label: 'Số liệu hệ thống' },
     ],
   },
   {
@@ -76,7 +68,6 @@ export const ADMIN_SIDEBAR_ITEMS = [
         label: 'Người dùng & Roles',
         to: '/admin/student-management',
       },
-      // { key: '4', label: 'Quy tắc chấm điểm' },
     ],
   },
   {

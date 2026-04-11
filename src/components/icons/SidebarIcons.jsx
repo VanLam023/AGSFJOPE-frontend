@@ -74,6 +74,30 @@ function AppealsIcon(props) {
   );
 }
 
+
+function WithdrawalsIcon(props) {
+  const { fill = 'currentColor' } = props;
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden
+    >
+      <path
+        d="M9 1.5C5.274 1.5 2.25 4.524 2.25 8.25V9H0.75V8.25C0.75 3.696 4.446 0 9 0C13.554 0 17.25 3.696 17.25 8.25C17.25 12.804 13.554 16.5 9 16.5H4.81L6.905 14.405L5.845 13.345L1.94 17.25L5.845 21.155L6.905 20.095L4.81 18H9C12.726 18 15.75 14.976 15.75 11.25V10.5H17.25V11.25C17.25 15.804 13.554 19.5 9 19.5V18H9C9 18 9 18 9 18C9 18 9 18 9 18V19.5C9 19.5 9 19.5 9 19.5"
+        fill={fill}
+      />
+      <path
+        d="M11.25 5.25H6V6.75H10.14L5.25 11.64L6.31 12.7L11.25 7.76V11.25H12.75V5.25H11.25Z"
+        fill={fill}
+      />
+    </svg>
+  );
+}
+
 function AuditLogIcon(props) {
   const { fill = 'currentColor' } = props;
   return (
@@ -208,6 +232,7 @@ export {
   ExamManagementIcon,
   SubmissionsIcon,
   AppealsIcon,
+  WithdrawalsIcon,
   AuditLogIcon,
   AIConfigurationIcon,
   AdvanceSettingsIcon,

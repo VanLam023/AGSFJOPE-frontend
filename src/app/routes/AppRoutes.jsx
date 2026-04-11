@@ -23,6 +23,7 @@ import AuditLogsPage from '../../features/admin/AuditLogsPage.jsx';
 import AuditLogDetailPage from '../../features/admin/AuditLogDetailPage.jsx';
 import AppealPage from '../../features/exam-staff/AppealPage.jsx';
 import AppealDetailPage from '../../features/exam-staff/AppealDetailPage.jsx';
+import WithdrawalManagementPage from '../../features/exam-staff/WithdrawalManagementPage.jsx';
 
 const LecturerLayout = lazy(() => import('../../components/layouts/lecturer'));
 const LecturerDashboard = lazy(() => import('../../features/lecturer/LecturerDashboard.jsx'));
@@ -260,6 +261,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
             <AppealDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/withdrawals"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <WithdrawalManagementPage />
           </ProtectedRoute>
         }
       />

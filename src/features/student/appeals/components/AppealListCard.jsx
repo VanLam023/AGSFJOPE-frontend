@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import AppealProgressTimeline from './AppealProgressTimeline';
 import AppealStatusBadge from './AppealStatusBadge';
 import {
@@ -127,6 +128,14 @@ export default function AppealListCard({ appeal }) {
           </div>
 
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
+            {appeal?.submissionId ? (
+              <Link
+                to={`/student/results/${appeal.submissionId}`}
+                className="font-semibold text-[#F37021] transition-colors hover:text-orange-500"
+              >
+                Xem bài nộp
+              </Link>
+            ) : null}
             {appeal?.assignedLecturerName ? (
               <span>Giảng viên: <span className="font-semibold text-slate-700">{appeal.assignedLecturerName}</span></span>
             ) : null}
