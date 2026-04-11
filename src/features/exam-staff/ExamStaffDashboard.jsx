@@ -8,6 +8,7 @@ import {
   ExamManagementIcon,
   SubmissionsIcon,
   AppealsIcon,
+  WithdrawalsIcon,
   AuditLogIcon,
 } from '../../components/icons/SidebarIcons.jsx';
 import { ConfigProvider, Table, Button } from 'antd';
@@ -28,6 +29,7 @@ const icons = [
   ExamManagementIcon,
   // SubmissionsIcon,
   AppealsIcon,
+  WithdrawalsIcon,
   AuditLogIcon,
 ];
 
@@ -44,6 +46,9 @@ export default function ExamStaffDashboard() {
   const appealsIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/appeals') +
     1;
+  const withdrawalsIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/withdrawals') +
+    1;
   const auditsIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
     1;
@@ -53,14 +58,17 @@ export default function ExamStaffDashboard() {
     '/exam-staff/exams': examsIndex,
     '/exam-staff/exams/create': examsIndex,
     '/exam-staff/appeals': appealsIndex,
+    '/exam-staff/withdrawals': withdrawalsIndex,
     '/exam-staff/audits': auditsIndex,
   };
 
   const selectedIndex = location.pathname.startsWith('/exam-staff/exams')
     ? examsIndex
-    : location.pathname.startsWith('/exam-staff/audits')
-      ? auditsIndex
-      : (pathSelectedIndexMap[location.pathname] ?? dashboardIndex);
+    : location.pathname.startsWith('/exam-staff/withdrawals')
+      ? withdrawalsIndex
+      : location.pathname.startsWith('/exam-staff/audits')
+        ? auditsIndex
+        : (pathSelectedIndexMap[location.pathname] ?? dashboardIndex);
 
   const isExamManagementPage = location.pathname === '/exam-staff/exams';
   const isCreateExamPage = location.pathname === '/exam-staff/exams/create';

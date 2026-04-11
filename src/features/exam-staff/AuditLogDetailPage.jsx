@@ -8,6 +8,7 @@ import {
   ExamManagementIcon,
   SubmissionsIcon,
   AppealsIcon,
+  WithdrawalsIcon,
   AuditLogIcon,
 } from '../../components/icons/SidebarIcons.jsx';
 import { ConfigProvider, message, Spin } from 'antd';

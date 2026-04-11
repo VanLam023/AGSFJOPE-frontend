@@ -99,6 +99,14 @@ const assignStaffAppeal = (appealId, { lecturerId, deadlineAt }) =>
 const confirmStaffAppeal = (appealId, { isApprove }) =>
   axiosClient.put(`/staff/appeals/${appealId}/confirm`, { isApprove });
 
+const getStaffWithdrawals = ({ status } = {}) =>
+  axiosClient.get('/staff/withdrawals', {
+    params: cleanParams({ status }),
+  });
+
+const processStaffWithdrawal = (withdrawalId, payload) =>
+  axiosClient.put(`/staff/withdrawals/${withdrawalId}/process`, payload);
+
 export {
   getAuditLogs,
   getAuditLogById,
@@ -111,4 +119,6 @@ export {
   getStaffAppealLecturers,
   assignStaffAppeal,
   confirmStaffAppeal,
+  getStaffWithdrawals,
+  processStaffWithdrawal,
 };
