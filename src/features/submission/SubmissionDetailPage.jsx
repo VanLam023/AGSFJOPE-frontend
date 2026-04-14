@@ -18,6 +18,7 @@ import {
   resultBadge,
 } from './components/submission-detail/submissionDetail.helpers.js';
 import {
+  canRenderAppealScoreComparison,
   findAppealById,
   findAppealBySubmissionId,
   getAppealReviewerName,
@@ -235,14 +236,24 @@ export default function SubmissionDetailPage({
     return 'Đã chấm xong';
   }, [detail?.gradedAt, localSubmissionStatus]);
 
+  const shouldRenderScoreComparison = useMemo(
+    () => canRenderAppealScoreComparison(appealRecord),
+    [appealRecord],
+  );
+
+  const comparableAppealRecord = useMemo(
+    () => (shouldRenderScoreComparison ? appealRecord : null),
+    [appealRecord, shouldRenderScoreComparison],
+  );
+
   const appealScores = useMemo(
-    () => resolveAppealScores(appealRecord, detail),
-    [appealRecord, detail],
+    () => resolveAppealScores(comparableAppealRecord, detail),
+    [comparableAppealRecord, detail],
   );
 
   const submissionScoreComparison = useMemo(
-    () => resolveSubmissionScoreComparison(appealRecord, detail),
-    [appealRecord, detail],
+    () => resolveSubmissionScoreComparison(comparableAppealRecord, detail),
+    [comparableAppealRecord, detail],
   );
 
   const reviewedQuestionScores = useMemo(
@@ -282,7 +293,13 @@ export default function SubmissionDetailPage({
         {!!detail && !error && (
           <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
             <div className="xl:col-span-8 space-y-6">
-              <OverviewHeader detail={detail} status={status} scoreComparison={submissionScoreComparison} />
+              <OverviewHeader
+                detail={detail}
+                status={status}
+                scoreComparison={submissionScoreComparison}
+                showScoreComparison={shouldRenderScoreComparison}
+                isScoreResolving={loading}
+              />
 
               <QuestionsSection
                 answers={answers}
@@ -291,6 +308,7 @@ export default function SubmissionDetailPage({
                 reviewedQuestionScores={reviewedQuestionScores}
                 originalQuestionScores={originalQuestionScores}
                 reviewerName={reviewerName}
+                isScoreResolving={loading}
               />
             </div>
 
@@ -303,6 +321,8 @@ export default function SubmissionDetailPage({
                 appealRecord={appealRecord}
                 appealScores={appealScores}
                 reviewerName={reviewerName}
+                showScoreComparison={shouldRenderScoreComparison}
+                isScoreResolving={loading}
               />
             </div>
           </div>

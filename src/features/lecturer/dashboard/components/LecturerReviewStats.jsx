@@ -1,18 +1,35 @@
 import React from 'react';
 import { formatCount } from '../../../../components/utils/Utils';
 
+function toPercentage(value) {
+  if (value == null || value === '') {
+    return null;
+  }
+
+  const numericValue = Number(value);
+  if (Number.isNaN(numericValue)) {
+    return null;
+  }
+
+  return Math.max(0, Math.min(100, numericValue));
+}
+
+function formatMetricValue(value) {
+  return value == null ? '—' : formatCount(value);
+}
+
 function StatRow({ label, value, tone }) {
   return (
     <div className="flex items-center justify-between text-sm">
       <span className="text-slate-500">{label}</span>
-      <span className={`font-bold ${tone}`}>{value}</span>
+      <span className={`font-bold ${tone}`}>{formatMetricValue(value)}</span>
     </div>
   );
 }
 
 export default function LecturerReviewStats({ stats, loading }) {
-  const approvedPercentage = Math.max(0, Math.min(100, Number(stats?.approvedPercentage ?? 0)));
-  const deniedPercentage = Math.max(0, Math.min(100, Number(stats?.deniedPercentage ?? 0)));
+  const approvedPercentage = toPercentage(stats?.approvedPercentage);
+  const deniedPercentage = toPercentage(stats?.deniedPercentage);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -36,28 +53,40 @@ export default function LecturerReviewStats({ stats, loading }) {
             <div>
               <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-500">
                 <span>Được staff duyệt</span>
-                <span>{approvedPercentage.toFixed(1)}%</span>
+                <span>{approvedPercentage == null ? '—' : `${approvedPercentage.toFixed(1)}%`}</span>
               </div>
-              <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-emerald-500" style={{ width: `${approvedPercentage}%` }} />
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-emerald-500"
+                  style={{ width: `${approvedPercentage ?? 0}%` }}
+                />
               </div>
             </div>
 
             <div>
               <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-500">
                 <span>Giữ nguyên / từ chối</span>
-                <span>{deniedPercentage.toFixed(1)}%</span>
+                <span>{deniedPercentage == null ? '—' : `${deniedPercentage.toFixed(1)}%`}</span>
               </div>
-              <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                <div className="h-full rounded-full bg-red-500" style={{ width: `${deniedPercentage}%` }} />
+              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full bg-red-500"
+                  style={{ width: `${deniedPercentage ?? 0}%` }}
+                />
               </div>
             </div>
           </div>
 
           <div className="mt-4 space-y-2">
-            <StatRow label="Số đơn được duyệt" value={formatCount(stats?.approvedCount ?? 0)} tone="text-emerald-600" />
-            <StatRow label="Số đơn bị từ chối" value={formatCount(stats?.deniedCount ?? 0)} tone="text-red-600" />
+            <StatRow label="Số đơn được duyệt" value={stats?.approvedCount} tone="text-emerald-600" />
+            <StatRow label="Số đơn bị từ chối" value={stats?.deniedCount} tone="text-red-600" />
           </div>
+
+          {stats?.isPartial ? (
+            <p className="mt-4 text-xs leading-5 text-slate-400">
+              Phần tỷ lệ duyệt hoặc từ chối đang dùng dữ liệu dự phòng từ danh sách phúc khảo.
+            </p>
+          ) : null}
         </>
       )}
     </section>

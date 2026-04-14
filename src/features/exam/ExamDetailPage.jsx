@@ -89,14 +89,21 @@ function UpdateBlockModal({ block, onClose, onSuccess }) {
       setError('Vui lòng nhập đầy đủ Ngày thi, Giờ bắt đầu và Giờ kết thúc');
       return;
     }
-    // Ngày thi phải lớn hơn ngày hiện tại
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const selected = new Date(examDate);
-    if (selected <= today) {
-      setError('Ngày thi phải lớn hơn ngày hiện tại');
+
+    const now = new Date();
+    const todayStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const startDateTime = new Date(`${examDate}T${startTime}:00+07:00`);
+
+    if (examDate < todayStr) {
+      setError('Ngày thi không được nhỏ hơn ngày hiện tại');
       return;
     }
+
+    if (examDate === todayStr && startDateTime <= now) {
+      setError('Nếu chọn ngày hôm nay, giờ bắt đầu phải lớn hơn thời điểm hiện tại');
+      return;
+    }
+
     // Giờ kết thúc phải lớn hơn giờ bắt đầu (so sánh chuỗi HH:mm, cùng ngày)
     if (endTime <= startTime) {
       setError('Giờ kết thúc phải lớn hơn giờ bắt đầu');
@@ -146,11 +153,7 @@ function UpdateBlockModal({ block, onClose, onSuccess }) {
 
         {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2 text-amber-800 text-sm">
-            <span className="material-symbols-outlined text-[18px]">warning</span>
-            <p>Lưu ý: Bạn không thể cập nhật giờ khi còn dưới 1 tuần trước ngày thi diễn ra. Vui lòng cân nhắc trước khi cập nhật.</p>
-          </div>
-
+          
           {error && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-2 text-red-700 text-sm">
               <span className="material-symbols-outlined text-[18px]">error</span>
@@ -166,6 +169,7 @@ function UpdateBlockModal({ block, onClose, onSuccess }) {
             <input
               type="date"
               value={examDate}
+              min={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' })}
               onChange={(e) => setExamDate(e.target.value)}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 outline-none transition-all text-sm font-medium text-slate-700"
             />
