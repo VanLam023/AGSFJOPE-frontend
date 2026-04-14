@@ -108,6 +108,14 @@ export default function LecturerAppealReviewPage() {
     const targetQuestion = reviewQuestions.find((question) => question.id === questionId);
     if (!targetQuestion) return;
 
+    if (!targetQuestion.scoreEditable) {
+      message.warning(
+        targetQuestion.scoreEditBlockedReason ||
+          'Không thể điều chỉnh điểm cho câu này vì hệ thống không tìm thấy bài làm của sinh viên.',
+      );
+      return;
+    }
+
     const errorMessage = validateReviewQuestionScore(value, targetQuestion.maxScore);
 
     if (errorMessage && errorMessage.includes('không được vượt quá')) {
