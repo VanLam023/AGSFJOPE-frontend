@@ -8,8 +8,10 @@ import axios from "axios";
  *   the original request once. On refresh failure, clears storage and redirects to /login.
  */
 const axiosClient = axios.create({
-  baseURL: "http://localhost:8080/api",
-  timeout: 10000,
+  // Đỏ nhưng mà xài dc
+  baseURL: `${__BASE_URL__}`,
+  // timeout: 10000,
+  timeout: 30000,
 });
 
 // ── Request interceptor: attach Access Token to every outgoing request ──
@@ -53,7 +55,7 @@ axiosClient.interceptors.response.use(
         try {
           // Call the refresh endpoint directly (bypass interceptor to avoid recursion)
           const refreshResponse = await axios.post(
-            "http://localhost:8080/api/auth/refresh",
+            `${__BASE_URL__}/auth/refresh`,
             { refreshToken }
           );
 
