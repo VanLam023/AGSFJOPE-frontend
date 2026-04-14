@@ -47,7 +47,7 @@ function GuardRuleTag({ show }) {
   return (
     <span className="inline-flex items-center rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-600">
       <span className="material-symbols-outlined mr-1 text-[13px]">warning</span>
-      Bị đánh dấu
+      Bị AI đánh dấu
     </span>
   );
 }

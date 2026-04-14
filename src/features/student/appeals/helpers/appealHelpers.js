@@ -294,6 +294,15 @@ export function getAppealProgressSteps(status) {
   });
 }
 
+export function canRenderAppealScoreComparison(item) {
+  const normalizedStatus = String(item?.status || '').toUpperCase();
+  const hasReviewedTotalScore = toScoreNumber(item?.newScore) != null;
+  const reviewedQuestionScores = normalizeReviewedQuestionScores(item);
+  const hasReviewedQuestionScores = Object.keys(reviewedQuestionScores).length > 0;
+
+  return normalizedStatus === 'COMPLETED' && hasReviewedTotalScore && hasReviewedQuestionScores;
+}
+
 export function resolveAppealScores(item, gradingDetail = null) {
   const originalScore =
     sumFromQuestionScores(item?.originalQuestionScores)

@@ -6,30 +6,45 @@ import {
   tcStatusClass,
 } from './submissionDetail.helpers.js';
 
-function ScoreDeltaDisplay({ originalValue, nextValue, maxScore, emphasize = false }) {
-  const hasOriginal = Number.isFinite(Number(originalValue));
-  const hasNext = Number.isFinite(Number(nextValue));
+function SubmissionScoreSkeleton() {
+  return (
+    <div className="flex items-end justify-center lg:justify-end gap-2">
+      <span className="h-7 w-16 rounded-lg bg-slate-200 animate-pulse"></span>
+      <span className="h-12 w-28 rounded-xl bg-slate-200 animate-pulse"></span>
+      <span className="h-7 w-14 rounded-lg bg-slate-200 animate-pulse"></span>
+    </div>
+  );
+}
 
-  if (!hasOriginal && !hasNext) {
+function SubmissionSingleScoreDisplay({ value, maxScore }) {
+  const hasValue = Number.isFinite(Number(value));
+  const hasMaxScore = Number.isFinite(Number(maxScore));
+
+  if (!hasValue) {
     return (
-      <>
+      <div className="flex items-end justify-center lg:justify-end gap-1.5">
         <span className="text-5xl font-black text-slate-400">—</span>
-        {Number.isFinite(Number(maxScore)) ? (
-          <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span>
-        ) : null}
-      </>
+        {hasMaxScore ? <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span> : null}
+      </div>
     );
   }
 
-  if (!hasNext) {
-    return (
-      <>
-        <span className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-600">
-          {num(originalValue)}
-        </span>
-        <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span>
-      </>
-    );
+  return (
+    <div className="flex items-end justify-center lg:justify-end gap-1.5">
+      <span className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-600">
+        {num(value)}
+      </span>
+      {hasMaxScore ? <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span> : null}
+    </div>
+  );
+}
+
+function SubmissionComparedScoreDisplay({ originalValue, nextValue, maxScore, emphasize = false }) {
+  const hasOriginal = Number.isFinite(Number(originalValue));
+  const hasNext = Number.isFinite(Number(nextValue));
+
+  if (!hasOriginal || !hasNext) {
+    return <SubmissionSingleScoreDisplay value={originalValue ?? nextValue} maxScore={maxScore} />;
   }
 
   return (
@@ -39,6 +54,48 @@ function ScoreDeltaDisplay({ originalValue, nextValue, maxScore, emphasize = fal
         {num(nextValue)}
       </span>
       <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span>
+    </div>
+  );
+}
+
+function SubmissionSingleMetricDisplay({ value, tone = 'neutral' }) {
+  const hasValue = Number.isFinite(Number(value));
+
+  if (!hasValue) {
+    return (
+      <span className="text-base font-black text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-100">—</span>
+    );
+  }
+
+  const toneClassName = tone === 'success'
+    ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
+    : 'text-slate-800 bg-slate-50 border-slate-100';
+
+  return (
+    <span className={`text-base font-black px-2.5 py-0.5 rounded-lg border ${toneClassName}`}>
+      {num(value)}
+    </span>
+  );
+}
+
+function SubmissionComparedMetricDisplay({ originalValue, nextValue, tone = 'success' }) {
+  const hasOriginal = Number.isFinite(Number(originalValue));
+  const hasNext = Number.isFinite(Number(nextValue));
+
+  if (!hasOriginal || !hasNext) {
+    return <SubmissionSingleMetricDisplay value={originalValue ?? nextValue} tone={tone} />;
+  }
+
+  const toneClassName = tone === 'success'
+    ? 'text-emerald-700 bg-emerald-50 border-emerald-100'
+    : 'text-slate-800 bg-slate-50 border-slate-100';
+
+  return (
+    <div className="flex items-center gap-2 text-right">
+      <span className="text-sm font-bold text-slate-400 line-through">{num(originalValue)}</span>
+      <span className={`text-base font-black px-2.5 py-0.5 rounded-lg border ${toneClassName}`}>
+        {num(nextValue)}
+      </span>
     </div>
   );
 }
@@ -134,7 +191,13 @@ export const AlertBox = React.memo(function AlertBox({ type = 'error', text }) {
   );
 });
 
-export const OverviewHeader = React.memo(function OverviewHeader({ detail, status, scoreComparison }) {
+export const OverviewHeader = React.memo(function OverviewHeader({
+  detail,
+  status,
+  scoreComparison,
+  showScoreComparison = false,
+  isScoreResolving = false,
+}) {
   return (
     <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden">
       <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
@@ -172,14 +235,21 @@ export const OverviewHeader = React.memo(function OverviewHeader({ detail, statu
 
           <div className="bg-slate-50/80 border border-slate-100 rounded-3xl p-6 w-full lg:w-auto text-center lg:text-right shadow-inner shrink-0">
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Final Grade</p>
-            <div className="flex items-baseline justify-center lg:justify-end gap-1.5">
-              <ScoreDeltaDisplay
+            {isScoreResolving ? (
+              <SubmissionScoreSkeleton />
+            ) : showScoreComparison ? (
+              <SubmissionComparedScoreDisplay
                 originalValue={scoreComparison?.originalTotal}
                 nextValue={scoreComparison?.newTotal}
                 maxScore={detail?.maxScore}
                 emphasize
               />
-            </div>
+            ) : (
+              <SubmissionSingleScoreDisplay
+                value={scoreComparison?.originalTotal}
+                maxScore={detail?.maxScore}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -195,6 +265,7 @@ export const QuestionCard = React.memo(function QuestionCard({
   reviewedScore,
   originalScore,
   reviewerName,
+  isScoreResolving = false,
 }) {
   const testCases = Array.isArray(ans?.testCaseResults) ? ans.testCaseResults : [];
   const passCount = testCases.filter(
@@ -238,7 +309,12 @@ export const QuestionCard = React.memo(function QuestionCard({
         <div className="flex items-center gap-6 shrink-0 ml-auto md:ml-0">
           <div className="text-right">
             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Score</p>
-            {hasReviewedScore ? (
+            {isScoreResolving ? (
+              <div className="flex items-center gap-2">
+                <span className="h-5 w-12 rounded bg-slate-200 animate-pulse"></span>
+                <span className="h-6 w-12 rounded bg-slate-200 animate-pulse"></span>
+              </div>
+            ) : hasReviewedScore ? (
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-slate-400 line-through">{num(baseOriginalQuestionScore)}</span>
                 <span className="text-lg font-black text-emerald-600">{num(nextQuestionScore)}</span>
@@ -297,7 +373,12 @@ export const QuestionCard = React.memo(function QuestionCard({
                   <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
                     Điểm câu
                   </span>
-                  {hasReviewedScore ? (
+                  {isScoreResolving ? (
+                    <div className="flex items-center gap-2">
+                      <span className="h-6 w-14 rounded bg-slate-200 animate-pulse"></span>
+                      <span className="h-8 w-16 rounded bg-slate-200 animate-pulse"></span>
+                    </div>
+                  ) : hasReviewedScore ? (
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-bold text-slate-400 line-through">
                         {num(baseOriginalQuestionScore)}
@@ -418,6 +499,7 @@ export const QuestionsSection = React.memo(function QuestionsSection({
   reviewedQuestionScores,
   originalQuestionScores,
   reviewerName,
+  isScoreResolving = false,
 }) {
   return (
     <>
@@ -441,6 +523,7 @@ export const QuestionsSection = React.memo(function QuestionsSection({
               reviewedScore={reviewedQuestionScores?.[questionKey]}
               originalScore={originalQuestionScores?.[questionKey]}
               reviewerName={reviewerName}
+              isScoreResolving={isScoreResolving}
             />
           );
         })}
@@ -457,6 +540,8 @@ export const SummarySidebar = React.memo(function SummarySidebar({
   appealRecord,
   appealScores,
   reviewerName,
+  showScoreComparison = false,
+  isScoreResolving = false,
 }) {
   const cleanedNote = detail?.note
     ?.replace('Chế độ: OOP chỉ nhận xét, không tính điểm.', '')
@@ -500,17 +585,16 @@ export const SummarySidebar = React.memo(function SummarySidebar({
             </div>
             <div className="flex items-center justify-between pb-4 border-b border-slate-100/80 gap-4">
               <span className="text-sm font-medium text-slate-500">Tổng điểm TestCase</span>
-              {reviewedTestCaseScore != null ? (
-                <div className="flex items-center gap-2 text-right">
-                  <span className="text-sm font-bold text-slate-400 line-through">{num(detail?.testCaseScore)}</span>
-                  <span className="text-base font-black text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-lg border border-emerald-100">
-                    {num(reviewedTestCaseScore)}
-                  </span>
-                </div>
+              {isScoreResolving ? (
+                <span className="h-8 w-24 rounded-lg bg-slate-200 animate-pulse"></span>
+              ) : showScoreComparison ? (
+                <SubmissionComparedMetricDisplay
+                  originalValue={detail?.testCaseScore}
+                  nextValue={reviewedTestCaseScore}
+                  tone="success"
+                />
               ) : (
-                <span className="text-base font-black text-slate-800 bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-100">
-                  {num(detail?.testCaseScore)}
-                </span>
+                <SubmissionSingleMetricDisplay value={detail?.testCaseScore} />
               )}
             </div>
             <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">

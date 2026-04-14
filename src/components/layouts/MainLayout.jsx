@@ -205,11 +205,11 @@ const MainLayout = ({
 
         <Layout>
           <Header
-            className={`${styles.header} border-b border-slate-200 z-50`}
+            className={`${styles.header} border-b border-slate-200`}
             style={{
               position: "sticky",
               top: 0,
-              zIndex: 1,
+              zIndex: 100,
             }}
           >
             <Button
@@ -264,7 +264,7 @@ const MainLayout = ({
                 </button>
 
                 {headerDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl py-1 z-50">
+                  <div className="absolute right-0 top-full mt-3 w-56 bg-white rounded-2xl border border-slate-200 shadow-xl py-1 z-[110]">
                     <div className="px-4 py-3 border-b border-slate-100">
                       <p className="text-sm font-bold text-slate-800">
                         {userDisplay}
