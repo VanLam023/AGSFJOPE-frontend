@@ -131,6 +131,10 @@ export function extractAppealGradingAnswers(detail) {
   return [];
 }
 
+export function getReviewScoreBlockedMessage(questionNumber) {
+  return `Không thể điều chỉnh điểm cho câu ${questionNumber} vì hệ thống không tìm thấy bài làm của sinh viên ở câu này. Vui lòng giữ nguyên điểm hiện tại và kiểm tra lại dữ liệu nộp bài trước khi gửi kết quả phúc khảo.`;
+}
+
 export function buildLecturerReviewQuestions(detail) {
   const answers = extractAppealGradingAnswers(detail);
   const editedMap = detail?.newQuestionScores ?? {};
@@ -144,6 +148,15 @@ export function buildLecturerReviewQuestions(detail) {
         editedMap[key] != null && editedMap[key] !== ''
           ? Number(editedMap[key])
           : originalScore;
+      const hasJar = Boolean(answer?.hasJar);
+      const hasSource = Boolean(answer?.hasSource);
+      const scoreEditable =
+        typeof answer?.scoreEditable === 'boolean'
+          ? answer.scoreEditable
+          : (hasJar || hasSource);
+      const scoreEditBlockedReason =
+        answer?.scoreEditBlockedReason ||
+        (!scoreEditable ? getReviewScoreBlockedMessage(questionNumber) : '');
 
       return {
         id: answer?.answerId || createRowId(),
@@ -153,6 +166,10 @@ export function buildLecturerReviewQuestions(detail) {
         maxScore: Number(answer?.maxScore ?? 0),
         originalScore,
         editedScore,
+        hasJar,
+        hasSource,
+        scoreEditable,
+        scoreEditBlockedReason,
         rawTestCaseScore: Number(answer?.rawTestCaseScore ?? 0),
         rawOopScore: Number(answer?.rawOopScore ?? 0),
         guardRuleTriggered: Boolean(answer?.guardRuleTriggered),

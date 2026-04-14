@@ -90,6 +90,11 @@ function QuestionCard({ question, isOpen, onToggle }) {
               <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">
                 Điểm tối đa: {formatScore(question?.maxScore)} điểm
               </span>
+              {!question?.scoreEditable ? (
+                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                  Không có bài làm
+                </span>
+              ) : null}
               <GuardRuleTag show={showGuardTag} />
             </div>
           </div>
@@ -125,6 +130,9 @@ function QuestionCard({ question, isOpen, onToggle }) {
             <p className="mt-2 text-sm text-slate-600">
               Pass {testCaseSummary.passCount}/{testCaseSummary.totalCount} test case
             </p>
+            {!question?.scoreEditable ? (
+              <p className="mt-2 text-xs leading-5 text-amber-700">{question?.scoreEditBlockedReason}</p>
+            ) : null}
           </DetailBlock>
 
           <DetailBlock title="Kết quả test case">

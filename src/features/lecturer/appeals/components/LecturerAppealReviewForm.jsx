@@ -102,17 +102,27 @@ export default function LecturerAppealReviewForm({
             <div className="space-y-3">
               {(questions || []).map((question) => {
                 const errorMessage = questionErrors?.[question.id] || '';
+                const scoreLocked = !question?.scoreEditable;
 
                 return (
                   <div
                     key={question.id}
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3"
+                    className={`rounded-2xl border px-4 py-3 ${
+                      scoreLocked ? 'border-amber-200 bg-amber-50/60' : 'border-slate-200 bg-white'
+                    }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-slate-900">
-                          {question.questionTitle}
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-slate-900">
+                            {question.questionTitle}
+                          </p>
+                          {scoreLocked ? (
+                            <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                              Không thể sửa điểm
+                            </span>
+                          ) : null}
+                        </div>
                         <p className="mt-1 text-xs text-slate-500">
                           Điểm gốc: {formatAppealScore(question.originalScore)} / {formatAppealScore(question.maxScore)}
                         </p>
@@ -125,11 +135,24 @@ export default function LecturerAppealReviewForm({
                           step="0.1"
                           value={question?.editedScore}
                           disabled={readOnly}
+                          readOnly={scoreLocked}
+                          onClick={() => {
+                            if (scoreLocked) {
+                              onScoreChange(question.id, question?.editedScore);
+                            }
+                          }}
+                          onFocus={() => {
+                            if (scoreLocked) {
+                              onScoreChange(question.id, question?.editedScore);
+                            }
+                          }}
                           onChange={(event) => onScoreChange(question.id, event.target.value)}
                           className={`w-full rounded-xl border px-3 py-2 text-right text-sm font-semibold text-slate-900 outline-none transition disabled:cursor-not-allowed disabled:bg-slate-100 ${
-                            errorMessage
-                              ? 'border-rose-300 bg-white focus:border-rose-400 focus:ring-4 focus:ring-rose-100'
-                              : 'border-slate-200 bg-slate-50 focus:border-[#F37021] focus:ring-4 focus:ring-orange-100'
+                            scoreLocked
+                              ? 'cursor-not-allowed border-amber-200 bg-amber-50 text-slate-500 focus:border-amber-200 focus:ring-0'
+                              : errorMessage
+                                ? 'border-rose-300 bg-white focus:border-rose-400 focus:ring-4 focus:ring-rose-100'
+                                : 'border-slate-200 bg-slate-50 focus:border-[#F37021] focus:ring-4 focus:ring-orange-100'
                           }`}
                         />
                         <span className="text-xs font-semibold text-slate-500">
@@ -138,7 +161,11 @@ export default function LecturerAppealReviewForm({
                       </div>
                     </div>
 
-                    {errorMessage ? (
+                    {scoreLocked ? (
+                      <p className="mt-2 text-xs text-amber-700">{question.scoreEditBlockedReason}</p>
+                    ) : null}
+
+                    {!scoreLocked && errorMessage ? (
                       <p className="mt-2 text-xs text-rose-600">{errorMessage}</p>
                     ) : null}
                   </div>
