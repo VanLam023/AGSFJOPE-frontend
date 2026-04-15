@@ -610,6 +610,11 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
         setIsTriggering(true);
         await gradingApi.triggerSingleGrading(activeExamId, activeBlockId, item.submissionId);
 
+        const previousStatus = String(item?.submissionStatus || '').toUpperCase();
+        const isFromSubmitted = previousStatus === 'SUBMITTED';
+        const isFromGraded = previousStatus === 'GRADED';
+        const shouldMoveToGrading = isFromSubmitted || isFromGraded;
+
         setRows((prev) =>
           prev.map((row) =>
             row?.submissionId === item.submissionId
@@ -625,6 +630,15 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
               : row
           )
         );
+
+        if (shouldMoveToGrading) {
+          setStats((prev) => ({
+            ...prev,
+            submitted: Math.max(0, Number(prev?.submitted || 0) - (isFromSubmitted ? 1 : 0)),
+            graded: Math.max(0, Number(prev?.graded || 0) - (isFromGraded ? 1 : 0)),
+            grading: Math.max(0, Number(prev?.grading || 0) + 1),
+          }));
+        }
 
         setOptimisticRun({
           active: true,

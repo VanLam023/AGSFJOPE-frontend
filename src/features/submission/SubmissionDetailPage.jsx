@@ -22,10 +22,49 @@ import {
   findAppealById,
   findAppealBySubmissionId,
   getAppealReviewerName,
+  isAppealFinalStatus,
   resolveAppealScores,
   resolveSubmissionScoreComparison,
   unwrapApiData,
 } from '../student/appeals/helpers/appealHelpers';
+
+const GRADING_POLL_INTERVAL_MS = 2000;
+const GRADING_POLL_MAX_ATTEMPTS = 30;
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function clearScoringSnapshot(detail) {
+  if (!detail || typeof detail !== 'object') return detail;
+
+  const answers = Array.isArray(detail.answers)
+    ? detail.answers.map((answer) => ({
+      ...answer,
+      questionScore: null,
+      rawTestCaseScore: null,
+      rawOopScore: null,
+      guardRuleTriggered: false,
+      guardRuleNote: null,
+      aiReview: null,
+      testCaseResults: [],
+    }))
+    : [];
+
+  return {
+    ...detail,
+    status: 'GRADING',
+    submissionStatus: 'GRADING',
+    totalScore: null,
+    testCaseScore: null,
+    oopScore: null,
+    note: null,
+    gradedAt: null,
+    answers,
+  };
+}
 
 export default function SubmissionDetailPage({
   examId,
@@ -152,27 +191,44 @@ export default function SubmissionDetailPage({
 
     setIsRegrading(true);
     setLocalSubmissionStatus('GRADING');
+    setDetail((prev) => clearScoringSnapshot(prev));
+    setOpenQuestion(-1);
+    setDetailWarning('');
 
     try {
       await gradingApi.triggerSingleGrading(examId, blockId, submissionId);
       message.success('Đã gửi yêu cầu chấm lại.');
 
-      setTimeout(async () => {
-        try {
-          const response = await gradingApi.getSubmissionResult(submissionId);
-          const payload = extractPayload(response);
-          setDetail((prev) => ({ ...(prev || {}), ...(payload || {}) }));
-          setDetailWarning('');
-          setLocalSubmissionStatus('');
-        } catch (errorResponse) {
-          setDetailWarning(
-            extractApiErrorMessage(
-              errorResponse,
-              'Đã gửi yêu cầu chấm lại nhưng chưa tải lại được chi tiết mới.',
-            ),
-          );
+      let latestPayload = null;
+      let completed = false;
+
+      for (let attempt = 0; attempt < GRADING_POLL_MAX_ATTEMPTS; attempt += 1) {
+        const response = await gradingApi.getSubmissionResult(submissionId);
+        const payload = extractPayload(response);
+        latestPayload = payload;
+
+        const statusText = String(
+          payload?.submissionStatus || payload?.status || ''
+        ).toUpperCase();
+        const isStillGrading = statusText === 'GRADING';
+
+        if (!isStillGrading) {
+          completed = true;
+          break;
         }
-      }, 1000);
+
+        await sleep(GRADING_POLL_INTERVAL_MS);
+      }
+
+      if (latestPayload) {
+        setDetail((prev) => ({ ...(prev || {}), ...(latestPayload || {}) }));
+      }
+
+      if (!completed) {
+        setDetailWarning('Đã gửi yêu cầu chấm lại. Hệ thống vẫn đang xử lý, vui lòng tải lại sau ít phút.');
+      }
+
+      setLocalSubmissionStatus('');
     } catch (errorResponse) {
       setLocalSubmissionStatus('');
       message.error(extractApiErrorMessage(errorResponse, 'Lỗi khi yêu cầu chấm lại.'));
@@ -271,6 +327,13 @@ export default function SubmissionDetailPage({
     [appealRecord],
   );
 
+  const disableRegradeByAppeal = useMemo(
+    () => isAppealFinalStatus(appealRecord?.status),
+    [appealRecord?.status],
+  );
+
+  const isScoreResolving = loading || localSubmissionStatus === 'GRADING';
+
   return (
     <div className="relative min-h-screen bg-[#F8FAFC]">
       <div className="pointer-events-none absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
@@ -284,6 +347,7 @@ export default function SubmissionDetailPage({
           onAppeal={handleAppeal}
           onRegrade={handleRegrade}
           isRegrading={isRegrading}
+          disableRegrade={disableRegradeByAppeal}
         />
 
         {loading && <LoadingState hasDetail={!!detail} />}
@@ -298,7 +362,7 @@ export default function SubmissionDetailPage({
                 status={status}
                 appealScores={appealScores}
                 showScoreComparison={shouldRenderScoreComparison}
-                isScoreResolving={loading}
+                isScoreResolving={isScoreResolving}
               />
 
               <QuestionsSection
@@ -307,8 +371,9 @@ export default function SubmissionDetailPage({
                 onToggleQuestion={toggleQuestion}
                 reviewedQuestionScores={reviewedQuestionScores}
                 originalQuestionScores={originalQuestionScores}
+                gradingMode={detail?.gradingMode}
                 reviewerName={reviewerName}
-                isScoreResolving={loading}
+                isScoreResolving={isScoreResolving}
               />
             </div>
 
@@ -322,7 +387,7 @@ export default function SubmissionDetailPage({
                 appealScores={appealScores}
                 reviewerName={reviewerName}
                 showScoreComparison={shouldRenderScoreComparison}
-                isScoreResolving={loading}
+                isScoreResolving={isScoreResolving}
               />
             </div>
           </div>
