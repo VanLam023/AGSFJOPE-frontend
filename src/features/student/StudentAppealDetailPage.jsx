@@ -51,7 +51,7 @@ export default function StudentAppealDetailPage() {
 
   const [appeal, setAppeal] = useState(location.state?.appeal ?? null);
   const [gradingDetail, setGradingDetail] = useState(null);
-  const [loading, setLoading] = useState(!location.state?.appeal);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [noticeDismissed, setNoticeDismissed] = useState(false);
 
@@ -100,6 +100,12 @@ export default function StudentAppealDetailPage() {
   useEffect(() => {
     loadAppeal();
   }, [loadAppeal]);
+
+  useEffect(() => {
+    if (!appeal && location.state?.appeal) {
+      setAppeal(location.state.appeal);
+    }
+  }, [appeal, location.state]);
 
   const finalStatus = isAppealFinalStatus(appeal?.status);
   const reviewerName = getAppealReviewerName(appeal);

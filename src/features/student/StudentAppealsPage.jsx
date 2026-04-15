@@ -3,6 +3,7 @@ import { message } from 'antd';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import StudentLayout from '../../components/layouts/student';
 import appealApi from '../../services/appealApi';
+import gradingApi from '../../services/gradingApi';
 import AppealEmptyState from './appeals/components/AppealEmptyState';
 import AppealListCard from './appeals/components/AppealListCard';
 import AppealOverviewCards from './appeals/components/AppealOverviewCards';
@@ -11,6 +12,7 @@ import {
   extractAppealErrorMessage,
   matchesAppealStatusFilter,
   resolveAppealOverview,
+  resolveAppealsList,
   unwrapApiData,
 } from './appeals/helpers/appealHelpers';
 
@@ -51,6 +53,34 @@ function SuccessBanner({ createdAppeal, onClose }) {
   );
 }
 
+async function enrichAppealsWithGradingDetails(appeals = []) {
+  if (!Array.isArray(appeals) || !appeals.length) return [];
+
+  const gradingEntries = await Promise.all(
+    appeals.map(async (appeal) => {
+      const submissionId = appeal?.submissionId;
+
+      if (!submissionId) {
+        return [submissionId, null];
+      }
+
+      try {
+        const gradingResponse = await gradingApi.getSubmissionResult(submissionId);
+        return [submissionId, unwrapApiData(gradingResponse)];
+      } catch {
+        return [submissionId, null];
+      }
+    }),
+  );
+
+  const gradingMap = new Map(gradingEntries);
+
+  return appeals.map((appeal) => ({
+    ...appeal,
+    gradingDetail: gradingMap.get(appeal?.submissionId) ?? null,
+  }));
+}
+
 export default function StudentAppealsPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -75,7 +105,9 @@ export default function StudentAppealsPage() {
     try {
       const response = await appealApi.getMyAppeals();
       const payload = unwrapApiData(response);
-      setOverview(resolveAppealOverview(payload));
+      const appeals = resolveAppealsList(payload);
+      const enrichedAppeals = await enrichAppealsWithGradingDetails(appeals);
+      setOverview(resolveAppealOverview(enrichedAppeals));
     } catch (apiError) {
       setError(
         extractAppealErrorMessage(

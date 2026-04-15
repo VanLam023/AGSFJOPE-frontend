@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import AppealProgressTimeline from './AppealProgressTimeline';
 import AppealStatusBadge from './AppealStatusBadge';
 import {
   formatDateTime,
-  getAppealScoreSummary,
+  formatScore,
   getAppealReviewerName,
   isAppealFinalStatus,
+  resolveAppealScores,
 } from '../helpers/appealHelpers';
 
-function ScorePanel({ appeal }) {
-  const score = getAppealScoreSummary(appeal);
+function ScorePanel({ scoreInfo }) {
+  const originalText = scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—';
+  const newText = scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : '—';
 
-  if (score.variant === 'empty') {
+  if (scoreInfo.originalScore == null) {
     return (
       <div className="text-right">
         <p className="text-2xl font-black text-slate-400">—</p>
@@ -20,10 +22,10 @@ function ScorePanel({ appeal }) {
     );
   }
 
-  if (score.variant === 'single') {
+  if (scoreInfo.newScore == null) {
     return (
       <div className="text-right">
-        <p className="text-3xl font-black text-slate-800">{score.originalText}</p>
+        <p className="text-3xl font-black text-slate-800">{originalText}</p>
         <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
           Điểm hiện tại
         </p>
@@ -34,15 +36,9 @@ function ScorePanel({ appeal }) {
   return (
     <div className="text-right">
       <div className="flex items-center justify-end gap-2">
-        <span className="text-sm font-bold text-slate-400 line-through">
-          {score.originalText}
-        </span>
-        <span className="material-symbols-outlined text-[18px] text-emerald-500">
-          arrow_upward
-        </span>
-        <span className="text-3xl font-black text-emerald-600">
-          {score.newText}
-        </span>
+        <span className="text-sm font-bold text-slate-400 line-through">{originalText}</span>
+        <span className="material-symbols-outlined text-[18px] text-emerald-500">arrow_upward</span>
+        <span className="text-3xl font-black text-emerald-600">{newText}</span>
       </div>
       <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
         Kết quả sau phúc khảo
@@ -53,8 +49,11 @@ function ScorePanel({ appeal }) {
 
 export default function AppealListCard({ appeal }) {
   const finalStatus = isAppealFinalStatus(appeal?.status);
-  const score = getAppealScoreSummary(appeal);
   const reviewerName = getAppealReviewerName(appeal);
+  const scoreInfo = useMemo(
+    () => resolveAppealScores(appeal, appeal?.gradingDetail),
+    [appeal],
+  );
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -75,7 +74,7 @@ export default function AppealListCard({ appeal }) {
             </div>
           </div>
 
-          <ScorePanel appeal={appeal} />
+          <ScorePanel scoreInfo={scoreInfo} />
         </div>
 
         <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
@@ -83,14 +82,16 @@ export default function AppealListCard({ appeal }) {
             <div className="space-y-1 text-sm text-slate-600">
               <p>
                 Điểm cũ:{' '}
-                <span className={score.newScore != null ? 'font-bold text-slate-400 line-through' : 'font-bold text-slate-800'}>
-                  {score.originalText}
+                <span
+                  className={scoreInfo.newScore != null ? 'font-bold text-slate-400 line-through' : 'font-bold text-slate-800'}
+                >
+                  {scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—'}
                 </span>
               </p>
               <p>
                 Điểm mới:{' '}
-                <span className={`font-bold ${score.newScore != null ? 'text-emerald-600' : 'text-slate-800'}`}>
-                  {score.newText}
+                <span className={`font-bold ${scoreInfo.newScore != null ? 'text-emerald-600' : 'text-slate-800'}`}>
+                  {scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : '—'}
                 </span>
               </p>
             </div>

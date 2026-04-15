@@ -94,6 +94,41 @@ function getScoreCandidates(item, keys = []) {
   return null;
 }
 
+function hasResolvedScore(value) {
+  return value != null;
+}
+
+function hasMeaningfulGradingDetail(gradingDetail = null) {
+  return Boolean(
+    (Array.isArray(gradingDetail?.answers) && gradingDetail.answers.length)
+    || toScoreNumber(gradingDetail?.totalScore) != null,
+  );
+}
+
+function resolveOriginalScoreFromAppeal(item) {
+  return (
+    getScoreCandidates(item, ['originalScore', 'oldScore', 'currentScore', 'initialScore'])
+    ?? sumFromQuestionScores(item?.originalQuestionScores)
+    ?? sumFromQuestionScores(item?.oldQuestionScores)
+    ?? sumFromAnswers(item?.gradingDetail?.answers)
+    ?? sumFromAnswers(item?.answers)
+    ?? null
+  );
+}
+
+function resolveOriginalScoreFromDetail(gradingDetail, item) {
+  return (
+    sumFromAnswers(gradingDetail?.answers)
+    ?? toScoreNumber(gradingDetail?.totalScore)
+    ?? getScoreCandidates(item, ['originalScore', 'oldScore', 'currentScore', 'initialScore'])
+    ?? sumFromQuestionScores(item?.originalQuestionScores)
+    ?? sumFromQuestionScores(item?.oldQuestionScores)
+    ?? sumFromAnswers(item?.gradingDetail?.answers)
+    ?? sumFromAnswers(item?.answers)
+    ?? null
+  );
+}
+
 export function unwrapApiData(response) {
   return getNestedPayload(response);
 }
@@ -294,25 +329,20 @@ export function getAppealProgressSteps(status) {
   });
 }
 
+
 export function canRenderAppealScoreComparison(item) {
   const normalizedStatus = String(item?.status || '').toUpperCase();
   const hasReviewedTotalScore = toScoreNumber(item?.newScore) != null;
   const reviewedQuestionScores = normalizeReviewedQuestionScores(item);
   const hasReviewedQuestionScores = Object.keys(reviewedQuestionScores).length > 0;
 
-  return normalizedStatus === 'COMPLETED' && hasReviewedTotalScore && hasReviewedQuestionScores;
+  return normalizedStatus === 'APPROVED' && hasReviewedTotalScore && hasReviewedQuestionScores;
 }
 
 export function resolveAppealScores(item, gradingDetail = null) {
-  const originalScore =
-    sumFromQuestionScores(item?.originalQuestionScores)
-    ?? sumFromQuestionScores(item?.oldQuestionScores)
-    ?? sumFromAnswers(item?.gradingDetail?.answers)
-    ?? sumFromAnswers(item?.answers)
-    ?? sumFromAnswers(gradingDetail?.answers)
-    ?? getScoreCandidates(item, ['originalScore', 'oldScore', 'currentScore', 'initialScore'])
-    ?? toScoreNumber(gradingDetail?.totalScore)
-    ?? null;
+  const originalScore = hasMeaningfulGradingDetail(gradingDetail)
+    ? resolveOriginalScoreFromDetail(gradingDetail, item)
+    : resolveOriginalScoreFromAppeal(item);
 
   const newScore =
     getScoreCandidates(item, ['newScore', 'reviewedScore', 'finalScore'])
@@ -323,8 +353,8 @@ export function resolveAppealScores(item, gradingDetail = null) {
   return {
     originalScore,
     newScore,
-    hasOriginal: originalScore != null,
-    hasNew: newScore != null,
+    hasOriginal: hasResolvedScore(originalScore),
+    hasNew: hasResolvedScore(newScore),
     changed:
       originalScore != null
       && newScore != null
