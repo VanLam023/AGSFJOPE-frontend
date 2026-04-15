@@ -194,10 +194,18 @@ export const AlertBox = React.memo(function AlertBox({ type = 'error', text }) {
 export const OverviewHeader = React.memo(function OverviewHeader({
   detail,
   status,
-  scoreComparison,
+  appealScores,
   showScoreComparison = false,
   isScoreResolving = false,
 }) {
+  const apiTotalScore = Number.isFinite(Number(detail?.totalScore))
+    ? Number(detail.totalScore)
+    : null;
+
+  const reviewedTotalScore = Number.isFinite(Number(appealScores?.newScore))
+    ? Number(appealScores.newScore)
+    : null;
+
   return (
     <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden">
       <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
@@ -239,14 +247,14 @@ export const OverviewHeader = React.memo(function OverviewHeader({
               <SubmissionScoreSkeleton />
             ) : showScoreComparison ? (
               <SubmissionComparedScoreDisplay
-                originalValue={scoreComparison?.originalTotal}
-                nextValue={scoreComparison?.newTotal}
+                originalValue={apiTotalScore}
+                nextValue={reviewedTotalScore}
                 maxScore={detail?.maxScore}
                 emphasize
               />
             ) : (
               <SubmissionSingleScoreDisplay
-                value={scoreComparison?.originalTotal}
+                value={apiTotalScore}
                 maxScore={detail?.maxScore}
               />
             )}

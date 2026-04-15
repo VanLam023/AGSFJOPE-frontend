@@ -296,7 +296,7 @@ export default function SubmissionDetailPage({
               <OverviewHeader
                 detail={detail}
                 status={status}
-                scoreComparison={submissionScoreComparison}
+                appealScores={appealScores}
                 showScoreComparison={shouldRenderScoreComparison}
                 isScoreResolving={loading}
               />
