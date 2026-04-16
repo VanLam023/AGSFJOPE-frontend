@@ -143,6 +143,28 @@ export const buildAiOverviewSummary = (statistics) => {
 export const buildOopViolationItems = (statistics) => {
   const aiOopAnalysis = statistics?.aiOopAnalysis ?? {};
 
+  const dynamicCriteria = ensureArray(aiOopAnalysis?.criteriaStats)
+    .map((item, index) => {
+      const name = String(item?.name || '').trim();
+      if (!name) return null;
+
+      const shortLabel = name.length > 14 ? `${name.slice(0, 14)}…` : name;
+      return {
+        key: `dynamic-${index}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        label: shortLabel,
+        fullLabel: name,
+        count: toNumber(item?.violationCount),
+        rate: toNumber(item?.violationRate),
+        avgScore: toNumber(item?.avgScore),
+        sampleSize: toNumber(item?.sampleSize),
+      };
+    })
+    .filter(Boolean);
+
+  if (dynamicCriteria.length > 0) {
+    return dynamicCriteria;
+  }
+
   return [
     {
       key: 'encap',
