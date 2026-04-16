@@ -464,6 +464,21 @@ export const QuestionCard = React.memo(function QuestionCard({
                     <span className="text-sm font-semibold text-slate-600">OOP Score</span>
                     <span className="text-2xl font-black text-indigo-600">{num(oopScore)}</span>
                   </div>
+
+                  {Array.isArray(ans?.aiReview?.hardCodedValues) && ans.aiReview.hardCodedValues.length > 0 ? (
+                    <div className="rounded-xl border border-rose-200 bg-rose-50 p-3.5">
+                      <p className="text-[11px] font-bold text-rose-700 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[14px]">warning</span>
+                        Phát hiện hard code
+                      </p>
+                      <ul className="list-disc list-inside space-y-1 text-xs text-rose-800 font-medium">
+                        {ans.aiReview.hardCodedValues.map((value, idx) => (
+                          <li key={`${value}-${idx}`}>{value}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
                   <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4 whitespace-pre-wrap text-slate-700 leading-7">
                     {ans?.aiReview?.comment || 'Không có nhận xét AI.'}
                   </div>
