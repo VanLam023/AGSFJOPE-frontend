@@ -1,15 +1,9 @@
 import React, { Suspense, lazy, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '../../components/layouts/MainLayout.jsx';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems.jsx';
+import { STAFF_ICONS, STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems.jsx';
 import DashboardCard from '../../components/DashboardCard.jsx';
-import {
-  DashboardIcon,
-  ExamManagementIcon,
-  SubmissionsIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-} from '../../components/icons/SidebarIcons.jsx';
+import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils.jsx';
 import { ConfigProvider, Table, Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import ExamManagementPage from '../exam/ExamManagementPage.jsx';
@@ -23,14 +17,6 @@ import ExamStaffHomeDashboard from './ExamStaffHomeDashboard.jsx';
 import ExamStaffNotificationsPage from './notifications/ExamStaffNotificationsPage.jsx';
 
 const BlockStatisticsPage = lazy(() => import('./statistics/BlockStatisticsPage.jsx'));
-
-const icons = [
-  DashboardIcon,
-  ExamManagementIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  SubmissionsIcon,
-];
 
 export default function ExamStaffDashboard() {
   const location = useLocation();
@@ -106,10 +92,8 @@ export default function ExamStaffDashboard() {
     !isUploadExamPaperPage &&
     !isBlockDetailPage;
 
-  const renderedSiderIcons = icons.map((item, index) => {
-    const isActive = index + 1 === selectedIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return item({ fill: color });
+  const renderedSiderIcons = renderSiderIconsMaterialSymbol({
+    icons: STAFF_ICONS,
   });
 
   return (

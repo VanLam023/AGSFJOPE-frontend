@@ -1,5 +1,5 @@
 export const LECTURER_NAV_ITEMS = [
-  { key: 'dashboard', icon: 'dashboard', label: 'Dashboard', to: '/lecturer' },
+  { key: 'dashboard', icon: 'space_dashboard', label: 'Dashboard', to: '/lecturer' },
   {
     key: 'notifications',
     icon: 'notifications',
@@ -9,7 +9,7 @@ export const LECTURER_NAV_ITEMS = [
   },
   {
     key: 'appeals',
-    icon: 'description',
+    icon: 'gavel',
     label: 'Phúc khảo',
     to: '/lecturer/appeals',
     matchPrefix: '/lecturer/appeals',

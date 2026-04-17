@@ -13,13 +13,8 @@ import {
   Empty,
 } from 'antd';
 import MainLayout from '../../components/layouts/MainLayout';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
-import {
-  DashboardIcon,
-  ExamManagementIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-} from '../../components/icons/SidebarIcons.jsx';
+import { STAFF_ICONS, STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
+import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils.jsx';
 import { formatDateTime } from '../../components/utils/Utils';
 import { getStaffWithdrawals, processStaffWithdrawal } from '../../services/staffApi';
 
@@ -36,13 +31,6 @@ const STATUS_META = {
   REJECTED: { label: 'Đã từ chối', color: 'red' },
   COMPLETED: { label: 'Hoàn tất', color: 'blue' },
 };
-
-const icons = [
-  DashboardIcon,
-  ExamManagementIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-];
 
 const currency = new Intl.NumberFormat('vi-VN');
 
@@ -66,13 +54,8 @@ export default function WithdrawalManagementPage() {
   const [form] = Form.useForm();
   const [messageApi, contextHolder] = message.useMessage();
 
-  const activeSidebarIndex =
-    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/withdrawals') + 1;
-
-  const renderedSiderIcons = icons.map((item, index) => {
-    const isActive = index + 1 === activeSidebarIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return item({ fill: color });
+  const renderedSiderIcons = renderSiderIconsMaterialSymbol({
+    icons: STAFF_ICONS,
   });
 
   const loadRows = useCallback(async () => {

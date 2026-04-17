@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import viVN from 'antd/locale/vi_VN';
 import MainLayout from '../../components/layouts/MainLayout';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
 
 import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils';
 import {
@@ -86,7 +85,7 @@ const AuditLogDetailPage = () => {
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <span
               className="hover:text-[#F37021] cursor-pointer"
-              onClick={() => navigate('/exam-staff/audits')}
+              onClick={() => navigate('/admin/audits')}
             >
               Nhật ký thao tác
             </span>

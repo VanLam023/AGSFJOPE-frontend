@@ -4,18 +4,11 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import viVN from 'antd/locale/vi_VN';
 import MainLayout from '../../components/layouts/MainLayout';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
-import {
-  DashboardIcon,
-  ExamManagementIcon,
-  SubmissionsIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  AuditLogIcon,
-} from '../../components/icons/SidebarIcons.jsx';
+import { STAFF_ICONS, STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
 import { ConfigProvider, DatePicker, Select, Empty, Table } from 'antd';
 import CardContainer from '../../components/CardContainer';
 import { useGetAuditLogs } from '../../hooks';
+import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils.jsx';
 import emptyImg from '../../assets/empty.png';
 
 dayjs.locale('vi');
@@ -64,22 +57,8 @@ const AuditLogsPage = () => {
 
   const { callGetAuditLogsEndpoint, data, loading } = useGetAuditLogs();
 
-  const icons = [
-    DashboardIcon,
-    ExamManagementIcon,
-    // SubmissionsIcon,
-    AppealsIcon,
-    AuditLogIcon,
-  ];
-
-  const activeSidebarIndex =
-    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
-    1;
-
-  const renderedSiderIcons = icons.map((Icon, index) => {
-    const isActive = index + 1 === activeSidebarIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return Icon({ fill: color });
+  const renderedSiderIcons = renderSiderIconsMaterialSymbol({
+    icons: STAFF_ICONS,
   });
 
   useEffect(() => {

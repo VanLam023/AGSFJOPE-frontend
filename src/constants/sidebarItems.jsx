@@ -26,9 +26,16 @@ export const STAFF_SIDEBAR_ITEMS = [
   },
 ];
 
+export const STAFF_ICONS = [
+  'dashboard',
+  'event_note',
+  'gavel',
+  'payments',
+  'notifications',
+];
+
 export const ADMIN_ICONS = [
   'dashboard',
-  'monitoring',
   'group',
   'rule',
   'payments',

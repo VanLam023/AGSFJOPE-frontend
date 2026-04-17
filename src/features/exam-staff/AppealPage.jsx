@@ -3,14 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DownloadOutlined } from '@ant-design/icons';
 import viVN from 'antd/locale/vi_VN';
 import MainLayout from '../../components/layouts/MainLayout';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
-import {
-  DashboardIcon,
-  ExamManagementIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  AuditLogIcon,
-} from '../../components/icons/SidebarIcons.jsx';
+import { STAFF_ICONS, STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
 import {
   ConfigProvider,
   Table,
@@ -26,7 +19,11 @@ import DashboardCard from '../../components/DashboardCard.jsx';
 import { appealStatusConfig } from './config.jsx';
 import { useStaffAppeals } from '../../hooks';
 import useDebounce from '../../hooks/useDebounce.jsx';
-import { formatDateTime, formatCount } from '../../components/utils/Utils';
+import {
+  formatDateTime,
+  formatCount,
+  renderSiderIconsMaterialSymbol,
+} from '../../components/utils/Utils';
 import { exportToExcel } from '../../components/utils/exportExcel.js';
 
 const OVERVIEW_CARDS = [
@@ -68,14 +65,6 @@ const STATUS_FILTER_OPTIONS = [
   { value: 'CANCELLED', label: appealStatusConfig.CANCELLED.label },
 ];
 
-const icons = [
-  DashboardIcon,
-  ExamManagementIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  AuditLogIcon,
-];
-
 async function collectAllSemesters() {
   const semesters = new Set();
 
@@ -112,14 +101,8 @@ const AppealPage = () => {
 
   const { fetchStaffAppeals, data, loading, error } = useStaffAppeals();
 
-  const activeSidebarIndex =
-    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/appeals') +
-    1;
-
-  const renderedSiderIcons = icons.map((item, index) => {
-    const isActive = index + 1 === activeSidebarIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return item({ fill: color });
+  const renderedSiderIcons = renderSiderIconsMaterialSymbol({
+    icons: STAFF_ICONS,
   });
 
   useEffect(() => {

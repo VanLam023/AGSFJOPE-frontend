@@ -6,17 +6,14 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import MainLayout from '../../components/layouts/MainLayout';
 import Modal from '../../components/Modal.jsx';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
-import {
-  DashboardIcon,
-  ExamManagementIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  AuditLogIcon,
-} from '../../components/icons/SidebarIcons.jsx';
+import { STAFF_ICONS, STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
 import { appealStatusConfig } from './config.jsx';
 import { useStaffAppealDetail, useStaffAppealLecturers } from '../../hooks';
-import { formatDateTime, formatScore } from '../../components/utils/Utils';
+import {
+  formatDateTime,
+  formatScore,
+  renderSiderIconsMaterialSymbol,
+} from '../../components/utils/Utils';
 import {
   assignStaffAppeal,
   cancelStaffAppeal,
@@ -33,14 +30,6 @@ import {
 } from './helpers/appealDetailHelpers';
 
 dayjs.locale('vi');
-
-const icons = [
-  DashboardIcon,
-  ExamManagementIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  AuditLogIcon,
-];
 
 const scoreCardClassName =
   'bg-white rounded-2xl border border-slate-200 shadow-sm p-5 sm:p-6';
@@ -65,13 +54,8 @@ const AppealDetailPage = () => {
   const [gradingDetail, setGradingDetail] = useState(null);
   const [gradingLoading, setGradingLoading] = useState(false);
 
-  const activeSidebarIndex =
-    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/appeals') + 1;
-
-  const renderedSiderIcons = icons.map((item, index) => {
-    const isActive = index + 1 === activeSidebarIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return item({ fill: color });
+  const renderedSiderIcons = renderSiderIconsMaterialSymbol({
+    icons: STAFF_ICONS,
   });
 
   const loadGradingDetail = useCallback(async (submissionId) => {

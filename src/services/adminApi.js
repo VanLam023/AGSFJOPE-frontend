@@ -126,6 +126,32 @@ const updateSystemPassThreshold = ({ passThreshold }) => {
   });
 };
 
+const getAdminAuditLogs = ({
+  action,
+  entityType,
+  userId,
+  from,
+  to,
+  page = 0,
+  size = 20,
+} = {}) => {
+  return axiosClient.get('/admin/audit-logs', {
+    params: cleanParams({
+      action,
+      entityType,
+      userId,
+      from,
+      to,
+      page,
+      size,
+    }),
+  });
+};
+
+const getAdminAuditLogById = (auditLogId) => {
+  return axiosClient.get(`/admin/audit-logs/${auditLogId}`);
+};
+
 const cleanParams = (obj) =>
   Object.fromEntries(
     Object.entries(obj).filter(([, v]) => v !== undefined && v !== null),
@@ -178,6 +204,8 @@ export {
   setDefaultGradingMode,
   updateSystemConfig,
   updateSystemPassThreshold,
+  getAdminAuditLogs,
+  getAdminAuditLogById,
   getAdminDashboardOverview,
   getAdminDashboardUserStats,
   getAdminDashboardRecentActivities,

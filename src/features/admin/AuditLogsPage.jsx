@@ -4,14 +4,6 @@ import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import viVN from 'antd/locale/vi_VN';
 import MainLayout from '../../components/layouts/MainLayout';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
-import {
-  DashboardIcon,
-  ExamManagementIcon,
-  SubmissionsIcon,
-  AppealsIcon,
-  AuditLogIcon,
-} from '../../components/icons/SidebarIcons.jsx';
 import { ConfigProvider, DatePicker, Select, Empty, Table } from 'antd';
 import CardContainer from '../../components/CardContainer';
 import { useGetAuditLogs } from '../../hooks';
@@ -67,14 +59,6 @@ const AuditLogsPage = () => {
   const [dateRange, setDateRange] = useState(null);
 
   const { callGetAuditLogsEndpoint, data, loading } = useGetAuditLogs();
-
-  const icons = [
-    DashboardIcon,
-    ExamManagementIcon,
-    // SubmissionsIcon,
-    AppealsIcon,
-    AuditLogIcon,
-  ];
 
   useEffect(() => {
     const from =
