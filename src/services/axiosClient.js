@@ -13,6 +13,7 @@ const axiosClient = axios.create({
   baseURL: `${__BASE_URL__}`,
   // timeout: 10000,
   timeout: 30000,
+  withCredentials: true,
 });
 
 // ── Centralized force logout: dispatch event → AuthContext handles the rest ──
@@ -28,11 +29,7 @@ const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/forgot-passwo
   "/auth/reset-password", "/auth/verify-reset-token", "/auth/verify-account"];
 
 axiosClient.interceptors.request.use((config) => {
-  const isPublic = PUBLIC_AUTH_PATHS.some((path) => config.url?.includes(path));
-  if (!isPublic) {
-    const token = localStorage.getItem("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-  }
+  // Không cần add Authorization header vì token đã nằm trong HttpOnly Cookie
   return config;
 });
 
@@ -57,34 +54,19 @@ axiosClient.interceptors.response.use(
     if (is401 && notRetried && notRefreshEndpoint && !isPublicAuthPath) {
       originalRequest._retry = true; // flag to prevent infinite retry loop
 
-      const refreshToken = localStorage.getItem("refreshToken");
+      try {
+        // Call the refresh endpoint directly (bypass interceptor to avoid recursion)
+        await axios.post(
+          `${__BASE_URL__}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
 
-      if (refreshToken) {
-        try {
-          // Call the refresh endpoint directly (bypass interceptor to avoid recursion)
-          const refreshResponse = await axios.post(
-            `${__BASE_URL__}/auth/refresh`,
-            { refreshToken }
-          );
-
-          // Backend wraps response: { success, message, data: { accessToken, ... } }
-          const newAccessToken =
-            refreshResponse.data?.data?.accessToken ??
-            refreshResponse.data?.accessToken;
-
-          // Persist the new access token
-          localStorage.setItem("token", newAccessToken);
-
-          // Patch the original failed request with the new token and retry it
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return axiosClient(originalRequest);
-        } catch {
-          // Refresh token hết hạn hoặc bị thu hồi → dispatch event để AuthContext logout
-          dispatchSessionExpired();
-          return Promise.reject(err);
-        }
-      } else {
-        // Không có refresh token → session đã mất, dispatch event để AuthContext logout
+        // Backend automatically sets the new access token and refresh token in HttpOnly cookies
+        // Retry the original request (browser will automatically include the new cookies)
+        return axiosClient(originalRequest);
+      } catch {
+        // Refresh token không có, hết hạn hoặc bị thu hồi → dispatch event để AuthContext logout
         dispatchSessionExpired();
         return Promise.reject(err);
       }

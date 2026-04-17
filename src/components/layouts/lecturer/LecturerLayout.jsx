@@ -74,7 +74,7 @@ export default function LecturerLayout() {
 
   const handleLogout = () => {
     logout();
-    localStorage.removeItem('refreshToken');
+    // Cookie HttpOnly sẽ bị backend tự động xóa khi gọi API logout
     navigate('/login');
   };
 

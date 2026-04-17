@@ -46,10 +46,8 @@ const Login = () => {
       }
 
       // Lưu token
-      localStorage.setItem('token', data.accessToken);
-      if (data.refreshToken) {
-        localStorage.setItem('refreshToken', data.refreshToken);
-      }
+      // Không cần lưu token thủ công vào localStorage,
+      // backend đã trả về trong Set-Cookie header (HttpOnly)
 
       // Lưu user vào context
       login({

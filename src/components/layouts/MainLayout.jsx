@@ -132,7 +132,7 @@ const MainLayout = ({
       console.error("Logout API failed:", error);
     } finally {
       logout(); // xóa token + user trong AuthContext hiện tại
-      localStorage.removeItem("refreshToken"); // backend có revoke refresh token, frontend cũng nên xóa local
+      // Cookie HttpOnly sẽ bị backend tự động xóa khi gọi API logout
       navigate("/login", { replace: true });
       setLoggingOut(false);
     }
