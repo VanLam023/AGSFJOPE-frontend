@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import MainLayout from '../../components/layouts/MainLayout';
 import {
   ADMIN_SIDEBAR_ITEMS,
@@ -9,17 +9,14 @@ import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils';
 import {
   Button,
   ConfigProvider,
-  Divider,
   Form,
   Input,
   message,
-  Select,
 } from 'antd';
 import CardContainer from '../../components/CardContainer';
-import { renderBooleanPill } from '../../components/utils/Utils';
 import {
   useGetSystemConfig,
-  useGetSystemGradingModes,
+  useUpdatePassThreshold,
   useUpdateSystemConfig,
 } from '../../hooks';
 
@@ -35,13 +32,10 @@ const SystemConfig = () => {
     loading: getSystemConfigLoading,
   } = useGetSystemConfig();
 
-  const {
-    callGetSystemGradingModesEndpoint,
-    data: gradingModesResponse,
-    loading: getGradingModesLoading,
-  } = useGetSystemGradingModes();
   const { callUpdateSystemConfigEndpoint, loading: updateSystemConfigLoading } =
     useUpdateSystemConfig();
+  const { callUpdatePassThresholdEndpoint, loading: updatePassThresholdLoading } =
+    useUpdatePassThreshold();
 
   const isFptEmail = (value) => {
     return value.endsWith('@fpt.edu.vn');
@@ -49,75 +43,68 @@ const SystemConfig = () => {
 
   useEffect(() => {
     callGetSystemConfigEndpoint();
-    callGetSystemGradingModesEndpoint();
   }, []);
-
-  const gradingModes = useMemo(() => {
-    return gradingModesResponse?.modes ?? [];
-  }, [gradingModesResponse]);
 
   useEffect(() => {
     const systemData = config ?? null;
-    const defaultModeFromModes = gradingModesResponse?.defaultMode;
 
-    if (!systemData && !defaultModeFromModes) return;
+    if (!systemData) return;
     form.setFieldsValue({
       maxUploadSizeMb: systemData?.maxUploadSizeMb,
       maxExamPaperMb: systemData?.maxExamPaperMb,
+      gradingPassThreshold: Number(systemData?.gradingPassThreshold ?? 0),
       smtpHost: systemData?.smtpHost,
       smtpPort: systemData?.smtpPort,
       smtpUsername: systemData?.smtpUsername,
       smtpPassword: '',
       smtpFromEmail: systemData?.smtpFromEmail,
-      defaultGradingMode:
-        systemData?.defaultGradingMode ?? defaultModeFromModes,
     });
-  }, [config, gradingModesResponse, form]);
+  }, [config, form]);
 
   const handleCancel = () => {
-    const systemData = config?.data ?? null;
-    const defaultModeFromModes = gradingModesResponse?.data?.defaultMode;
+    const systemData = config ?? null;
     form.setFieldsValue({
       maxUploadSizeMb: systemData?.maxUploadSizeMb,
       maxExamPaperMb: systemData?.maxExamPaperMb,
+      gradingPassThreshold: Number(systemData?.gradingPassThreshold ?? 0),
       smtpHost: systemData?.smtpHost,
       smtpPort: systemData?.smtpPort,
       smtpUsername: systemData?.smtpUsername,
       smtpPassword: '',
       smtpFromEmail: systemData?.smtpFromEmail,
-      defaultGradingMode:
-        systemData?.defaultGradingMode ?? defaultModeFromModes,
     });
     setValidationError(false);
   };
 
   const handleEdit = async () => {
-    const payload = Object.fromEntries(
-      Object.entries(form.getFieldsValue()).map(([key, value]) => [
-        key,
-        typeof value === 'string' ? value.trim() : value,
-      ]),
-    );
-
     try {
-      const res = await callUpdateSystemConfigEndpoint(payload);
-      message.success(res.message.split(':')[1]);
+      const values = await form.validateFields();
+
+      const systemPayload = {
+        maxUploadSizeMb: Number(values.maxUploadSizeMb),
+        maxExamPaperMb: Number(values.maxExamPaperMb),
+        defaultGradingMode: config?.defaultGradingMode,
+      };
+
+      const passThresholdPayload = {
+        passThreshold: Number(values.gradingPassThreshold),
+      };
+
+      await callUpdateSystemConfigEndpoint(systemPayload);
+      await callUpdatePassThresholdEndpoint(passThresholdPayload);
+
+      message.success('Cập nhật cấu hình hệ thống thành công.');
       setIsEdit(false);
       setValidationError(false);
       callGetSystemConfigEndpoint();
-      callGetSystemGradingModesEndpoint();
     } catch (err) {
       message.error(
-        err?.message || 'Cập nhật cấu hình hệ thống thất bại.',
+        err?.response?.data?.message ||
+          err?.message ||
+          'Cập nhật cấu hình hệ thống thất bại.',
       );
     }
   };
-
-  const selectedMode = Form.useWatch('defaultGradingMode', form);
-
-  const selectedModeObj = useMemo(() => {
-    return gradingModes.find((m) => m.mode === selectedMode) ?? null;
-  }, [gradingModes, selectedMode]);
 
   return (
     <MainLayout
@@ -153,8 +140,8 @@ const SystemConfig = () => {
                 disabled={
                   !isEdit ||
                   getSystemConfigLoading ||
-                  getGradingModesLoading ||
-                  updateSystemConfigLoading
+                  updateSystemConfigLoading ||
+                  updatePassThresholdLoading
                 }
                 onFieldsChange={() => {
                   const errors = form.getFieldsError();
@@ -257,6 +244,42 @@ const SystemConfig = () => {
                           <span className="text-xs relative -left-2">MB</span>
                         </div>
                       </Form.Item>
+
+                      <Form.Item colon={false}>
+                        <div className="flex items-center gap-3">
+                          <label className="min-w-[180px] text-xs font-semibold text-slate-500">
+                            Ngưỡng điểm đạt:
+                          </label>
+                          <Form.Item
+                            name="gradingPassThreshold"
+                            rules={[
+                              {
+                                required: true,
+                                message: 'Không được để trống',
+                              },
+                              {
+                                validator: (_, value) => {
+                                  if (Number(value) >= 0)
+                                    return Promise.resolve();
+                                  return Promise.reject(
+                                    new Error('Giá trị phải lớn hơn hoặc bằng 0'),
+                                  );
+                                },
+                              },
+                            ]}
+                            noStyle
+                          >
+                            <Input
+                              className="w-[100px]"
+                              type="number"
+                              step="0.1"
+                              controls={false}
+                              placeholder="VD: 4"
+                            />
+                          </Form.Item>
+                          <span className="text-xs relative -left-2">điểm</span>
+                        </div>
+                      </Form.Item>
                     </div>
                   </div>
 
@@ -324,133 +347,6 @@ const SystemConfig = () => {
                   </div>
                 </div>
 
-                <Divider className="my-1" />
-
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="px-2 py-2 rounded-md bg-[#2563EB]/20 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[#2563EB]">
-                        rule_settings
-                      </span>
-                    </div>
-                    <h2 className="font-semibold text-lg ">
-                      Cấu hình chế độ chấm
-                    </h2>
-                  </div>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-                    <div>
-                      <div className="flex gap-2">
-                        <label className="text-base font-semibold text-slate-500">
-                          Chế độ chấm hiện tại:
-                        </label>
-                        <Form.Item
-                          name="defaultGradingMode"
-                          rules={[
-                            { required: true, message: 'Không được để trống' },
-                          ]}
-                        >
-                          <Select
-                            className="relative flex flex-1 min-w-[340px]"
-                            placeholder="Chọn grading mode"
-                            options={gradingModes.map((m) => ({
-                              value: m.mode,
-                              label: `${m.displayName} (${m.mode})`,
-                            }))}
-                          />
-                        </Form.Item>
-                      </div>
-
-                      <div className="-mt-2 rounded-md border w-fit border-slate-200 bg-white p-3">
-                        <div className="flex gap-1 items-baseline">
-                          <h4 className="text-xs font-semibold text-slate-500">
-                            Chế độ:
-                          </h4>
-                          <span className="text-sm font-semibold text-slate-900">
-                            {selectedModeObj?.mode ?? '—'}
-                          </span>
-                        </div>
-                        <div className="flex gap-1 items-baseline">
-                          <h4 className="text-xs font-semibold text-slate-500 mt-2">
-                            Tên hiển thị:
-                          </h4>
-                          <span className="text-sm text-slate-800">
-                            {selectedModeObj?.displayName ?? '—'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-md bg-slate-50 border border-slate-200 p-4">
-                      <div className="font-semibold mb-2">Chi tiết</div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="flex gap-1 items-baseline">
-                          <div className="text-xs font-semibold text-slate-500">
-                            Trọng số Test Case
-                          </div>
-                          <div className="text-sm text-slate-900">
-                            {selectedModeObj?.testCaseWeight ?? '—'}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-1 items-baseline">
-                          <div className="text-xs font-semibold text-slate-500">
-                            Trọng số OOP
-                          </div>
-                          <div className="text-sm text-slate-900">
-                            {selectedModeObj?.oopWeight ?? '—'}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-1 items-baseline">
-                          <div className="text-xs font-semibold text-slate-500">
-                            Chỉ nhận xét OOP
-                          </div>
-                          <div className="text-sm text-slate-900">
-                            {renderBooleanPill(
-                              selectedModeObj?.oopCommentOnly,
-                              {
-                                trueText: 'Có',
-                                falseText: 'Không',
-                              },
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex gap-1 items-baseline">
-                          <div className="text-xs font-semibold text-slate-500">
-                            Đánh rớt nếu Test Case 0đ
-                          </div>
-                          <div className="text-sm text-slate-900">
-                            {renderBooleanPill(
-                              selectedModeObj?.failIfZeroTestCase,
-                              {
-                                trueText: 'Có',
-                                falseText: 'Không',
-                              },
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-1 items-baseline">
-                          <div className="text-xs font-semibold text-slate-500">
-                            Đánh rớt nếu vi phạm OOP
-                          </div>
-                          <div className="text-sm text-slate-900">
-                            {renderBooleanPill(
-                              selectedModeObj?.failIfOopViolated,
-                              {
-                                trueText: 'Có',
-                                falseText: 'Không',
-                              },
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="flex items-center justify-end gap-2 px-4 pt-1 pb-3">
                   {isEdit ? (
                     <>
@@ -467,7 +363,10 @@ const SystemConfig = () => {
                         type="primary"
                         size="large"
                         disabled={validationError}
-                        loading={updateSystemConfigLoading}
+                        loading={
+                          updateSystemConfigLoading ||
+                          updatePassThresholdLoading
+                        }
                         onClick={handleEdit}
                       >
                         Lưu cấu hình

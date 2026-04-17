@@ -502,7 +502,7 @@ export const QuestionCard = React.memo(function QuestionCard({
 
               <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-white shadow-[0_2px_8px_rgb(0,0,0,0.04)]">
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">
-                  Công thức
+                  Tổng điểm
                 </span>
                 {isScoreResolving ? (
                   <div className="flex items-center gap-2">

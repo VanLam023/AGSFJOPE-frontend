@@ -5,7 +5,8 @@ import axios from "axios";
  * - Base URL: http://localhost:8080/api
  * - Request interceptor: auto-attaches Bearer token from localStorage
  * - Response interceptor: on 401, attempts a silent token refresh then retries
- *   the original request once. On refresh failure, clears storage and redirects to /login.
+ *   the original request once. On refresh failure, dispatches 'session-expired'
+ *   event which AuthContext handles to logout + redirect to /login.
  */
 const axiosClient = axios.create({
   // Đỏ nhưng mà xài dc
@@ -13,6 +14,13 @@ const axiosClient = axios.create({
   // timeout: 10000,
   timeout: 30000,
 });
+
+// ── Centralized force logout: dispatch event → AuthContext handles the rest ──
+// Dùng custom event thay vì xóa localStorage trực tiếp để đảm bảo React state
+// (user) cũng được reset về null, không chỉ xóa localStorage.
+const dispatchSessionExpired = () => {
+  window.dispatchEvent(new CustomEvent("session-expired"));
+};
 
 // ── Request interceptor: attach Access Token to every outgoing request ──
 // Skip Authorization header for public auth endpoints (login, register, etc.)
@@ -71,18 +79,13 @@ axiosClient.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
           return axiosClient(originalRequest);
         } catch {
-          // Refresh failed (token expired or revoked) → force logout
-          localStorage.removeItem("token");
-          localStorage.removeItem("refreshToken");
-          localStorage.removeItem("user");
-          window.location.href = "/login";
+          // Refresh token hết hạn hoặc bị thu hồi → dispatch event để AuthContext logout
+          dispatchSessionExpired();
           return Promise.reject(err);
         }
       } else {
-        // No refresh token found → session gone, redirect to login
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
+        // Không có refresh token → session đã mất, dispatch event để AuthContext logout
+        dispatchSessionExpired();
         return Promise.reject(err);
       }
     }
@@ -92,3 +95,4 @@ axiosClient.interceptors.response.use(
 );
 
 export default axiosClient;
+

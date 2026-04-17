@@ -71,6 +71,7 @@ const UserManagement = () => {
   const debouncedFilter = useDebounce(roleFilter, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExportingUsers, setIsExportingUsers] = useState(false);
+  const [selectedPageSize, setSelectedPageSize] = useState(8);
 
   const {
     fetchUsers,
@@ -107,8 +108,13 @@ const UserManagement = () => {
   );
 
   useEffect(() => {
-    fetchUsers({ search: debouncedQuery, roleName: debouncedFilter });
-  }, [debouncedQuery, debouncedFilter]);
+    fetchUsers({
+      page: 0,
+      size: selectedPageSize,
+      search: debouncedQuery,
+      roleName: debouncedFilter,
+    });
+  }, [debouncedQuery, debouncedFilter, selectedPageSize]);
 
   const USER_COLUMNS = useMemo(
     () => [
@@ -253,7 +259,12 @@ const UserManagement = () => {
       message.success('Tạo người dùng thành công.');
       setIsModalOpen(false);
 
-      fetchUsers({ search: debouncedQuery, page: 0, size: 8 });
+      fetchUsers({
+        search: debouncedQuery,
+        roleName: debouncedFilter,
+        page: 0,
+        size: selectedPageSize,
+      });
     } catch (err) {
       if (err?.response?.data?.message) {
         message.error(err.response.data.message);
@@ -335,6 +346,27 @@ const UserManagement = () => {
       }
     } finally {
       setIsExportingUsers(false);
+    }
+  };
+
+  const handleDownloadImportTemplate = async () => {
+    try {
+      const columns = [
+        { header: 'Email', key: 'email', width: 36 },
+        { header: 'FullName', key: 'fullName', width: 30 },
+        { header: 'MSSV', key: 'mssv', width: 16 },
+      ];
+
+      await exportToExcel({
+        fileName: 'user_import_template.xlsx',
+        sheetName: 'users',
+        columns,
+        rows: [],
+      });
+
+      message.success('Tải template Excel thành công.');
+    } catch (err) {
+      message.error('Tải template Excel thất bại.');
     }
   };
 
@@ -487,9 +519,32 @@ const UserManagement = () => {
                     Hiển thị {Array.isArray(users) ? users.length : 0} / {Number(totalItems || 0).toLocaleString('vi-VN')} tài khoản
                   </p>
                 </div>
-                <span className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-lg">
-                  Trang {currentPage || 1}
-                </span>
+                <div className="flex items-center gap-2">
+                  <Select
+                    size="small"
+                    className="min-w-[120px]"
+                    value={selectedPageSize}
+                    disabled={usersLoading}
+                    options={[
+                      { label: '8 / trang', value: 8 },
+                      { label: '20 / trang', value: 20 },
+                      { label: '50 / trang', value: 50 },
+                      { label: '100 / trang', value: 100 },
+                    ]}
+                    onChange={(nextSize) => {
+                      setSelectedPageSize(Number(nextSize));
+                      fetchUsers({
+                        page: 0,
+                        size: Number(nextSize),
+                        search: debouncedQuery,
+                        roleName: debouncedFilter,
+                      });
+                    }}
+                  />
+                  <span className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-lg">
+                    Trang {currentPage || 1}
+                  </span>
+                </div>
               </div>
               <Table
                 rowKey="userId"
@@ -500,10 +555,15 @@ const UserManagement = () => {
                 pagination={{
                   total: totalItems,
                   current: currentPage,
-                  pageSize: 8,
+                  pageSize: Number(pageSize || selectedPageSize),
                   showSizeChanger: false,
                   onChange: (page) => {
-                    fetchUsers({ page: page - 1, size: 8 });
+                    fetchUsers({
+                      page: page - 1,
+                      size: selectedPageSize,
+                      search: debouncedQuery,
+                      roleName: debouncedFilter,
+                    });
                   },
                 }}
                 locale={{
@@ -681,6 +741,18 @@ const UserManagement = () => {
                   label: 'Thêm nhiều người dùng',
                   children: (
                     <div className="space-y-4 pt-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm text-slate-500 mb-0">
+                          Tải file mẫu và điền đúng 3 cột: Email, FullName, MSSV.
+                        </p>
+                        <Button
+                          icon={<DownloadOutlined />}
+                          onClick={handleDownloadImportTemplate}
+                        >
+                          Tải template Excel
+                        </Button>
+                      </div>
+
                       <Upload.Dragger
                         name="file"
                         multiple={false}

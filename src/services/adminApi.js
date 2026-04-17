@@ -96,6 +96,18 @@ const getSystemGradingMode = (mode) => {
   return axiosClient.get(`/admin/config/grading-modes/${mode}`);
 };
 
+const createSystemGradingMode = (payload) => {
+  return axiosClient.post('/admin/config/grading-modes', payload);
+};
+
+const updateSystemGradingMode = (mode, payload) => {
+  return axiosClient.put(`/admin/config/grading-modes/${mode}`, payload);
+};
+
+const setDefaultGradingMode = (mode) => {
+  return axiosClient.put(`/admin/config/grading-modes/${mode}/set-default`);
+};
+
 const updateSystemConfig = ({
   maxUploadSizeMb,
   maxExamPaperMb,
@@ -105,6 +117,12 @@ const updateSystemConfig = ({
     maxUploadSizeMb,
     maxExamPaperMb,
     defaultGradingMode,
+  });
+};
+
+const updateSystemPassThreshold = ({ passThreshold }) => {
+  return axiosClient.put('/admin/config/system/pass-threshold', {
+    passThreshold,
   });
 };
 
@@ -155,7 +173,11 @@ export {
   getSystemConfig,
   getSystemGradingModes,
   getSystemGradingMode,
+  createSystemGradingMode,
+  updateSystemGradingMode,
+  setDefaultGradingMode,
   updateSystemConfig,
+  updateSystemPassThreshold,
   getAdminDashboardOverview,
   getAdminDashboardUserStats,
   getAdminDashboardRecentActivities,

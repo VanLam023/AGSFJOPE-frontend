@@ -18,6 +18,7 @@ import { useAuth } from '../context/authContext.js';
 import VerifyAccount from '../../features/auth/VerifyAccount.jsx';
 import UserDetail from '../../features/admin/UserDetail.jsx';
 import SystemConfig from '../../features/admin/SystemConfig.jsx';
+import GradingModeConfig from '../../features/admin/GradingModeConfig.jsx';
 import AIConfig from '../../features/admin/AIConfig.jsx';
 import AuditLogsPage from '../../features/admin/AuditLogsPage.jsx';
 import AuditLogDetailPage from '../../features/admin/AuditLogDetailPage.jsx';
@@ -356,6 +357,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}>
             <AIConfig />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/grading-config"
+        element={
+          <ProtectedRoute allowedRoles={['SYSTEM_ADMIN']}>
+            <GradingModeConfig />
           </ProtectedRoute>
         }
       />
