@@ -4,6 +4,7 @@ export { default as useDebounce } from './useDebounce.jsx';
 export { default as useCreateUser } from './useCreateUser.jsx';
 export { default as useGetUserDetail } from './useGetUserDetail.jsx';
 export { default as useDeleteUser } from './useDeleteUser.jsx';
+export { default as useUnlockUser } from './useUnlockUser.jsx';
 export { default as useEditDetail } from './useEditDetail.jsx';
 export { default as useGetAIConfig } from './useGetAIConfig.jsx';
 export { default as useUpdateAIConfig } from './useUpdateAIConfig.jsx';

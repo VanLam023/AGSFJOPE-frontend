@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Loader2, Trash2 } from 'lucide-react';
 import { formatRelativeTime } from './notificationHelpers';
 import styles from './NotificationBell.module.css';
 
@@ -7,7 +7,15 @@ import styles from './NotificationBell.module.css';
  * One notification row.
  * Kept separate so future design tweaks do not bloat the bell container file.
  */
-export default function NotificationItem({ notification, onClick }) {
+export default function NotificationItem({
+  notification,
+  onClick,
+  onDelete,
+  deleting,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
+}) {
   const unread = notification?.isRead === false;
 
   return (
@@ -19,6 +27,23 @@ export default function NotificationItem({ notification, onClick }) {
       }`}
     >
       <div className="flex items-start gap-3">
+        {selectable && (
+          <label
+            className="pt-0.5"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={Boolean(selected)}
+              onChange={() => onToggleSelect?.(notification)}
+              className="h-4 w-4 rounded border-slate-300 text-[#F37021] focus:ring-[#F37021]"
+            />
+          </label>
+        )}
+
         <div className="pt-1">
           <span
             className={`flex h-2.5 w-2.5 rounded-full ${
@@ -62,6 +87,25 @@ export default function NotificationItem({ notification, onClick }) {
               <>
                 <span>•</span>
                 <span className="font-semibold text-[#F37021]">Mới</span>
+              </>
+            )}
+
+            {typeof onDelete === 'function' && (
+              <>
+                <span>•</span>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onDelete(notification);
+                  }}
+                  disabled={Boolean(deleting)}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-rose-500 hover:text-rose-600 disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  Xóa
+                </button>
               </>
             )}
           </div>

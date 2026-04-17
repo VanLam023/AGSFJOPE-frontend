@@ -157,3 +157,69 @@ export function resolveNotificationTarget({ notification, role }) {
       return home;
   }
 }
+
+function safeNonNegativeInt(value, fallback = 0) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, Math.floor(parsed));
+}
+
+/**
+ * Normalize notification payload from backend.
+ * Supports:
+ * - legacy: data = Notification[]
+ * - paged:  data = { items: Notification[], pagination: {...} }
+ */
+export function normalizeNotificationPayload(payload, fallback = {}) {
+  const fallbackPage = safeNonNegativeInt(fallback?.page, 0);
+  const fallbackSize = Math.max(1, safeNonNegativeInt(fallback?.size, 10));
+
+  // Legacy shape (array only)
+  if (Array.isArray(payload)) {
+    const items = normalizeNotificationList(payload);
+    const totalElements = items.length;
+
+    return {
+      items,
+      pagination: {
+        page: fallbackPage,
+        size: fallbackSize,
+        totalElements,
+        totalPages: totalElements > 0 ? 1 : 0,
+        isLast: true,
+      },
+    };
+  }
+
+  const rawItems = Array.isArray(payload?.items)
+    ? payload.items
+    : Array.isArray(payload?.content)
+      ? payload.content
+      : [];
+
+  const items = normalizeNotificationList(rawItems);
+  const rawPagination = payload?.pagination ?? payload ?? {};
+
+  const page = safeNonNegativeInt(rawPagination?.page, fallbackPage);
+  const size = Math.max(1, safeNonNegativeInt(rawPagination?.size, fallbackSize));
+  const totalElements = safeNonNegativeInt(rawPagination?.totalElements, items.length);
+  const totalPages = safeNonNegativeInt(
+    rawPagination?.totalPages,
+    totalElements > 0 ? Math.ceil(totalElements / size) : 0,
+  );
+  const isLast =
+    typeof rawPagination?.isLast === 'boolean'
+      ? rawPagination.isLast
+      : totalPages === 0 || page >= totalPages - 1;
+
+  return {
+    items,
+    pagination: {
+      page,
+      size,
+      totalElements,
+      totalPages,
+      isLast,
+    },
+  };
+}

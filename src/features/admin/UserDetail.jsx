@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../app/context/authContext';
 import {
   ConfigProvider,
   Tabs,
@@ -17,7 +18,12 @@ import {
   ADMIN_SIDEBAR_ITEMS_FLAT,
 } from '../../constants/sidebarItems';
 import { renderStatusPill } from '../../components/utils/Utils';
-import { useDeleteUser, useGetUserDetail, useEditDetail } from '../../hooks';
+import {
+  useDeleteUser,
+  useGetUserDetail,
+  useEditDetail,
+  useUnlockUser,
+} from '../../hooks';
 
 const ROLE_LABEL_VI = {
   STUDENT: 'Sinh viên',
@@ -51,12 +57,14 @@ const formatDateVi = (iso) => {
 };
 
 const UserDetail = () => {
+  const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const { userId } = useParams();
   const [selectedIndex, setSelectedIndex] = useState(1);
   const [notifCount] = useState(5);
   const { fetchUserDetail, loading, userDetail } = useGetUserDetail();
   const { callDeleteUserEndpoint, loading: deleteLoading } = useDeleteUser();
+  const { callUnlockUserEndpoint, loading: unlockLoading } = useUnlockUser();
   const { callEditUserEndpoint, loading: editLoading } = useEditDetail();
   const [validationError, setValidationError] = useState(false);
 
@@ -64,7 +72,10 @@ const UserDetail = () => {
   const user = userDetail;
   useEffect(() => {
     if (!userId) return;
-    fetchUserDetail(userId);
+    fetchUserDetail(userId).catch((err) => {
+      const msg = err?.response?.data?.message || 'Không thể tải thông tin người dùng.';
+      message.error(msg);
+    });
   }, [userId]);
 
   const [isEdit, setIsEdit] = useState(false);
@@ -75,7 +86,7 @@ const UserDetail = () => {
       fullName: user?.fullName,
       mssv: user?.mssv,
       email: user?.email,
-      roleName: ROLE_MAP.get(`${user?.roleName}`),
+      roleName: user?.roleName,
       phone: user?.phone,
       username: user?.username,
     });
@@ -86,17 +97,22 @@ const UserDetail = () => {
     value,
     label,
   }));
+  const isSelfProfile = Boolean(
+    currentUser?.userId && user?.userId && currentUser.userId === user.userId,
+  );
 
-  const statusLabel = user?.isLocked
-    ? 'Đã khóa'
+  const isUserLocked = Boolean(user?.isLocked);
+
+  const statusLabel = isUserLocked
+    ? 'đã bị khóa'
     : user?.isActive
-      ? 'Đang hoạt động'
-      : 'Không hoạt động';
+      ? 'đang hoạt động'
+      : 'chưa kích hoạt';
 
-  const handleDeleteUser = async () => {
+  const handleLockUser = async () => {
     try {
       await callDeleteUserEndpoint(userId);
-      message.success('Xóa người dùng thành công.');
+      message.success('Khóa tài khoản thành công.');
       setTimeout(() => {
         navigate('/admin/student-management');
       }, 1500);
@@ -104,27 +120,46 @@ const UserDetail = () => {
       if (err?.response?.data?.message) {
         message.error(err.response.data.message);
       } else {
-        message.error('Xóa người dùng thất bại.');
+        message.error('Khóa tài khoản thất bại.');
+      }
+    }
+  };
+
+  const handleUnlockUser = async () => {
+    try {
+      await callUnlockUserEndpoint(userId);
+      message.success('Mở khóa tài khoản thành công.');
+      await fetchUserDetail(userId);
+    } catch (err) {
+      if (err?.response?.data?.message) {
+        message.error(err.response.data.message);
+      } else {
+        message.error('Mở khóa tài khoản thất bại.');
       }
     }
   };
 
   const handleEdit = async () => {
-    const payload = Object.fromEntries(
-      Object.entries(form.getFieldsValue()).map(([key, value]) => [
-        key,
-        value.trim(),
-      ]),
-    );
-
-    if (Object.values(payload).some((value) => value === '')) {
-      message.warning('Vui lòng nhập đầy đủ thông tin người dùng.');
-      return;
-    }
-    const { roleName } = payload;
-    const roleToServer = ROLE_MAP_REVERSE.get(roleName);
-
     try {
+      const payload = Object.fromEntries(
+        Object.entries(form.getFieldsValue()).map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value.trim() : value,
+        ]),
+      );
+
+      if (Object.values(payload).some((value) => value === '')) {
+        message.warning('Vui lòng nhập đầy đủ thông tin người dùng.');
+        return;
+      }
+
+      const { roleName } = payload;
+      const roleToServer = isSelfProfile
+        ? user?.roleName
+        : ROLE_LABEL_VI[roleName]
+          ? roleName
+          : ROLE_MAP_REVERSE.get(roleName) || user?.roleName;
+
       await callEditUserEndpoint({
         userId,
         ...payload,
@@ -141,10 +176,13 @@ const UserDetail = () => {
         username: '',
       });
 
-      fetchUserDetail(userId);
+      await fetchUserDetail(userId);
+      setIsEdit(false);
     } catch (err) {
       if (err?.response?.data?.message) {
         message.error(err.response.data.message);
+      } else {
+        message.error('Cập nhật thông tin người dùng thất bại.');
       }
     }
   };
@@ -155,7 +193,7 @@ const UserDetail = () => {
       fullName: user?.fullName,
       mssv: user?.mssv,
       email: user?.email,
-      roleName: ROLE_MAP.get(`${user?.roleName}`),
+      roleName: user?.roleName,
       phone: user?.phone,
       username: user?.username,
     });
@@ -384,20 +422,19 @@ const UserDetail = () => {
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                     Vai trò
                                   </label>
-                                  {/* <Select
-                                    className="w-full"
-                                    size="large"
-                                    options={roleOptions}
-                                    value={user?.roleName}
-                                    disabled={!isEdit}
-                                  /> */}
                                   <Form.Item name="roleName">
-                                    <Input
+                                    <Select
                                       className="w-full"
                                       size="large"
-                                      disabled={true}
+                                      options={roleOptions}
+                                      disabled={!isEdit || isSelfProfile}
                                     />
                                   </Form.Item>
+                                  {isSelfProfile && (
+                                    <p className="text-[11px] text-amber-600 mt-1">
+                                      Bạn không thể chỉnh sửa role của chính mình.
+                                    </p>
+                                  )}
                                 </div>
                                 <div>
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
@@ -499,14 +536,25 @@ const UserDetail = () => {
                               >
                                 {isEdit ? 'Lưu thay đổi' : 'Chỉnh sửa'}
                               </Button>
-                              <Button
-                                danger
-                                size="large"
-                                loading={deleteLoading}
-                                onClick={handleDeleteUser}
-                              >
-                                Xóa
-                              </Button>
+                              {isUserLocked ? (
+                                <Button
+                                  type="primary"
+                                  size="large"
+                                  loading={unlockLoading}
+                                  onClick={handleUnlockUser}
+                                >
+                                  Mở khóa tài khoản
+                                </Button>
+                              ) : (
+                                <Button
+                                  danger
+                                  size="large"
+                                  loading={deleteLoading}
+                                  onClick={handleLockUser}
+                                >
+                                  Khóa tài khoản
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ),

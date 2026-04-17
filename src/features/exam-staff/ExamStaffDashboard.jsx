@@ -9,7 +9,6 @@ import {
   SubmissionsIcon,
   AppealsIcon,
   WithdrawalsIcon,
-  AuditLogIcon,
 } from '../../components/icons/SidebarIcons.jsx';
 import { ConfigProvider, Table, Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
@@ -21,16 +20,16 @@ import BlockDetailPage from '../block/BlockDetailPage.jsx';
 import BlockSubmissionsPage from '../submission/BlockSubmissionsPage.jsx';
 import SubmissionDetailPage from '../submission/SubmissionDetailPage.jsx';
 import ExamStaffHomeDashboard from './ExamStaffHomeDashboard.jsx';
+import ExamStaffNotificationsPage from './notifications/ExamStaffNotificationsPage.jsx';
 
 const BlockStatisticsPage = lazy(() => import('./statistics/BlockStatisticsPage.jsx'));
 
 const icons = [
   DashboardIcon,
   ExamManagementIcon,
-  // SubmissionsIcon,
   AppealsIcon,
   WithdrawalsIcon,
-  AuditLogIcon,
+  SubmissionsIcon,
 ];
 
 export default function ExamStaffDashboard() {
@@ -49,6 +48,9 @@ export default function ExamStaffDashboard() {
   const withdrawalsIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/withdrawals') +
     1;
+  const notificationsIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/notifications') +
+    1;
   const auditsIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
     1;
@@ -59,6 +61,7 @@ export default function ExamStaffDashboard() {
     '/exam-staff/exams/create': examsIndex,
     '/exam-staff/appeals': appealsIndex,
     '/exam-staff/withdrawals': withdrawalsIndex,
+    '/exam-staff/notifications': notificationsIndex,
     '/exam-staff/audits': auditsIndex,
   };
 
@@ -71,6 +74,7 @@ export default function ExamStaffDashboard() {
         : (pathSelectedIndexMap[location.pathname] ?? dashboardIndex);
 
   const isExamManagementPage = location.pathname === '/exam-staff/exams';
+  const isNotificationsPage = location.pathname === '/exam-staff/notifications';
   const isCreateExamPage = location.pathname === '/exam-staff/exams/create';
   const isUpdateExamPage =
     location.pathname.startsWith('/exam-staff/exams/') &&
@@ -223,6 +227,8 @@ export default function ExamStaffDashboard() {
           onCreateExam={() => navigate('/exam-staff/exams/create')}
           onOpenExamDetail={(id) => navigate(`/exam-staff/exams/${id}`)}
         />
+      ) : isNotificationsPage ? (
+        <ExamStaffNotificationsPage />
       ) : (
         <ExamStaffHomeDashboard />
       )}

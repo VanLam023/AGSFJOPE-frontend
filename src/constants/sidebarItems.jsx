@@ -19,6 +19,11 @@ export const STAFF_SIDEBAR_ITEMS = [
     label: 'Yêu cầu rút tiền',
     to: '/exam-staff/withdrawals',
   },
+  {
+    key: '5',
+    label: 'Thông báo',
+    to: '/exam-staff/notifications',
+  },
 ];
 
 export const ADMIN_ICONS = [

@@ -59,6 +59,10 @@ const deleteUser = (userId) => {
   return axiosClient.delete(`/admin/users/${userId}`);
 };
 
+const unlockUser = (userId) => {
+  return axiosClient.patch(`/admin/users/${userId}/unlock`);
+};
+
 const getApiConfig = () => {
   return axiosClient.get('/admin/config/ai');
 };
@@ -143,6 +147,7 @@ export {
   getAllUsers,
   getUserDetail,
   deleteUser,
+  unlockUser,
   editUserDetail,
   getApiConfig,
   updateAiConfig,

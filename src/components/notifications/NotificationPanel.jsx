@@ -27,6 +27,9 @@ export default function NotificationPanel({
   refresh,
   markAllAsRead,
   onItemClick,
+  onDeleteItem,
+  deletingId,
+  onOpenAll,
 }) {
   const panelTitle = getPanelTitle(activeFilter);
 
@@ -103,7 +106,21 @@ export default function NotificationPanel({
         activeFilter={activeFilter}
         onRetry={refresh}
         onItemClick={onItemClick}
+        onDeleteItem={onDeleteItem}
+        deletingId={deletingId}
       />
+
+      {typeof onOpenAll === 'function' && (
+        <div className="px-4 py-3 border-t border-slate-100 bg-white">
+          <button
+            type="button"
+            onClick={onOpenAll}
+            className="w-full h-10 rounded-xl bg-slate-100 text-slate-700 text-sm font-bold hover:bg-slate-200 transition-colors"
+          >
+            Xem tất cả thông báo
+          </button>
+        </div>
+      )}
     </div>
   );
 }

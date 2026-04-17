@@ -1,27 +1,25 @@
 import React, { useState } from 'react';
-import { deleteUser } from '../services/adminApi';
+import { unlockUser } from '../services/adminApi';
 
-const useDeleteUser = () => {
+const useUnlockUser = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [deletedUser, setDeletedUser] = useState(null);
 
-  const callDeleteUserEndpoint = async (userId) => {
+  const callUnlockUserEndpoint = async (userId) => {
     if (!userId) return null;
     setLoading(true);
     setError(null);
 
     try {
-      const res = await deleteUser(userId);
+      const res = await unlockUser(userId);
       const isSuccess = res?.success === true;
 
       if (!isSuccess) {
-        const err = new Error(res?.message ?? 'Khóa tài khoản thất bại.');
+        const err = new Error(res?.message ?? 'Mở khóa tài khoản thất bại.');
         err.response = { data: res };
         throw err;
       }
 
-      setDeletedUser(res?.data ?? null);
       return true;
     } catch (err) {
       setError(err);
@@ -32,11 +30,10 @@ const useDeleteUser = () => {
   };
 
   return {
-    callDeleteUserEndpoint,
-    deletedUser,
+    callUnlockUserEndpoint,
     loading,
     error,
   };
 };
 
-export default useDeleteUser;
+export default useUnlockUser;

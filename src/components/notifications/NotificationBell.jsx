@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bell, BellRing } from 'lucide-react';
 import useNotifications from '../../hooks/useNotifications';
 import { useAuth } from '../../app/context/authContext';
+import { ROLE_HOME_MAP } from '../../constants/routes';
 import NotificationPanel from './NotificationPanel';
 import { resolveNotificationTarget } from './notificationHelpers';
 import styles from './NotificationBell.module.css';
@@ -35,10 +36,12 @@ export default function NotificationBell({
     loadingList,
     loadingCount,
     actionLoading,
+    deletingId,
     error,
     refresh,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
   } = useNotifications({
     enabled: Boolean(isAuthenticated),
     isOpen: open,
@@ -58,6 +61,10 @@ export default function NotificationBell({
         : safeFallbackCount;
 
   const role = user?.roleName ?? user?.role;
+  const roleKey = String(role || '').toUpperCase();
+  const notificationPagePath = ROLE_HOME_MAP[roleKey]
+    ? `${ROLE_HOME_MAP[roleKey]}/notifications`
+    : null;
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -89,6 +96,19 @@ export default function NotificationBell({
   if (!isAuthenticated) {
     return null;
   }
+
+  const handleOpenAll = () => {
+    if (notificationPagePath) {
+      setOpen(false);
+      navigate(notificationPagePath);
+    }
+  };
+
+  const handleDeleteNotification = async (notification) => {
+    const notificationId = notification?.notificationId;
+    if (!notificationId) return;
+    await deleteNotification(notificationId);
+  };
 
   return (
     <div className={styles.root} ref={rootRef}>
@@ -128,6 +148,9 @@ export default function NotificationBell({
           refresh={refresh}
           markAllAsRead={markAllAsRead}
           onItemClick={handleNotificationClick}
+          onDeleteItem={handleDeleteNotification}
+          deletingId={deletingId}
+          onOpenAll={notificationPagePath ? handleOpenAll : null}
         />
       )}
     </div>

@@ -269,17 +269,9 @@ const Login = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.14em]">
-                    Mật khẩu
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-xs font-bold text-primary hover:underline underline-offset-2 transition-colors"
-                  >
-                    Quên mật khẩu?
-                  </Link>
-                </div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.14em]">
+                  Mật khẩu
+                </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-gray-600 group-focus-within:text-primary text-[18px] transition-colors">
@@ -304,6 +296,14 @@ const Login = () => {
                       {showPassword ? 'visibility' : 'visibility_off'}
                     </span>
                   </button>
+                </div>
+                <div className="flex justify-end">
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs font-bold text-primary hover:underline underline-offset-2 transition-colors"
+                  >
+                    Quên mật khẩu?
+                  </Link>
                 </div>
               </div>
 

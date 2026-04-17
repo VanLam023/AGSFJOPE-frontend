@@ -24,12 +24,14 @@ import AuditLogDetailPage from '../../features/admin/AuditLogDetailPage.jsx';
 import AppealPage from '../../features/exam-staff/AppealPage.jsx';
 import AppealDetailPage from '../../features/exam-staff/AppealDetailPage.jsx';
 import WithdrawalManagementPage from '../../features/exam-staff/WithdrawalManagementPage.jsx';
+import StudentNotificationsPage from '../../features/student/StudentNotificationsPage.jsx';
 
 const LecturerLayout = lazy(() => import('../../components/layouts/lecturer'));
 const LecturerDashboard = lazy(() => import('../../features/lecturer/LecturerDashboard.jsx'));
 const LecturerAppealsPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealsPage.jsx'));
 const LecturerAppealReviewPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealReviewPage.jsx'));
 const LecturerAppealSubmittedPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealSubmittedPage.jsx'));
+const LecturerNotificationsPage = lazy(() => import('../../features/lecturer/notifications/pages/LecturerNotificationsPage.jsx'));
 const StudentWalletPage = lazy(() => import('../../features/student/StudentWalletPage.jsx'));
 const StudentAppealsPage = lazy(() => import('../../features/student/StudentAppealsPage.jsx'));
 const StudentAppealCreatePage = lazy(() => import('../../features/student/StudentAppealCreatePage.jsx'));
@@ -123,6 +125,14 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/student/notifications"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <StudentNotificationsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/student/wallet"
         element={
           <ProtectedRoute allowedRoles={['STUDENT']}>
@@ -174,6 +184,7 @@ export default function AppRoutes() {
         }
       >
         <Route index element={<LecturerDashboard />} />
+        <Route path="notifications" element={<LecturerNotificationsPage />} />
         <Route path="appeals" element={<LecturerAppealsPage />} />
         <Route path="appeals/:appealId" element={<LecturerAppealReviewPage />} />
         <Route path="appeals/:appealId/submitted" element={<LecturerAppealSubmittedPage />} />
@@ -253,6 +264,14 @@ export default function AppRoutes() {
       />
       <Route
         path="/exam-staff/exams/:examId/blocks/:blockId/submissions/:submissionId"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/notifications"
         element={
           <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
             <ExamStaffDashboard />
