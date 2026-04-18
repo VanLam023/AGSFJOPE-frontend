@@ -347,17 +347,14 @@ export default function useNotifications({ enabled = true, isOpen = false } = {}
     const connect = async () => {
       if (disposed || !mountedRef.current) return;
 
-      const token = localStorage.getItem('token');
-      if (!token) return;
-
       const controller = new AbortController();
       streamAbortRef.current = controller;
 
       try {
         const response = await fetch(`${__BASE_URL__}/notifications/stream`, {
           method: 'GET',
+          credentials: 'include',
           headers: {
-            Authorization: `Bearer ${token}`,
             Accept: 'text/event-stream',
           },
           signal: controller.signal,

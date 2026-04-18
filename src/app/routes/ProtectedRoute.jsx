@@ -17,12 +17,11 @@ export default function ProtectedRoute({ children, allowedRoles = [] }) {
     return null;
   }
 
-  const token = localStorage.getItem('token');
   const currentRole = normalizeRole(user?.roleName);
   const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
 
   // Chưa đăng nhập hoặc session không hợp lệ
-  if (!token || !user || !currentRole) {
+  if (!user || !currentRole) {
     return (
       <Navigate
         to="/login"

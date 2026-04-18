@@ -41,10 +41,10 @@ const StudentAppealDetailPage = lazy(() => import('../../features/student/Studen
 const normalizeRole = (role) =>
   typeof role === 'string' ? role.trim().toUpperCase() : '';
 
-const getDefaultRoute = (user, token) => {
+const getDefaultRoute = (user) => {
   const roleName = normalizeRole(user?.roleName);
 
-  if (token && roleName && ROLE_HOME_MAP[roleName]) {
+  if (roleName && ROLE_HOME_MAP[roleName]) {
     return ROLE_HOME_MAP[roleName];
   }
 
@@ -74,9 +74,8 @@ export default function AppRoutes() {
     return null;
   }
 
-  const token = localStorage.getItem('token');
-  const defaultRoute = getDefaultRoute(user, token);
-  const isLoggedIn = Boolean(token && user);
+  const defaultRoute = getDefaultRoute(user);
+  const isLoggedIn = Boolean(user);
 
   return (
     <Routes>
