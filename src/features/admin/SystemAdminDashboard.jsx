@@ -409,7 +409,7 @@ export default function SystemAdminDashboard() {
                         </h3>
                       </div>
                       <Link
-                        to="/exam-staff/audits"
+                        to="/admin/audits"
                         className="text-[#F37021] text-sm font-semibold hover:underline bg-[#F37021]/5 px-3 py-1.5 rounded-md transition-colors"
                       >
                         Xem tất cả

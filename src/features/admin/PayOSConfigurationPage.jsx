@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { message } from 'antd';
 import MainLayout from '../../components/layouts/MainLayout';
 import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils';
@@ -10,12 +10,9 @@ import {
 import AppealFeeConfigCard from './payos-config/components/AppealFeeConfigCard';
 import MerchantConfigCard from './payos-config/components/MerchantConfigCard';
 import PayOSPageIntro from './payos-config/components/PayOSPageIntro';
-import TransactionStatisticsSection from './payos-config/components/TransactionStatisticsSection';
 import {
   payOSInitialFeeConfig,
   payOSInitialMerchantConfig,
-  payOSRecentTransactions,
-  payOSTransactionStats,
 } from './payos-config/payosMockData';
 
 export default function PayOSConfigurationPage() {
@@ -24,25 +21,9 @@ export default function PayOSConfigurationPage() {
     payOSInitialMerchantConfig,
   );
   const [feeConfig, setFeeConfig] = useState(payOSInitialFeeConfig);
-  const [transactionSearch, setTransactionSearch] = useState('');
   const [connectionStatus, setConnectionStatus] = useState(
     'Kết nối PayOS API thành công ✅',
   );
-
-  const filteredTransactions = useMemo(() => {
-    const keyword = transactionSearch.trim().toLowerCase();
-
-    if (!keyword) {
-      return payOSRecentTransactions;
-    }
-
-    return payOSRecentTransactions.filter((transaction) => {
-      return [transaction.studentName, transaction.paymentCode]
-        .join(' ')
-        .toLowerCase()
-        .includes(keyword);
-    });
-  }, [transactionSearch]);
 
   const handleMerchantFieldChange = (field, value) => {
     setMerchantConfig((previous) => ({
@@ -69,10 +50,6 @@ export default function PayOSConfigurationPage() {
 
   const handleSaveFeeConfig = () => {
     message.success('Đã cập nhật thiết lập phí phúc khảo.');
-  };
-
-  const handleExportReport = () => {
-    message.info('Tính năng xuất báo cáo sẽ được tích hợp với backend sau.');
   };
 
   return (
@@ -103,13 +80,6 @@ export default function PayOSConfigurationPage() {
             />
           </div>
 
-          <TransactionStatisticsSection
-            stats={payOSTransactionStats}
-            transactions={filteredTransactions}
-            searchQuery={transactionSearch}
-            onSearchChange={setTransactionSearch}
-            onExport={handleExportReport}
-          />
         </div>
       </div>
     </MainLayout>
