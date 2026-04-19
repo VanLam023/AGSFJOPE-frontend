@@ -13,6 +13,7 @@ import logoImg from "../../assets/logo.svg";
 import NotificationBell from "../notifications/NotificationBell";
 import { useAuth } from "../../app/context/authContext";
 import { sidebarItemsWithMaterialIcons } from "../utils/Utils";
+import { ROLE_HOME_MAP } from "../../constants/routes";
 import axiosClient from "../../services/axiosClient";
 
 const { Header, Content, Sider } = Layout;
@@ -55,7 +56,6 @@ const MainLayout = ({
   children,
   siderItems,
   siderIcons,
-  notifCount,
   actionBtn = null,
 }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -72,6 +72,32 @@ const MainLayout = ({
   const roleLabel = roleKey ? (ROLE_LABELS[roleKey] ?? roleKey) : "Người dùng";
   const userDisplay = user?.fullName ?? user?.username ?? "Người dùng";
   const userSubText = user?.email ?? user?.username ?? roleLabel;
+  const avatarInitials = useMemo(() => {
+    const baseName = String(userDisplay || "").trim();
+
+    if (!baseName) return "?";
+
+    const parts = baseName.split(/\s+/).filter(Boolean);
+
+    if (parts.length >= 2) {
+      return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+    }
+
+    return baseName.slice(0, 2).toUpperCase();
+  }, [userDisplay]);
+
+  const avatarImageUrl =
+    typeof user?.avatarUrl === "string" && user.avatarUrl.trim()
+      ? user.avatarUrl.trim()
+      : "";
+
+  const avatarStyle = avatarImageUrl
+    ? {
+        backgroundImage: `url("${avatarImageUrl}")`,
+      }
+    : undefined;
+
+  const profileMenuPath = ROLE_HOME_MAP[roleKey] || "/";
 
   const menuItems = useMemo(() => {
     const items =
@@ -227,7 +253,6 @@ const MainLayout = ({
 
             <div className={styles.uti}>
               <NotificationBell
-                fallbackCount={notifCount}
                 buttonClassName="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:text-[#F37021] hover:bg-[#fff7f2] shadow-none"
                 iconClassName="h-4 w-4"
               />
@@ -253,14 +278,14 @@ const MainLayout = ({
                   </div>
 
                   <div
-                    className={`aspect-square w-10 rounded-full bg-slate-200 
-                      ring-2 transition-all cursor-pointer
-                      bg-cover bg-center bg-no-repeat
-                      ${headerDropdownOpen ? "ring-[#F37021]" : "ring-[#F37021]/20 group-hover:ring-[#F37021]/50"}`}
-                    style={{
-                      backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuCo9OzzsHT5Aj1roCt7Nv_ABU8KJRL7UBksbvyl8DFixLZmQ2vxz3SsOFXyWhWJCalc9K3AabCLNaCf3_kDh_9QDIhAzQ9qnUcXAFaH_lfs_mFpcJlPc1CQT9aYTuqZuXXIetZeDRKzu4GYopfz4IUuSuD26s3zs6lAxoPlSBwDwLZQucu91YX_cVtzA-0EIEaY6lqafYO2RGLh7Z6wYmcYsdUmozJEK5oFY4fPidEncDwgS9et7v3C6xbKSoT7OE1y69DF5Fm9bxNd")`,
-                    }}
-                  />
+                    className={`aspect-square w-10 rounded-full ring-2 transition-all cursor-pointer overflow-hidden flex items-center justify-center text-xs font-black uppercase bg-cover bg-center bg-no-repeat ${
+                      avatarImageUrl ? "bg-slate-200 text-transparent" : "bg-[#F37021]/15 text-[#F37021]"
+                    } ${headerDropdownOpen ? "ring-[#F37021]" : "ring-[#F37021]/20 group-hover:ring-[#F37021]/50"}`}
+                    style={avatarStyle}
+                    aria-hidden="true"
+                  >
+                    {!avatarImageUrl ? avatarInitials : null}
+                  </div>
                 </button>
 
                 {headerDropdownOpen && (
@@ -273,13 +298,13 @@ const MainLayout = ({
                     </div>
 
                     <Link
-                      to="/exam-staff/profile"
+                      to={profileMenuPath}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
                       <span className="material-symbols-outlined text-[18px] text-slate-400">
                         person
                       </span>
-                      Hồ sơ cá nhân
+                      Trang chính
                     </Link>
 
                     <button

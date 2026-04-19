@@ -88,7 +88,6 @@ async function collectAllSemesters() {
 
 const AppealPage = () => {
   const navigate = useNavigate();
-  const [notifCount] = useState(5);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(10);
   const [statusFilter, setStatusFilter] = useState(undefined);
@@ -371,7 +370,6 @@ const AppealPage = () => {
     <MainLayout
       siderIcons={renderedSiderIcons}
       siderItems={STAFF_SIDEBAR_ITEMS}
-      notifCount={notifCount}
     >
       <ConfigProvider
         locale={viVN}

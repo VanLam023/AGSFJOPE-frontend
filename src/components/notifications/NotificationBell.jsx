@@ -17,7 +17,6 @@ import styles from './NotificationBell.module.css';
  * - click handler guards invalid notification objects
  */
 export default function NotificationBell({
-  fallbackCount = 0,
   buttonClassName = '',
   iconClassName = 'h-5 w-5',
   badgeClassName = '',
@@ -47,18 +46,10 @@ export default function NotificationBell({
     isOpen: open,
   });
 
-  const parsedFallbackCount = Number(fallbackCount);
-  const safeFallbackCount =
-    Number.isFinite(parsedFallbackCount) && parsedFallbackCount >= 0
-      ? parsedFallbackCount
-      : 0;
-
   const safeUnreadCount =
-    loadingCount && !open
-      ? safeFallbackCount
-      : Number.isFinite(unreadCount) && unreadCount >= 0
-        ? unreadCount
-        : safeFallbackCount;
+    Number.isFinite(unreadCount) && unreadCount >= 0 ? unreadCount : 0;
+
+  const panelUnreadCount = Math.max(safeUnreadCount, unreadItemsInView);
 
   const role = user?.roleName ?? user?.role;
   const roleKey = String(role || '').toUpperCase();
@@ -139,7 +130,7 @@ export default function NotificationBell({
           activeFilter={activeFilter}
           setActiveFilter={setActiveFilter}
           notifications={notifications}
-          unreadCount={safeUnreadCount}
+          unreadCount={panelUnreadCount}
           unreadItemsInView={unreadItemsInView}
           loadingList={loadingList}
           loadingCount={loadingCount}

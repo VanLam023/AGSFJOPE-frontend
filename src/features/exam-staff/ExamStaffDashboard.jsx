@@ -22,7 +22,6 @@ export default function ExamStaffDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const { examId, blockId, submissionId } = useParams();
-  const [notifCount] = useState(5);
 
   const dashboardIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff') + 1;
@@ -100,7 +99,6 @@ export default function ExamStaffDashboard() {
     <MainLayout
       siderIcons={renderedSiderIcons}
       siderItems={STAFF_SIDEBAR_ITEMS}
-      notifCount={notifCount}
       actionBtn={({ collapsed }) => {
         return (
           <Button

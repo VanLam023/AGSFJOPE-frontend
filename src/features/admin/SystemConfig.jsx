@@ -21,7 +21,6 @@ import {
 } from '../../hooks';
 
 const SystemConfig = () => {
-  const [notifCount] = useState(5);
   const [form] = Form.useForm();
   const [validationError, setValidationError] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -112,7 +111,6 @@ const SystemConfig = () => {
       siderItems={({ collapsed }) =>
         collapsed ? ADMIN_SIDEBAR_ITEMS_FLAT : ADMIN_SIDEBAR_ITEMS
       }
-      notifCount={notifCount}
     >
       <ConfigProvider
         theme={{

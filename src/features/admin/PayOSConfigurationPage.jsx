@@ -16,7 +16,6 @@ import {
 } from './payos-config/payosMockData';
 
 export default function PayOSConfigurationPage() {
-  const [notifCount] = useState(5);
   const [merchantConfig, setMerchantConfig] = useState(
     payOSInitialMerchantConfig,
   );
@@ -58,7 +57,6 @@ export default function PayOSConfigurationPage() {
       siderItems={({ collapsed }) =>
         collapsed ? ADMIN_SIDEBAR_ITEMS_FLAT : ADMIN_SIDEBAR_ITEMS
       }
-      notifCount={notifCount}
     >
       <div className="min-w-0 flex-1 bg-slate-50">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-8">

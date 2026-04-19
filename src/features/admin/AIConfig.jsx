@@ -17,7 +17,6 @@ import { AI_PROVIDERS, LANGUAGE, AI_PROVIDER_MODELS } from './config';
 import { trimPayload } from '../../components/utils/Utils';
 
 const AIConfig = () => {
-  const [notifCount] = useState(5);
   const [form] = Form.useForm();
   const [validationError, setValidationError] = useState(false);
   const [isEdit, setIsEdit] = useState(false);
@@ -120,7 +119,6 @@ const AIConfig = () => {
       siderItems={({ collapsed }) =>
         collapsed ? ADMIN_SIDEBAR_ITEMS_FLAT : ADMIN_SIDEBAR_ITEMS
       }
-      notifCount={notifCount}
     >
       <ConfigProvider
         theme={{

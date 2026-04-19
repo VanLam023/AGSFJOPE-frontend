@@ -61,7 +61,6 @@ const rolesMap = new Map([
 const UserManagement = () => {
   const navigate = useNavigate();
   const [selectedIndex, setSelectedIndex] = useState(1);
-  const [notifCount] = useState(5);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 500);
   const [form] = Form.useForm();
@@ -380,7 +379,6 @@ const UserManagement = () => {
           return ADMIN_SIDEBAR_ITEMS;
         }
       }}
-      notifCount={notifCount}
       currentSelectedItem={(item) => setSelectedIndex(Number(item.key))}
     >
       <ConfigProvider

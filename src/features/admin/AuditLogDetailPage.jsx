@@ -57,7 +57,6 @@ const Value = ({ children, mono }) => (
 const AuditLogDetailPage = () => {
   const { auditLogId } = useParams();
   const navigate = useNavigate();
-  const [notifCount] = React.useState(5);
 
   const { callGetAuditLogDetailEndpoint, detail, loading } =
     useGetAuditLogDetail();
@@ -78,7 +77,6 @@ const AuditLogDetailPage = () => {
         }
         return ADMIN_SIDEBAR_ITEMS;
       }}
-      notifCount={notifCount}
     >
       <ConfigProvider locale={viVN}>
         <div className="p-8 max-w-7xl mx-auto w-full space-y-6">

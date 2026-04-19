@@ -59,7 +59,6 @@ const formatActivityTime = (iso) => {
 };
 
 export default function SystemAdminDashboard() {
-  const [notifCount] = React.useState(5);
   const {
     overview,
     userStats,
@@ -275,7 +274,6 @@ export default function SystemAdminDashboard() {
         }
         return ADMIN_SIDEBAR_ITEMS;
       }}
-      notifCount={notifCount}
     >
       <ConfigProvider
         theme={{

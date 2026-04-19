@@ -33,7 +33,6 @@ import GradingModeNotice from './grading-config/components/GradingModeNotice';
 const ALL_GRADING_MODES = ['MODE_1', 'MODE_2', 'MODE_3', 'MODE_4'];
 
 const GradingModeConfig = () => {
-  const [notifCount] = useState(5);
   const [form] = Form.useForm();
   const [createForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -246,7 +245,6 @@ const GradingModeConfig = () => {
       siderItems={({ collapsed }) =>
         collapsed ? ADMIN_SIDEBAR_ITEMS_FLAT : ADMIN_SIDEBAR_ITEMS
       }
-      notifCount={notifCount}
     >
       <ConfigProvider
         theme={{

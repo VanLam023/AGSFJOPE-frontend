@@ -61,7 +61,6 @@ const UserDetail = () => {
   const navigate = useNavigate();
   const { userId } = useParams();
   const [selectedIndex, setSelectedIndex] = useState(1);
-  const [notifCount] = useState(5);
   const { fetchUserDetail, loading, userDetail } = useGetUserDetail();
   const { callDeleteUserEndpoint, loading: deleteLoading } = useDeleteUser();
   const { callUnlockUserEndpoint, loading: unlockLoading } = useUnlockUser();
@@ -204,7 +203,6 @@ const UserDetail = () => {
       siderItems={({ collapsed }) =>
         collapsed ? ADMIN_SIDEBAR_ITEMS_FLAT : ADMIN_SIDEBAR_ITEMS
       }
-      notifCount={notifCount}
       currentSelectedItem={(item) => setSelectedIndex(Number(item.key))}
     >
       <ConfigProvider

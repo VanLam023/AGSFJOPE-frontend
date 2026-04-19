@@ -52,7 +52,6 @@ const formatDateTime = (iso) => {
 
 const AuditLogsPage = () => {
   const navigate = useNavigate();
-  const [notifCount] = useState(5);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(8);
   const [actionFilter, setActionFilter] = useState(undefined);
@@ -205,7 +204,6 @@ const AuditLogsPage = () => {
         }
         return ADMIN_SIDEBAR_ITEMS;
       }}
-      notifCount={notifCount}
     >
       <ConfigProvider
         locale={viVN}
