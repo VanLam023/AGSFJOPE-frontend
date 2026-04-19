@@ -43,17 +43,17 @@ export default function useLecturerDashboard() {
 
     const results = await Promise.allSettled([
       getLecturerDashboardOverview(),
-      getLecturerDashboardAssignedAppeals({ limit: 8 }),
+      getLecturerDashboardAssignedAppeals({ limit: 5 }),
       getLecturerDashboardUpcomingDeadlines({ limit: 5 }),
       getLecturerDashboardReviewStats(),
-      getLecturerAppeals({ page: 0, size: 100 }),
+      getLecturerAppeals({ page: 0, size: 5 }),
     ]);
 
     const [overviewResult, assignedResult, upcomingResult, reviewStatsResult, appealsResult] = results;
 
     const lecturerAppealsPage = getFulfilledData(appealsResult);
     const fallbackOverview = mapAppealsOverviewToDashboardOverview(lecturerAppealsPage?.overview);
-    const fallbackAssignedAppeals = buildAssignedAppealsFallback(lecturerAppealsPage?.appeals, 8);
+    const fallbackAssignedAppeals = buildAssignedAppealsFallback(lecturerAppealsPage?.appeals, 5);
     const fallbackUpcomingDeadlines = buildUpcomingDeadlinesFallback(lecturerAppealsPage?.appeals, 5);
 
     const overview = getFulfilledData(overviewResult) ?? fallbackOverview;

@@ -8,7 +8,7 @@ const cleanParams = (obj) =>
 export const getLecturerDashboardOverview = () =>
   axiosClient.get('/lecturer/dashboard/overview');
 
-export const getLecturerDashboardAssignedAppeals = ({ limit = 10, status } = {}) =>
+export const getLecturerDashboardAssignedAppeals = ({ limit = 5, status } = {}) =>
   axiosClient.get('/lecturer/dashboard/assigned-appeals', {
     params: cleanParams({ limit, status }),
   });
