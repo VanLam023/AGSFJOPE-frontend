@@ -7,9 +7,13 @@ export default function WalletWithdrawPanel({
   submitting,
   withdrawableBalance,
   pendingWithdrawalAmount,
+  bankOptions,
+  banksLoading,
   onFieldChange,
   onSubmit,
 }) {
+  const hasBankOptions = Array.isArray(bankOptions) && bankOptions.length > 0;
+
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur">
       <div className="border-b border-slate-100 px-6 py-5">
@@ -66,19 +70,60 @@ export default function WalletWithdrawPanel({
           <label htmlFor="wallet-bank-name" className="mb-2 block text-sm font-bold text-slate-700">
             Tên ngân hàng
           </label>
-          <input
-            id="wallet-bank-name"
-            type="text"
-            autoComplete="organization"
-            value={values?.bankName || ''}
-            onChange={(event) => onFieldChange('bankName', event.target.value)}
-            placeholder="Ví dụ: Vietcombank"
-            className={`w-full rounded-2xl border bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 outline-none transition-all ${
-              errors?.bankName
-                ? 'border-rose-300 ring-4 ring-rose-100'
-                : 'border-slate-200 focus:border-[#F37021] focus:ring-4 focus:ring-orange-100'
-            }`}
-          />
+
+          {hasBankOptions ? (
+            <select
+              id="wallet-bank-name"
+              value={values?.bankName || ''}
+              onChange={(event) => onFieldChange('bankName', event.target.value)}
+              disabled={banksLoading}
+              title="Bạn có thể gõ chữ cái đầu để nhảy nhanh tới ngân hàng tương ứng."
+              className={`w-full rounded-2xl border bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 outline-none transition-all ${
+                errors?.bankName
+                  ? 'border-rose-300 ring-4 ring-rose-100'
+                  : 'border-slate-200 focus:border-[#F37021] focus:ring-4 focus:ring-orange-100'
+              } ${banksLoading ? 'cursor-wait opacity-70' : ''}`}
+            >
+              <option value="">{banksLoading ? 'Đang tải danh sách ngân hàng...' : 'Chọn ngân hàng'}</option>
+              {bankOptions.map((bank) => {
+                const optionValue = bank?.value || bank?.shortName || bank?.code || bank?.name || '';
+                const optionLabel = bank?.label || [bank?.shortName, bank?.name].filter(Boolean).join(' - ') || optionValue;
+
+                return (
+                  <option key={`${bank?.bin || optionValue}-${bank?.code || ''}`} value={optionValue}>
+                    {optionLabel}
+                  </option>
+                );
+              })}
+            </select>
+          ) : (
+            <input
+              id="wallet-bank-name"
+              type="text"
+              autoComplete="organization"
+              value={values?.bankName || ''}
+              onChange={(event) => onFieldChange('bankName', event.target.value)}
+              placeholder={banksLoading ? 'Đang tải danh sách ngân hàng...' : 'Ví dụ: Vietcombank'}
+              className={`w-full rounded-2xl border bg-white px-4 py-3.5 text-sm font-semibold text-slate-900 outline-none transition-all ${
+                errors?.bankName
+                  ? 'border-rose-300 ring-4 ring-rose-100'
+                  : 'border-slate-200 focus:border-[#F37021] focus:ring-4 focus:ring-orange-100'
+              }`}
+            />
+          )}
+
+          {hasBankOptions ? (
+            <p className="mt-2 text-xs font-medium text-slate-500">
+              Gợi ý: sau khi mở danh sách, bạn có thể gõ chữ cái đầu như V, B, M, T... để nhảy nhanh tới ngân hàng cần chọn.
+            </p>
+          ) : (
+            <p className="mt-2 text-xs font-medium text-slate-500">
+              {banksLoading
+                ? 'Đang tải danh sách ngân hàng Việt Nam...'
+                : 'Không tải được danh sách ngân hàng, bạn vẫn có thể nhập tay.'}
+            </p>
+          )}
+
           {errors?.bankName && <p className="mt-2 text-sm font-medium text-rose-600">{errors.bankName}</p>}
         </div>
 

@@ -15,9 +15,6 @@ export default function WalletDepositPanel({
   onPresetAmountClick,
   onSubmit,
 }) {
-  const safeQrCodeUrl = isSafeExternalUrl(lastDeposit?.qrCodeUrl)
-    ? lastDeposit?.qrCodeUrl
-    : '';
   const safeCheckoutUrl = isSafeExternalUrl(lastDeposit?.checkoutUrl)
     ? lastDeposit?.checkoutUrl
     : '';
@@ -93,59 +90,41 @@ export default function WalletDepositPanel({
 
         {lastDeposit && (
           <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5">
-            <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-              <div className="space-y-3">
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
-                  <span className="material-symbols-outlined text-[16px]">verified</span>
-                  Lệnh nạp đã được tạo
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 md:grid-cols-2">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Mã lệnh</p>
-                    <p className="mt-1 font-semibold text-slate-900">{lastDeposit?.payosOrderId || '—'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Số tiền</p>
-                    <p className="mt-1 font-semibold text-slate-900">{formatCurrency(lastDeposit?.amount)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Hết hạn</p>
-                    <p className="mt-1 font-semibold text-slate-900">{formatDateTime(lastDeposit?.expiresAt)}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Tiền tệ</p>
-                    <p className="mt-1 font-semibold text-slate-900">{lastDeposit?.currency || 'VND'}</p>
-                  </div>
-                </div>
-
-                {safeCheckoutUrl && (
-                  <a
-                    href={safeCheckoutUrl}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#F37021]/20 bg-[#F37021]/10 px-4 text-sm font-black text-[#F37021] transition-colors hover:bg-[#F37021]/15"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-                    Mở trang thanh toán PayOS
-                  </a>
-                )}
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700">
+                <span className="material-symbols-outlined text-[16px]">verified</span>
+                Lệnh nạp đã được tạo
               </div>
 
-              {safeQrCodeUrl ? (
-                <div className="shrink-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-                  <img
-                    src={safeQrCodeUrl}
-                    alt="QR thanh toán ví"
-                    className="h-52 w-52 rounded-2xl object-contain"
-                    loading="lazy"
-                    referrerPolicy="no-referrer"
-                  />
+              <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 md:grid-cols-2">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Mã lệnh</p>
+                  <p className="mt-1 font-semibold text-slate-900">{lastDeposit?.payosOrderId || '—'}</p>
                 </div>
-              ) : (
-                <div className="flex min-h-[160px] w-full max-w-[260px] items-center justify-center rounded-3xl border border-dashed border-slate-300 bg-white/70 p-5 text-center text-sm leading-6 text-slate-500">
-                  QR thanh toán sẽ xuất hiện tại đây khi lệnh nạp sẵn sàng.
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Số tiền</p>
+                  <p className="mt-1 font-semibold text-slate-900">{formatCurrency(lastDeposit?.amount)}</p>
                 </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Hết hạn</p>
+                  <p className="mt-1 font-semibold text-slate-900">{formatDateTime(lastDeposit?.expiresAt)}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">Tiền tệ</p>
+                  <p className="mt-1 font-semibold text-slate-900">{lastDeposit?.currency || 'VND'}</p>
+                </div>
+              </div>
+
+              {safeCheckoutUrl && (
+                <a
+                  href={safeCheckoutUrl}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#F37021]/20 bg-[#F37021]/10 px-4 text-sm font-black text-[#F37021] transition-colors hover:bg-[#F37021]/15"
+                >
+                  <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                  Mở trang thanh toán PayOS
+                </a>
               )}
             </div>
           </div>

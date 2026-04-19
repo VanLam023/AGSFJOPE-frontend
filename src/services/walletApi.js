@@ -7,6 +7,7 @@ const walletApi = {
   getMyWithdrawals: () => axiosClient.get(`${WALLET_BASE}/withdrawals`),
   createWithdrawal: (payload) => axiosClient.post(`${WALLET_BASE}/withdraw`, payload),
   createDeposit: (payload) => axiosClient.post(`${WALLET_BASE}/deposit`, payload),
+  getBanks: () => axiosClient.get(`${WALLET_BASE}/banks`),
 };
 
 export default walletApi;
