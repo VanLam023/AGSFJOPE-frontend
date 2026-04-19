@@ -22,6 +22,7 @@ const STATUS_OPTIONS = [
   { value: 'ASSIGNED', label: 'Đã phân công' },
   { value: 'DONE', label: 'Hoàn thành đơn' },
 ];
+const PAGE_SIZE = 10;
 
 function SuccessBanner({ createdAppeal, onClose }) {
   if (!createdAppeal) return null;
@@ -50,6 +51,55 @@ function SuccessBanner({ createdAppeal, onClose }) {
         </button>
       </div>
     </section>
+  );
+}
+
+function PaginationControls({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+
+  const startPage = Math.max(1, currentPage - 2);
+  const endPage = Math.min(totalPages, startPage + 4);
+  const pages = [];
+
+  for (let page = startPage; page <= endPage; page += 1) {
+    pages.push(page);
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-2 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-bold text-slate-700 transition-colors hover:border-[#F37021] hover:text-[#F37021] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Trước
+      </button>
+
+      {pages.map((page) => (
+        <button
+          key={page}
+          type="button"
+          onClick={() => onPageChange(page)}
+          className={`inline-flex h-10 min-w-10 items-center justify-center rounded-2xl px-4 text-sm font-black transition-colors ${
+            currentPage === page
+              ? 'bg-[#F37021] text-white shadow-lg shadow-orange-500/20'
+              : 'border border-slate-200 text-slate-700 hover:border-[#F37021] hover:text-[#F37021]'
+          }`}
+        >
+          {page}
+        </button>
+      ))}
+
+      <button
+        type="button"
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="inline-flex h-10 items-center justify-center rounded-2xl border border-slate-200 px-4 text-sm font-bold text-slate-700 transition-colors hover:border-[#F37021] hover:text-[#F37021] disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        Sau
+      </button>
+    </div>
   );
 }
 
@@ -88,6 +138,7 @@ export default function StudentAppealsPage() {
   const [overview, setOverview] = useState(resolveAppealOverview(null));
   const [searchKeyword, setSearchKeyword] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -134,6 +185,10 @@ export default function StudentAppealsPage() {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchKeyword, statusFilter, overview.appeals]);
+
   const handleClearCreatedAppeal = useCallback(() => {
     setCreatedAppeal(null);
     navigate('/student/appeals', { replace: true, state: {} });
@@ -149,6 +204,13 @@ export default function StudentAppealsPage() {
       return matchesStatus && matchesKeyword;
     });
   }, [overview.appeals, searchKeyword, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredAppeals.length / PAGE_SIZE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pageStartIndex = filteredAppeals.length === 0 ? 0 : (safeCurrentPage - 1) * PAGE_SIZE;
+  const pagedAppeals = filteredAppeals.slice(pageStartIndex, pageStartIndex + PAGE_SIZE);
+  const visibleFrom = filteredAppeals.length === 0 ? 0 : pageStartIndex + 1;
+  const visibleTo = Math.min(pageStartIndex + PAGE_SIZE, filteredAppeals.length);
 
   const headerActions = (
     <div className="flex items-center gap-2">
@@ -253,7 +315,7 @@ export default function StudentAppealsPage() {
               </div>
 
               <div className="text-sm font-medium text-slate-500">
-                Hiển thị <span className="font-bold text-slate-700">{filteredAppeals.length}</span> / {overview.totalAppeals} yêu cầu
+                Hiển thị <span className="font-bold text-slate-700">{visibleFrom}-{visibleTo}</span> / {filteredAppeals.length} yêu cầu
               </div>
             </div>
           </section>
@@ -261,11 +323,19 @@ export default function StudentAppealsPage() {
           {filteredAppeals.length === 0 ? (
             <AppealEmptyState hasFilter={Boolean(searchKeyword || statusFilter !== 'ALL')} />
           ) : (
-            <section className="space-y-3">
-              {filteredAppeals.map((appeal) => (
-                <AppealListCard key={appeal.appealId || appeal.appealCode} appeal={appeal} />
-              ))}
-            </section>
+            <>
+              <section className="space-y-3">
+                {pagedAppeals.map((appeal) => (
+                  <AppealListCard key={appeal.appealId || appeal.appealCode} appeal={appeal} />
+                ))}
+              </section>
+
+              <PaginationControls
+                currentPage={safeCurrentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => setCurrentPage(Math.min(Math.max(page, 1), totalPages))}
+              />
+            </>
           )}
         </>
       )}

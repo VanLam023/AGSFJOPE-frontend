@@ -4,13 +4,14 @@ import AppealStatusBadge from './AppealStatusBadge';
 import {
   formatDateTime,
   formatScore,
+  hasAppealReviewOutcome,
   isAppealFinalStatus,
   resolveAppealScores,
 } from '../helpers/appealHelpers';
 
-function ScorePanel({ scoreInfo }) {
+function AppealResultScorePanel({ scoreInfo }) {
   const originalText = scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—';
-  const newText = scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : '—';
+  const newText = scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : 'Chưa có';
 
   if (scoreInfo.originalScore == null) {
     return (
@@ -20,23 +21,20 @@ function ScorePanel({ scoreInfo }) {
     );
   }
 
-  if (scoreInfo.newScore == null) {
-    return (
-      <div className="text-right">
-        <p className="text-3xl font-black text-slate-800">{originalText}</p>
-        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-          Điểm hiện tại
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="text-right">
       <div className="flex items-center justify-end gap-2">
-        <span className="text-sm font-bold text-slate-400 line-through">{originalText}</span>
-        <span className="material-symbols-outlined text-[18px] text-emerald-500">arrow_upward</span>
-        <span className="text-3xl font-black text-emerald-600">{newText}</span>
+        <span className={`text-sm font-bold ${scoreInfo.newScore != null ? 'text-slate-400 line-through' : 'text-slate-500'}`}>
+          {originalText}
+        </span>
+        {scoreInfo.newScore != null ? (
+          <>
+            <span className="material-symbols-outlined text-[18px] text-emerald-500">arrow_upward</span>
+            <span className="text-3xl font-black text-emerald-600">{newText}</span>
+          </>
+        ) : (
+          <span className="text-3xl font-black text-slate-800">{newText}</span>
+        )}
       </div>
       <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
         Kết quả sau phúc khảo
@@ -45,8 +43,22 @@ function ScorePanel({ scoreInfo }) {
   );
 }
 
+function AppealCurrentScorePanel({ scoreInfo }) {
+  const currentText = scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—';
+
+  return (
+    <div className="text-right">
+      <p className="text-3xl font-black text-slate-800">{currentText}</p>
+      <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+        Điểm hiện tại
+      </p>
+    </div>
+  );
+}
+
 export default function AppealListCard({ appeal }) {
   const finalStatus = isAppealFinalStatus(appeal?.status);
+  const hasReviewOutcome = hasAppealReviewOutcome(appeal?.status);
   const scoreInfo = useMemo(
     () => resolveAppealScores(appeal, appeal?.gradingDetail),
     [appeal],
@@ -71,9 +83,12 @@ export default function AppealListCard({ appeal }) {
             </div>
           </div>
 
-          <ScorePanel scoreInfo={scoreInfo} />
+          {hasReviewOutcome ? (
+            <AppealResultScorePanel scoreInfo={scoreInfo} />
+          ) : (
+            <AppealCurrentScorePanel scoreInfo={scoreInfo} />
+          )}
         </div>
-
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 text-sm text-slate-500">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">

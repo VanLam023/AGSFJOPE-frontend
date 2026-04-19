@@ -4,7 +4,8 @@ const MAX_REASON_LENGTH = 2000;
 
 const RECEIVED_STATUSES = ['PENDING_PAYMENT', 'PENDING'];
 const ASSIGNED_STATUSES = ['PROCESSING'];
-const DONE_STATUSES = ['COMPLETED', 'APPROVED', 'DENIED', 'CANCELLED'];
+const DONE_STATUSES = ['COMPLETED', 'APPROVED', 'DENIED', 'CANCELLED', 'CANCELED'];
+const REVIEW_OUTCOME_STATUSES = ['APPROVED', 'DENIED', 'CANCELLED', 'CANCELED'];
 
 function toScoreNumber(value) {
   const number = Number(value);
@@ -136,12 +137,23 @@ export function unwrapApiData(response) {
 export function resolveAppealsList(data) {
   const payload = getNestedPayload(data);
 
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.appeals)) return payload.appeals;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.content)) return payload.content;
-  if (Array.isArray(data?.appeals)) return data.appeals;
-  return [];
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.appeals)
+      ? payload.appeals
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload?.content)
+          ? payload.content
+          : Array.isArray(data?.appeals)
+            ? data.appeals
+            : [];
+
+  return [...list].sort((left, right) => {
+    const leftTime = left?.createdAt ? new Date(left.createdAt).getTime() : 0;
+    const rightTime = right?.createdAt ? new Date(right.createdAt).getTime() : 0;
+    return rightTime - leftTime;
+  });
 }
 
 export function formatCurrency(value) {
@@ -287,6 +299,12 @@ export function getAppealStatusMeta(status) {
       dotClassName: 'bg-slate-400',
       accentClassName: 'border-l-slate-300',
     },
+    CANCELED: {
+      label: 'Đã hủy',
+      className: 'border-slate-200 bg-slate-50 text-slate-700',
+      dotClassName: 'bg-slate-400',
+      accentClassName: 'border-l-slate-300',
+    },
   };
 
   return map[normalized] || {
@@ -299,6 +317,10 @@ export function getAppealStatusMeta(status) {
 
 export function isAppealFinalStatus(status) {
   return getAppealLifecycleStage(status) === 'DONE';
+}
+
+export function hasAppealReviewOutcome(status) {
+  return REVIEW_OUTCOME_STATUSES.includes(String(status || '').toUpperCase());
 }
 
 export function getAppealProgressSteps(status) {
