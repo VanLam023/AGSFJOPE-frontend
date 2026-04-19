@@ -132,9 +132,6 @@ export default function LecturerAppealsPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#F37021]">Lecturer Appeal Workspace</p>
             <h2 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Quản lý và chấm các đơn phúc khảo được giao</h2>
           </div>
-          <div className="rounded-2xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm leading-6 text-orange-900 xl:max-w-sm">
-            Chỉ hiển thị các đơn đã được phân công cho chính bạn. Các đơn chờ phân công sẽ không xuất hiện ở màn hình này.
-          </div>
         </div>
       </section>
 
