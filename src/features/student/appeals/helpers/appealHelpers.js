@@ -3,8 +3,8 @@ const DEFAULT_MIN_REASON_LENGTH = 10;
 const MAX_REASON_LENGTH = 2000;
 
 const RECEIVED_STATUSES = ['PENDING_PAYMENT', 'PENDING'];
-const ASSIGNED_STATUSES = ['PROCESSING', 'COMPLETED'];
-const DONE_STATUSES = ['APPROVED', 'DENIED', 'CANCELLED'];
+const ASSIGNED_STATUSES = ['PROCESSING'];
+const DONE_STATUSES = ['COMPLETED', 'APPROVED', 'DENIED', 'CANCELLED'];
 
 function toScoreNumber(value) {
   const number = Number(value);
@@ -265,9 +265,9 @@ export function getAppealStatusMeta(status) {
     },
     COMPLETED: {
       label: 'Đã phân công',
-      className: 'border-violet-200 bg-violet-50 text-violet-700',
-      dotClassName: 'bg-violet-500',
-      accentClassName: 'border-l-violet-400',
+      className: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+      dotClassName: 'bg-indigo-500',
+      accentClassName: 'border-l-indigo-400',
     },
     APPROVED: {
       label: 'Đã chấp nhận',
@@ -319,8 +319,9 @@ export function getAppealProgressSteps(status) {
   ];
 
   return labels.map((label, index) => {
-    const isDone = currentStep > index;
-    const isCurrent = currentStep === index;
+    const isFinalStage = stage === 'DONE';
+    const isDone = isFinalStage ? index <= currentStep : currentStep > index;
+    const isCurrent = !isFinalStage && currentStep === index;
     return {
       label,
       isDone,

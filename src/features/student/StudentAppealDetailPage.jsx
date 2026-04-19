@@ -26,7 +26,7 @@ function MetaCard({ label, value }) {
 }
 
 function ScoreCard({ label, value, emphasize = false, strike = false }) {
-  const hasValue = value != null && value !== '—';
+  const hasValue = value != null && value !== '—' && value !== '';
 
   return (
     <div className={`rounded-2xl border p-5 shadow-sm ${emphasize ? 'border-orange-200 bg-orange-50' : 'border-slate-200 bg-white'}`}>
@@ -236,7 +236,7 @@ export default function StudentAppealDetailPage() {
             />
             <ScoreCard
               label="Điểm mới"
-              value={scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : '—'}
+              value={scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : 'Chưa có'}
               emphasize
             />
             <ScoreCard label="Chênh lệch" value={scoreDeltaLabel} />

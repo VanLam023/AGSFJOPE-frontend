@@ -18,12 +18,12 @@ import {
   resultBadge,
 } from './components/submission-detail/submissionDetail.helpers.js';
 import {
-  canRenderAppealScoreComparison,
   findAppealById,
   findAppealBySubmissionId,
   getAppealReviewerName,
   isAppealFinalStatus,
   resolveAppealScores,
+  normalizeReviewedQuestionScores,
   resolveSubmissionScoreComparison,
   unwrapApiData,
 } from '../student/appeals/helpers/appealHelpers';
@@ -292,19 +292,34 @@ export default function SubmissionDetailPage({
     return 'Đã chấm xong';
   }, [detail?.gradedAt, localSubmissionStatus]);
 
-  const shouldRenderScoreComparison = useMemo(
-    () => canRenderAppealScoreComparison(appealRecord),
+  const rawAppealScores = useMemo(
+    () => resolveAppealScores(appealRecord, detail),
+    [appealRecord, detail],
+  );
+
+  const hasReviewedQuestionScores = useMemo(
+    () => Object.keys(normalizeReviewedQuestionScores(appealRecord)).length > 0,
     [appealRecord],
   );
 
+  const shouldRenderFinalGradeComparison = useMemo(
+    () => Boolean(rawAppealScores?.hasOriginal && rawAppealScores?.hasNew),
+    [rawAppealScores],
+  );
+
+  const shouldRenderDetailedScoreComparison = useMemo(
+    () => Boolean(shouldRenderFinalGradeComparison && hasReviewedQuestionScores),
+    [hasReviewedQuestionScores, shouldRenderFinalGradeComparison],
+  );
+
   const comparableAppealRecord = useMemo(
-    () => (shouldRenderScoreComparison ? appealRecord : null),
-    [appealRecord, shouldRenderScoreComparison],
+    () => (shouldRenderDetailedScoreComparison ? appealRecord : null),
+    [appealRecord, shouldRenderDetailedScoreComparison],
   );
 
   const appealScores = useMemo(
-    () => resolveAppealScores(comparableAppealRecord, detail),
-    [comparableAppealRecord, detail],
+    () => (shouldRenderFinalGradeComparison ? rawAppealScores : null),
+    [rawAppealScores, shouldRenderFinalGradeComparison],
   );
 
   const submissionScoreComparison = useMemo(
@@ -361,7 +376,7 @@ export default function SubmissionDetailPage({
                 detail={detail}
                 status={status}
                 appealScores={appealScores}
-                showScoreComparison={shouldRenderScoreComparison}
+                showScoreComparison={shouldRenderFinalGradeComparison}
                 isScoreResolving={isScoreResolving}
               />
 
@@ -386,7 +401,7 @@ export default function SubmissionDetailPage({
                 appealRecord={appealRecord}
                 appealScores={appealScores}
                 reviewerName={reviewerName}
-                showScoreComparison={shouldRenderScoreComparison}
+                showScoreComparison={shouldRenderDetailedScoreComparison}
                 isScoreResolving={isScoreResolving}
               />
             </div>

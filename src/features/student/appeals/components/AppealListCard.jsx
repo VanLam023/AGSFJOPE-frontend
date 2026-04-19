@@ -1,11 +1,9 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import AppealProgressTimeline from './AppealProgressTimeline';
 import AppealStatusBadge from './AppealStatusBadge';
 import {
   formatDateTime,
   formatScore,
-  getAppealReviewerName,
   isAppealFinalStatus,
   resolveAppealScores,
 } from '../helpers/appealHelpers';
@@ -49,7 +47,6 @@ function ScorePanel({ scoreInfo }) {
 
 export default function AppealListCard({ appeal }) {
   const finalStatus = isAppealFinalStatus(appeal?.status);
-  const reviewerName = getAppealReviewerName(appeal);
   const scoreInfo = useMemo(
     () => resolveAppealScores(appeal, appeal?.gradingDetail),
     [appeal],
@@ -77,41 +74,6 @@ export default function AppealListCard({ appeal }) {
           <ScorePanel scoreInfo={scoreInfo} />
         </div>
 
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1 text-sm text-slate-600">
-              <p>
-                Điểm cũ:{' '}
-                <span
-                  className={scoreInfo.newScore != null ? 'font-bold text-slate-400 line-through' : 'font-bold text-slate-800'}
-                >
-                  {scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—'}
-                </span>
-              </p>
-              <p>
-                Điểm mới:{' '}
-                <span className={`font-bold ${scoreInfo.newScore != null ? 'text-emerald-600' : 'text-slate-800'}`}>
-                  {scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : '—'}
-                </span>
-              </p>
-            </div>
-
-            <div className="space-y-1 text-sm text-slate-600 xl:text-right">
-              <p>
-                Giảng viên:{' '}
-                <span className="font-semibold text-slate-800">{reviewerName || 'Chưa phân công'}</span>
-              </p>
-              <p>
-                Hoàn tất:{' '}
-                <span className="font-semibold text-slate-800">{formatDateTime(appeal?.completedAt)}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 rounded-2xl border border-slate-100 bg-white p-4">
-          <AppealProgressTimeline status={appeal?.status} />
-        </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 text-sm text-slate-500">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1">

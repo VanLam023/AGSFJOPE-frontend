@@ -76,3 +76,30 @@ export function extractApiErrorMessage(error, fallback = 'Đã xảy ra lỗi. V
 
   return error?.message || fallback;
 }
+
+export function toScoreNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+export function resolveFinalGradeDisplay(detail, appealScores = null, showScoreComparison = false) {
+  const currentScore = toScoreNumber(detail?.totalScore);
+  const originalScore = toScoreNumber(appealScores?.originalScore);
+  const newScore = toScoreNumber(appealScores?.newScore);
+
+  if (showScoreComparison && originalScore != null && newScore != null) {
+    return {
+      variant: 'comparison',
+      originalScore,
+      newScore,
+      currentScore,
+    };
+  }
+
+  return {
+    variant: 'single',
+    originalScore: null,
+    newScore: null,
+    currentScore: currentScore ?? newScore ?? originalScore,
+  };
+}

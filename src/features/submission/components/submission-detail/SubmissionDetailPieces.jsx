@@ -3,6 +3,7 @@ import {
   fmtDateTime,
   num,
   questionTone,
+  resolveFinalGradeDisplay,
   tcStatusClass,
 } from './submissionDetail.helpers.js';
 
@@ -200,13 +201,11 @@ export const OverviewHeader = React.memo(function OverviewHeader({
   showScoreComparison = false,
   isScoreResolving = false,
 }) {
-  const apiTotalScore = Number.isFinite(Number(detail?.totalScore))
-    ? Number(detail.totalScore)
-    : null;
-
-  const reviewedTotalScore = Number.isFinite(Number(appealScores?.newScore))
-    ? Number(appealScores.newScore)
-    : null;
+  const finalGradeDisplay = resolveFinalGradeDisplay(
+    detail,
+    appealScores,
+    showScoreComparison,
+  );
 
   return (
     <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden">
@@ -247,16 +246,16 @@ export const OverviewHeader = React.memo(function OverviewHeader({
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Final Grade</p>
             {isScoreResolving ? (
               <SubmissionScoreSkeleton />
-            ) : showScoreComparison ? (
+            ) : finalGradeDisplay.variant === 'comparison' ? (
               <SubmissionComparedScoreDisplay
-                originalValue={apiTotalScore}
-                nextValue={reviewedTotalScore}
+                originalValue={finalGradeDisplay.originalScore}
+                nextValue={finalGradeDisplay.newScore}
                 maxScore={detail?.maxScore}
                 emphasize
               />
             ) : (
               <SubmissionSingleScoreDisplay
-                value={apiTotalScore}
+                value={finalGradeDisplay.currentScore}
                 maxScore={detail?.maxScore}
               />
             )}
