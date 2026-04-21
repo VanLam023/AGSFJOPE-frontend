@@ -106,11 +106,12 @@ export const TopActions = React.memo(function TopActions({
   isStudentView,
   onAppeal,
   onRegrade,
+  onExportTxt,
   isRegrading,
   disableRegrade = false,
 }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <button
         type="button"
         onClick={onBack}
@@ -120,35 +121,52 @@ export const TopActions = React.memo(function TopActions({
         Quay lại
       </button>
 
-      {isStudentView ? (
-        <button
-          type="button"
-          onClick={onAppeal}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#F37021] border border-[#d9621a] text-white rounded-full hover:bg-orange-600 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm group"
-        >
-          <span className="material-symbols-outlined text-[20px] group-hover:-translate-y-0.5 transition-transform duration-300">
-            gavel
-          </span>
-          Gửi yêu cầu phúc khảo
-        </button>
-      ) : (
-        <button
-          type="button"
-          onClick={onRegrade}
-          disabled={isRegrading || disableRegrade}
-          title={disableRegrade ? 'Bài đã có kết quả phúc khảo, không thể chấm lại.' : undefined}
-          className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 border border-indigo-700 text-white rounded-full hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm disabled:opacity-70 disabled:hover:-translate-y-0 disabled:cursor-not-allowed group"
-        >
-          {isRegrading ? (
-            <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
-          ) : (
-            <span className="material-symbols-outlined text-[20px] group-hover:rotate-180 transition-transform duration-500">
-              refresh
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {isStudentView ? (
+          <button
+            type="button"
+            onClick={onAppeal}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#F37021] border border-[#d9621a] text-white rounded-full hover:bg-orange-600 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm group"
+          >
+            <span className="material-symbols-outlined text-[20px] group-hover:-translate-y-0.5 transition-transform duration-300">
+              gavel
             </span>
-          )}
-          Chấm lại
-        </button>
-      )}
+            Gửi yêu cầu phúc khảo
+          </button>
+        ) : (
+          <>
+            {typeof onExportTxt === 'function' ? (
+              <button
+                type="button"
+                onClick={onExportTxt}
+                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-full hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm group"
+              >
+                <span className="material-symbols-outlined text-[20px] text-slate-500 group-hover:text-slate-700 transition-colors duration-300">
+                  description
+                </span>
+                Extract TXT
+              </button>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={onRegrade}
+              disabled={isRegrading || disableRegrade}
+              title={disableRegrade ? 'Bài đã có kết quả phúc khảo, không thể chấm lại.' : undefined}
+              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 border border-indigo-700 text-white rounded-full hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm disabled:opacity-70 disabled:hover:-translate-y-0 disabled:cursor-not-allowed group"
+            >
+              {isRegrading ? (
+                <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
+              ) : (
+                <span className="material-symbols-outlined text-[20px] group-hover:rotate-180 transition-transform duration-500">
+                  refresh
+                </span>
+              )}
+              Chấm lại
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 });

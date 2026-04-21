@@ -17,6 +17,7 @@ import {
   extractPayload,
   resultBadge,
 } from './components/submission-detail/submissionDetail.helpers.js';
+import { exportSubmissionAiReviewTxt } from './components/submission-detail/submissionDetail.export.js';
 import {
   findAppealById,
   findAppealBySubmissionId,
@@ -265,6 +266,16 @@ export default function SubmissionDetailPage({
     setOpenQuestion((prev) => (prev === index ? -1 : index));
   }, []);
 
+  const handleExportTxt = useCallback(() => {
+    if (!detail) {
+      message.error('Chưa có dữ liệu để export.');
+      return;
+    }
+
+    exportSubmissionAiReviewTxt(detail);
+    message.success('Đã export AI Code Review ra file TXT.');
+  }, [detail]);
+
   const displayResultStatus = localSubmissionStatus === 'GRADING' ? 'GRADING' : detail?.status;
   const displaySubmissionStatus =
     localSubmissionStatus || detail?.submissionStatus || detail?.status || '—';
@@ -361,6 +372,7 @@ export default function SubmissionDetailPage({
           isStudentView={isStudentView}
           onAppeal={handleAppeal}
           onRegrade={handleRegrade}
+          onExportTxt={isStudentView ? undefined : handleExportTxt}
           isRegrading={isRegrading}
           disableRegrade={disableRegradeByAppeal}
         />

@@ -3,9 +3,13 @@ const DEFAULT_MIN_REASON_LENGTH = 10;
 const MAX_REASON_LENGTH = 2000;
 
 const RECEIVED_STATUSES = ['PENDING_PAYMENT', 'PENDING'];
-const ASSIGNED_STATUSES = ['PROCESSING'];
-const DONE_STATUSES = ['COMPLETED', 'APPROVED', 'DENIED', 'CANCELLED', 'CANCELED'];
+const ASSIGNED_STATUSES = ['PROCESSING', 'COMPLETED'];
+const DONE_STATUSES = ['APPROVED', 'DENIED', 'CANCELLED', 'CANCELED'];
 const REVIEW_OUTCOME_STATUSES = ['APPROVED', 'DENIED', 'CANCELLED', 'CANCELED'];
+
+function normalizeAppealStatus(status) {
+  return String(status ?? '').trim().toUpperCase();
+}
 
 function toScoreNumber(value) {
   const number = Number(value);
@@ -233,7 +237,7 @@ export function extractAppealErrorMessage(error, fallback = 'Đã xảy ra lỗi
 }
 
 export function getAppealLifecycleStage(status) {
-  const normalized = String(status || '').toUpperCase();
+  const normalized = normalizeAppealStatus(status);
 
   if (RECEIVED_STATUSES.includes(normalized)) return 'RECEIVED';
   if (ASSIGNED_STATUSES.includes(normalized)) return 'ASSIGNED';
@@ -250,11 +254,11 @@ export function matchesAppealStatusFilter(status, filter) {
   if (filter === 'ASSIGNED') return stage === 'ASSIGNED';
   if (filter === 'DONE') return stage === 'DONE';
 
-  return String(status || '').toUpperCase() === String(filter || '').toUpperCase();
+  return normalizeAppealStatus(status) === normalizeAppealStatus(filter);
 }
 
 export function getAppealStatusMeta(status) {
-  const normalized = String(status || '').toUpperCase();
+  const normalized = normalizeAppealStatus(status);
 
   const map = {
     PENDING_PAYMENT: {
@@ -320,7 +324,7 @@ export function isAppealFinalStatus(status) {
 }
 
 export function hasAppealReviewOutcome(status) {
-  return REVIEW_OUTCOME_STATUSES.includes(String(status || '').toUpperCase());
+  return REVIEW_OUTCOME_STATUSES.includes(normalizeAppealStatus(status));
 }
 
 export function getAppealProgressSteps(status) {
@@ -332,7 +336,7 @@ export function getAppealProgressSteps(status) {
     DONE: 2,
   };
 
-  const currentStep = stepIndexMap[stage] ?? 0;
+  const currentStep = stepIndexMap[stage] ?? -1;
 
   const labels = [
     'Đã tiếp nhận',
@@ -354,7 +358,7 @@ export function getAppealProgressSteps(status) {
 
 
 export function canRenderAppealScoreComparison(item) {
-  const normalizedStatus = String(item?.status || '').toUpperCase();
+  const normalizedStatus = normalizeAppealStatus(item?.status);
   const hasReviewedTotalScore = toScoreNumber(item?.newScore) != null;
   const reviewedQuestionScores = normalizeReviewedQuestionScores(item);
   const hasReviewedQuestionScores = Object.keys(reviewedQuestionScores).length > 0;
