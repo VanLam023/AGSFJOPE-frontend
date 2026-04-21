@@ -106,7 +106,6 @@ export const TopActions = React.memo(function TopActions({
   isStudentView,
   onAppeal,
   onRegrade,
-  onExportTxt,
   isRegrading,
   disableRegrade = false,
 }) {
@@ -135,19 +134,6 @@ export const TopActions = React.memo(function TopActions({
           </button>
         ) : (
           <>
-            {typeof onExportTxt === 'function' ? (
-              <button
-                type="button"
-                onClick={onExportTxt}
-                className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-full hover:bg-slate-50 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm group"
-              >
-                <span className="material-symbols-outlined text-[20px] text-slate-500 group-hover:text-slate-700 transition-colors duration-300">
-                  description
-                </span>
-                Extract TXT
-              </button>
-            ) : null}
-
             <button
               type="button"
               onClick={onRegrade}

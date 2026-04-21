@@ -51,7 +51,7 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
   const [optimisticRun, setOptimisticRun] = useState(null);
   const [isTriggering, setIsTriggering] = useState(false);
   const [isStopping, setIsStopping] = useState(false);
-  const [exporting, setExporting] = useState({ gradeSheet: false });
+  const [exporting, setExporting] = useState({ gradeSheet: false, zipBundle: false });
   const [selectedSubmissionIds, setSelectedSubmissionIds] = useState([]);
   const [page, setPage] = useState(0);
   const [size, setSize] = useState(20);
@@ -768,6 +768,28 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
     }
   }, [activeBlockId, activeExamId, block?.name, downloadProtectedFile]);
 
+  const handleExportZipBundle = useCallback(async () => {
+    if (!activeExamId || !activeBlockId) {
+      message.warning('Thiếu thông tin exam hoặc block để xuất file ZIP.');
+      return;
+    }
+
+    setExporting((prev) => ({ ...prev, zipBundle: true }));
+    try {
+      const fileName = `${slugifyFilePart(exam?.name || 'exam', 'exam')}-${slugifyFilePart(block?.name || activeBlockId, 'block')}-submissions.zip`;
+      const ok = await downloadProtectedFile(
+        `/exams/${activeExamId}/blocks/${activeBlockId}/export/submission-bundle`,
+        fileName,
+        'Web chưa hỗ trợ xuất file ZIP ở màn này.'
+      );
+      if (ok) message.success('Đã bắt đầu tải file ZIP dữ liệu chấm.');
+    } catch (error) {
+      message.error(extractApiErrorMessage(error, 'Không thể xuất file ZIP lúc này.'));
+    } finally {
+      setExporting((prev) => ({ ...prev, zipBundle: false }));
+    }
+  }, [activeBlockId, activeExamId, block?.name, downloadProtectedFile, exam?.name]);
+
   const totalPages = pagination.totalPages;
   const currentPage = pagination.page;
 
@@ -809,6 +831,7 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
         blockName={block?.name}
         onExportCsv={handleExportCsv}
         onExportGradeSheet={handleExportGradeSheet}
+        onExportZip={handleExportZipBundle}
         onRefresh={handleRefresh}
         exporting={exporting}
       />

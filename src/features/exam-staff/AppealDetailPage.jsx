@@ -113,6 +113,7 @@ const AppealDetailPage = () => {
       buildAppealQuestionRows({
         gradingDetail,
         newQuestionScores: data?.newQuestionScores,
+        status: data?.status,
       }),
     [gradingDetail, data?.newQuestionScores],
   );
