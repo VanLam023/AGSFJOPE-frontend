@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import StudentLayout from '../../components/layouts/student';
 import appealApi from '../../services/appealApi';
 import gradingApi from '../../services/gradingApi';
@@ -46,10 +46,11 @@ function ScoreCard({ label, value, emphasize = false, strike = false }) {
 
 export default function StudentAppealDetailPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { appealId } = useParams();
 
-  const [appeal, setAppeal] = useState(location.state?.appeal ?? null);
+  // Do NOT initialize from location.state: that data may be stale (e.g. old PENDING status).
+  // We always rely on the fresh API response from loadAppeal() to set the appeal.
+  const [appeal, setAppeal] = useState(null);
   const [gradingDetail, setGradingDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -101,11 +102,10 @@ export default function StudentAppealDetailPage() {
     loadAppeal();
   }, [loadAppeal]);
 
-  useEffect(() => {
-    if (!appeal && location.state?.appeal) {
-      setAppeal(location.state.appeal);
-    }
-  }, [appeal, location.state]);
+  // REMOVED: The old useEffect that restored location.state?.appeal when appeal was null.
+  // That pattern caused a stale-data bug: if findAppealById() failed to match the ID in the API
+  // response, appeal became null, and the old snapshot (with PENDING status) was silently
+  // restored — making the timeline appear frozen even after staff had assigned a lecturer.
 
   const hasReviewOutcome = hasAppealReviewOutcome(appeal?.status);
   const reviewerName = getAppealReviewerName(appeal);

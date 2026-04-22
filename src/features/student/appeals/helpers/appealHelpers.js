@@ -344,17 +344,15 @@ export function getAppealProgressSteps(status) {
     'Hoàn thành đơn',
   ];
 
-  return labels.map((label, index) => {
-    const isFinalStage = stage === 'DONE';
-    const isDone = isFinalStage ? index <= currentStep : currentStep > index;
-    const isCurrent = !isFinalStage && currentStep === index;
-    return {
-      label,
-      isDone,
-      isCurrent,
-    };
-  });
+  return labels.map((label, index) => ({
+    label,
+    // Every step up to and including the current stage gets a checkmark.
+    // PENDING (0): [✓, -, -] | PROCESSING/COMPLETED (1): [✓, ✓, -] | DONE (2): [✓, ✓, ✓]
+    isDone: index <= currentStep,
+    isCurrent: false,
+  }));
 }
+
 
 
 export function canRenderAppealScoreComparison(item) {
