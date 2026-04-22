@@ -1,16 +1,66 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ConfigProvider, Table, Spin, Empty } from 'antd';
 import DashboardCard from '../../components/DashboardCard.jsx';
 import { examStatusConfig, appealStatusConfig } from './config.jsx';
 import { useStaffDashboard } from '../../hooks';
 import ReactECharts from 'echarts-for-react';
+import examApi from '../../services/examApi';
+import blockApi from '../../services/blockApi';
+import statisticsApi from '../../services/statisticsApi';
 
 const CARD_ICON = ['timer', 'description', 'check_circle', 'priority_high'];
 
 const fmtCount = (n) => {
   if (n == null || n === '') return '—';
   return Number(n).toLocaleString('vi-VN');
+};
+
+const unwrapApiData = (payload) => payload?.data ?? payload ?? null;
+
+const getFriendlyError = (error, fallback) => {
+  const message = error?.response?.data?.message;
+  if (typeof message === 'string' && message.trim()) return message.trim();
+  return fallback;
+};
+
+const buildExamOptionLabel = (exam) => {
+  const name = exam?.name?.trim() || 'Kỳ thi chưa đặt tên';
+  const semester = exam?.semester?.trim();
+  const academicYear = exam?.academicYear?.trim();
+
+  const suffix = [semester, academicYear].filter(Boolean).join(' • ');
+  return suffix ? `${name} (${suffix})` : name;
+};
+
+const buildBlockOptionLabel = (block) => {
+  if (!block) return '—';
+  const name = block?.name?.trim() || 'Block';
+
+  if (!block?.examDate) return name;
+
+  try {
+    const dateLabel = new Date(`${block.examDate}T00:00:00+07:00`).toLocaleDateString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+    return `${name} • ${dateLabel}`;
+  } catch {
+    return `${name} • ${block.examDate}`;
+  }
+};
+
+const mapBlockDistribution = (statistics) => {
+  const items = Array.isArray(statistics?.scoreAnalysis?.distribution)
+    ? statistics.scoreAnalysis.distribution
+    : [];
+
+  return items.map((item) => ({
+    label: item?.range ?? item?.label ?? '—',
+    count: Number(item?.count ?? 0),
+    percentage: Number(item?.percentage ?? 0),
+  }));
 };
 
 const getInitials = (name) => {
@@ -49,11 +99,162 @@ export default function ExamStaffHomeDashboard() {
   const {
     overview,
     recentExams,
-    gradeDistribution,
     pendingAppeals,
     loading,
     errors,
   } = useStaffDashboard({ recentExamsLimit: 5, pendingAppealsLimit: 5 });
+
+  const [distributionExamOptions, setDistributionExamOptions] = useState([]);
+  const [distributionBlockOptions, setDistributionBlockOptions] = useState([]);
+  const [selectedDistributionExamId, setSelectedDistributionExamId] = useState('');
+  const [selectedDistributionBlockId, setSelectedDistributionBlockId] = useState('');
+  const [selectedBlockStatistics, setSelectedBlockStatistics] = useState(null);
+  const [distributionFilterLoading, setDistributionFilterLoading] = useState(false);
+  const [distributionChartLoading, setDistributionChartLoading] = useState(false);
+  const [distributionFilterError, setDistributionFilterError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadExamOptions = async () => {
+      setDistributionFilterLoading(true);
+      setDistributionFilterError('');
+
+      try {
+        const response = await examApi.getAll({
+          page: 0,
+          size: 100,
+          sort: 'createdAt,desc',
+        });
+
+        if (!active) return;
+
+        const examPage = unwrapApiData(response);
+        const content = Array.isArray(examPage?.content) ? examPage.content : [];
+
+        setDistributionExamOptions(content);
+
+        if (!content.length) {
+          setSelectedDistributionExamId('');
+          return;
+        }
+
+        setSelectedDistributionExamId((current) => {
+          if (current && content.some((exam) => exam?.examId === current)) {
+            return current;
+          }
+          return content[0]?.examId ?? '';
+        });
+      } catch (error) {
+        if (!active) return;
+        setDistributionExamOptions([]);
+        setSelectedDistributionExamId('');
+        setDistributionFilterError(
+          getFriendlyError(error, 'Không tải được danh sách kỳ thi cho bộ lọc.'),
+        );
+      } finally {
+        if (active) {
+          setDistributionFilterLoading(false);
+        }
+      }
+    };
+
+    void loadExamOptions();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedDistributionExamId) {
+      setDistributionBlockOptions([]);
+      setSelectedDistributionBlockId('');
+      setSelectedBlockStatistics(null);
+      return;
+    }
+
+    let active = true;
+
+    const loadBlocksForExam = async () => {
+      setDistributionFilterLoading(true);
+      setDistributionFilterError('');
+      setSelectedBlockStatistics(null);
+
+      try {
+        const response = await blockApi.getByExam(selectedDistributionExamId);
+        if (!active) return;
+
+        const blockList = unwrapApiData(response);
+        const blocks = Array.isArray(blockList) ? blockList : [];
+
+        setDistributionBlockOptions(blocks);
+        setSelectedDistributionBlockId((current) => {
+          if (current && blocks.some((block) => block?.blockId === current)) {
+            return current;
+          }
+          return blocks[0]?.blockId ?? '';
+        });
+      } catch (error) {
+        if (!active) return;
+        setDistributionBlockOptions([]);
+        setSelectedDistributionBlockId('');
+        setDistributionFilterError(
+          getFriendlyError(error, 'Không tải được danh sách block của kỳ thi đã chọn.'),
+        );
+      } finally {
+        if (active) {
+          setDistributionFilterLoading(false);
+        }
+      }
+    };
+
+    void loadBlocksForExam();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedDistributionExamId]);
+
+  useEffect(() => {
+    if (!selectedDistributionExamId || !selectedDistributionBlockId) {
+      setSelectedBlockStatistics(null);
+      return;
+    }
+
+    let active = true;
+
+    const loadBlockStatistics = async () => {
+      setDistributionChartLoading(true);
+      setDistributionFilterError('');
+
+      try {
+        const response = await statisticsApi.getBlockStatistics(
+          selectedDistributionExamId,
+          selectedDistributionBlockId,
+        );
+
+        if (!active) return;
+        setSelectedBlockStatistics(unwrapApiData(response));
+      } catch (error) {
+        if (!active) return;
+        setSelectedBlockStatistics(null);
+        setDistributionFilterError(
+          getFriendlyError(error, 'Không tải được phân bố điểm của block đã chọn.'),
+        );
+      } finally {
+        if (active) {
+          setDistributionChartLoading(false);
+        }
+      }
+    };
+
+    void loadBlockStatistics();
+
+    return () => {
+      active = false;
+    };
+  }, [selectedDistributionExamId, selectedDistributionBlockId]);
 
   const metricCards = useMemo(() => {
     const o = overview;
@@ -85,11 +286,24 @@ export default function ExamStaffHomeDashboard() {
     ];
   }, [overview]);
 
-  const totalGraded = gradeDistribution?.totalGraded ?? 0;
+  const selectedDistributionExam = useMemo(
+    () => distributionExamOptions.find((exam) => exam?.examId === selectedDistributionExamId) ?? null,
+    [distributionExamOptions, selectedDistributionExamId],
+  );
+
+  const selectedDistributionBlock = useMemo(
+    () => distributionBlockOptions.find((block) => block?.blockId === selectedDistributionBlockId) ?? null,
+    [distributionBlockOptions, selectedDistributionBlockId],
+  );
+
+  const totalGraded = useMemo(() => {
+    const value = Number(selectedBlockStatistics?.gradedSubmissions ?? 0);
+    return Number.isFinite(value) ? value : 0;
+  }, [selectedBlockStatistics]);
 
   const gradeRanges = useMemo(
-    () => gradeDistribution?.ranges ?? [],
-    [gradeDistribution],
+    () => mapBlockDistribution(selectedBlockStatistics),
+    [selectedBlockStatistics],
   );
 
   const activeGradeIndex = useMemo(() => {
@@ -132,7 +346,8 @@ export default function ExamStaffHomeDashboard() {
           const r = gradeRanges[idx];
           if (!r) return '';
           const cnt = fmtCount(r.count);
-          return `${r.label ?? ''}<br/>Số bài: ${cnt}`;
+          const pct = Number.isFinite(Number(r.percentage)) ? Number(r.percentage).toFixed(1) : '0.0';
+          return `${r.label ?? ''}<br/>Số bài: ${cnt}<br/>Tỷ lệ: ${pct}%`;
         },
       },
       grid: {
@@ -160,8 +375,7 @@ export default function ExamStaffHomeDashboard() {
           min: 0,
           minInterval: 1,
           axisLabel: {
-            formatter: (val) =>
-              Number(val).toLocaleString('vi-VN'),
+            formatter: (val) => Number(val).toLocaleString('vi-VN'),
           },
           splitLine: { lineStyle: { color: '#f1f5f9' } },
         },
@@ -170,7 +384,7 @@ export default function ExamStaffHomeDashboard() {
         {
           name: 'Phân bố',
           type: 'bar',
-          barWidth: '60%',
+          barWidth: labels.length > 6 ? '52%' : '60%',
           data,
         },
       ],
@@ -340,6 +554,9 @@ export default function ExamStaffHomeDashboard() {
   );
 
   const pendingCount = overview?.pendingAppeals ?? pendingAppeals.length;
+  const hasDistributionSelection = Boolean(selectedDistributionExamId && selectedDistributionBlockId);
+  const showDistributionEmpty = !distributionChartLoading && hasDistributionSelection && totalGraded === 0;
+  const showDistributionPrompt = !distributionChartLoading && !distributionFilterError && !hasDistributionSelection;
 
   return (
     <ConfigProvider
@@ -406,43 +623,109 @@ export default function ExamStaffHomeDashboard() {
               </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 flex flex-col">
-                <div className="flex items-center gap-2 mb-6">
-                  <span className="material-symbols-outlined text-[#F37021]">
-                    bar_chart
-                  </span>
-                  <h3 className="font-bold text-slate-800 text-lg">
-                    Phân bố điểm
-                  </h3>
+                <div className="flex flex-col gap-4 mb-6">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[#F37021]">
+                      bar_chart
+                    </span>
+                    <h3 className="font-bold text-slate-800 text-lg">
+                      Phân bố điểm
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <div className="relative">
+                      <select
+                        value={selectedDistributionExamId}
+                        onChange={(event) => {
+                          setSelectedDistributionExamId(event.target.value);
+                          setSelectedDistributionBlockId('');
+                          setSelectedBlockStatistics(null);
+                        }}
+                        disabled={distributionFilterLoading || !distributionExamOptions.length}
+                        className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm font-semibold text-slate-700 outline-none transition-all focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {!distributionExamOptions.length ? (
+                          <option value="">Chưa có kỳ thi</option>
+                        ) : null}
+                        {distributionExamOptions.map((exam) => (
+                          <option key={exam.examId} value={exam.examId}>
+                            {buildExamOptionLabel(exam)}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        expand_more
+                      </span>
+                    </div>
+
+                    <div className="relative">
+                      <select
+                        value={selectedDistributionBlockId}
+                        onChange={(event) => setSelectedDistributionBlockId(event.target.value)}
+                        disabled={distributionFilterLoading || !distributionBlockOptions.length}
+                        className="w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm font-semibold text-slate-700 outline-none transition-all focus:border-orange-400 focus:bg-white focus:ring-2 focus:ring-orange-400/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {!distributionBlockOptions.length ? (
+                          <option value="">Chưa có block</option>
+                        ) : null}
+                        {distributionBlockOptions.map((block) => (
+                          <option key={block.blockId} value={block.blockId}>
+                            {buildBlockOptionLabel(block)}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="material-symbols-outlined pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                        expand_more
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                {errors.gradeDistribution && (
+
+                {distributionFilterError && (
                   <p className="text-xs text-red-500 mb-2">
-                    {errors.gradeDistribution}
+                    {distributionFilterError}
                   </p>
                 )}
-                {totalGraded === 0 && !loading ? (
-                  <div className="flex flex-1 items-center justify-center min-h-[192px]">
-                    <Empty description="Chưa có dữ liệu chấm điểm" />
-                  </div>
-                ) : gradeRanges.length === 0 && !loading ? (
-                  <div className="flex flex-1 items-center justify-center min-h-[192px]">
-                    <Empty description="Chưa có dữ liệu phân bố" />
-                  </div>
-                ) : (
-                  <div className="w-full min-h-[192px] flex-1">
-                    <ReactECharts
-                      style={{ height: '220px', width: '100%' }}
-                      option={gradeBarChartOption}
-                      notMerge
-                    />
-                  </div>
-                )}
-                <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+
+                <Spin spinning={distributionChartLoading || distributionFilterLoading}>
+                  {showDistributionPrompt ? (
+                    <div className="flex flex-1 items-center justify-center min-h-[192px]">
+                      <Empty description="Chọn kỳ thi và block để xem phân bố điểm" />
+                    </div>
+                  ) : showDistributionEmpty ? (
+                    <div className="flex flex-1 items-center justify-center min-h-[192px]">
+                      <Empty description="Block này chưa có dữ liệu chấm điểm" />
+                    </div>
+                  ) : gradeRanges.length === 0 && !distributionChartLoading ? (
+                    <div className="flex flex-1 items-center justify-center min-h-[192px]">
+                      <Empty description="Chưa có dữ liệu phân bố" />
+                    </div>
+                  ) : (
+                    <div className="w-full min-h-[192px] flex-1">
+                      <ReactECharts
+                        style={{ height: '220px', width: '100%' }}
+                        option={gradeBarChartOption}
+                        notMerge
+                      />
+                    </div>
+                  )}
+                </Spin>
+
+                <div className="mt-6 pt-4 border-t border-slate-100 flex flex-col gap-2">
                   <p className="text-[12px] text-slate-500 font-medium">
                     <span className="font-bold text-slate-700">
                       {fmtCount(totalGraded)}
                     </span>{' '}
-                    bài đã chấm
+                    bài đã chấm trong block đang chọn
                   </p>
+                  {selectedDistributionExam || selectedDistributionBlock ? (
+                    <p className="text-[12px] text-slate-400">
+                      {selectedDistributionExam ? buildExamOptionLabel(selectedDistributionExam) : '—'}
+                      {' • '}
+                      {selectedDistributionBlock ? buildBlockOptionLabel(selectedDistributionBlock) : '—'}
+                    </p>
+                  ) : null}
                 </div>
               </div>
             </div>
