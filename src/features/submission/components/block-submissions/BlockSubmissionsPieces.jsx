@@ -13,9 +13,9 @@ import {
 export const PageBackdrop = React.memo(function PageBackdrop() {
   return (
     <>
-      <div className="pointer-events-none absolute top-10 -left-14 w-56 h-56 rounded-full bg-orange-100/70 blur-3xl" />
-      <div className="pointer-events-none absolute top-1/4 -right-12 w-56 h-56 rounded-full bg-amber-100/50 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-10 left-1/3 w-48 h-48 rounded-full bg-sky-100/40 blur-3xl" />
+      <div className="pointer-events-none absolute -z-10 top-10 -left-14 w-56 h-56 rounded-full bg-orange-100/55 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -z-10 top-1/4 -right-12 w-56 h-56 rounded-full bg-amber-100/40 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -z-10 bottom-10 left-1/3 w-48 h-48 rounded-full bg-sky-100/30 blur-3xl" aria-hidden="true" />
     </>
   );
 });

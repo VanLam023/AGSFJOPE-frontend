@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import StudentLayout from '../../components/layouts/student';
 import appealApi from '../../services/appealApi';
 import gradingApi from '../../services/gradingApi';
@@ -46,11 +46,10 @@ function ScoreCard({ label, value, emphasize = false, strike = false }) {
 
 export default function StudentAppealDetailPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { appealId } = useParams();
 
-  // Do NOT initialize from location.state: that data may be stale (e.g. old PENDING status).
-  // We always rely on the fresh API response from loadAppeal() to set the appeal.
-  const [appeal, setAppeal] = useState(null);
+  const [appeal, setAppeal] = useState(location.state?.appeal ?? null);
   const [gradingDetail, setGradingDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -102,10 +101,11 @@ export default function StudentAppealDetailPage() {
     loadAppeal();
   }, [loadAppeal]);
 
-  // REMOVED: The old useEffect that restored location.state?.appeal when appeal was null.
-  // That pattern caused a stale-data bug: if findAppealById() failed to match the ID in the API
-  // response, appeal became null, and the old snapshot (with PENDING status) was silently
-  // restored — making the timeline appear frozen even after staff had assigned a lecturer.
+  useEffect(() => {
+    if (!appeal && location.state?.appeal) {
+      setAppeal(location.state.appeal);
+    }
+  }, [appeal, location.state]);
 
   const hasReviewOutcome = hasAppealReviewOutcome(appeal?.status);
   const reviewerName = getAppealReviewerName(appeal);
@@ -222,16 +222,13 @@ export default function StudentAppealDetailPage() {
                 <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">
                   {appeal?.examName || 'Đơn phúc khảo'}
                 </h1>
-                {appeal?.semester ? (
-                  <p className="mt-2 text-sm text-slate-500">{appeal.semester}</p>
-                ) : null}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:w-[420px]">
                 <MetaCard label="Ngày tạo đơn" value={formatDateTime(appeal?.createdAt)} />
-                <MetaCard label="Ngày hoàn tất" value={formatDateTime(appeal?.completedAt)} />
+                <MetaCard label="Học kỳ" value={appeal?.semesterName || appeal?.semester || '—'} />
                 <MetaCard label="Giảng viên chấm lại" value={reviewerName || 'Chưa phân công'} />
-                <MetaCard label="Hạn xử lý" value={formatDateTime(appeal?.deadlineAt)} />
+                <MetaCard label="Block / ca thi" value={appeal?.blockName || appeal?.block?.name || '—'} />
               </div>
             </div>
           </section>

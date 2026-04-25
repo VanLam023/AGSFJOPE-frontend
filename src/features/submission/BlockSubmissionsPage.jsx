@@ -819,7 +819,7 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
   );
 
   return (
-    <div className="relative max-w-7xl mx-auto w-full p-6 sm:p-8 pt-20 sm:pt-24 space-y-6">
+    <div className="relative isolate overflow-x-hidden max-w-7xl mx-auto w-full p-6 sm:p-8 pt-20 sm:pt-24 space-y-6">
       <PageBackdrop />
 
       <BackSection onBack={handleBack} />

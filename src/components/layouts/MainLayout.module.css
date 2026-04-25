@@ -1,5 +1,7 @@
 .layout {
   min-height: 100vh;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .header {
@@ -8,7 +10,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-
+  min-width: 0;
+  isolation: isolate;
 }
 
 .uti {
@@ -52,6 +55,10 @@
 
 .content {
   background-color: #F8F9FA;
+  min-width: 0;
+  overflow-x: hidden;
+  position: relative;
+  isolation: isolate;
 }
 
 .triggerBtn {

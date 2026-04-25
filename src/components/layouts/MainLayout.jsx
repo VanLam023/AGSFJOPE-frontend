@@ -24,8 +24,16 @@ const siderStyle = {
   position: "sticky",
   insetInlineStart: 0,
   top: 0,
+  zIndex: 20,
+  flex: "0 0 auto",
   scrollbarWidth: "thin",
   scrollbarGutter: "stable",
+};
+
+const shellStyle = {
+  minWidth: 0,
+  overflowX: "hidden",
+  position: "relative",
 };
 
 const ROLE_LABELS = {
@@ -229,7 +237,7 @@ const MainLayout = ({
           </div>
         </Sider>
 
-        <Layout>
+        <Layout style={shellStyle}>
           <Header
             className={`${styles.header} border-b border-slate-200`}
             style={{
