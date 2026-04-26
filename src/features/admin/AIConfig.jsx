@@ -16,6 +16,15 @@ import {
 import { AI_PROVIDERS, LANGUAGE, AI_PROVIDER_MODELS } from './config';
 import { trimPayload } from '../../components/utils/Utils';
 
+const CUSTOM_PROVIDER_VALUE = 'custom_openai';
+
+const isCustomProviderValue = (value) =>
+  typeof value === 'string' &&
+  (value.startsWith('http://') || value.startsWith('https://'));
+
+const getActualProvider = ({ provider, providerUrl }) =>
+  provider === CUSTOM_PROVIDER_VALUE ? providerUrl?.trim() : provider;
+
 const AIConfig = () => {
   const [form] = Form.useForm();
   const [validationError, setValidationError] = useState(false);
@@ -24,22 +33,13 @@ const AIConfig = () => {
   const {
     callGetAIConfigEndpoint,
     config: fetchedConfig,
-    loading: getConfigLoading,
-    error: getConfigError,
   } = useGetAIConfig();
 
-  const {
-    callEditAIConfigEndpoint,
-    loading: editConfigLoading,
-    error: editConfigError,
-  } = useUpdateAIConfig();
+  const { callEditAIConfigEndpoint, loading: editConfigLoading } =
+    useUpdateAIConfig();
 
-  const {
-    callTestConnectionEndpoint,
-    result,
-    loading: testConnectionLoading,
-    error: testConnectionError,
-  } = useTestConnection();
+  const { callTestConnectionEndpoint, loading: testConnectionLoading } =
+    useTestConnection();
 
   const config = fetchedConfig;
 
@@ -48,18 +48,24 @@ const AIConfig = () => {
   }, []);
 
   useEffect(() => {
+    const providerValue = config?.provider;
+    const isCustomProvider = isCustomProviderValue(providerValue);
+
     form.setFieldsValue({
-      provider: config?.provider,
+      provider: isCustomProvider ? CUSTOM_PROVIDER_VALUE : providerValue,
+      providerUrl: isCustomProvider ? providerValue : '',
       apiKeyMasked: config?.apiKeyMasked,
       model: config?.model,
       language: config?.language,
     });
-  }, [config]);
+  }, [config, form]);
 
   const handleTestConnection = async () => {
-    const { provider, model } = form.getFieldsValue();
+    const { provider, model, providerUrl } = form.getFieldsValue();
+    const actualProvider = getActualProvider({ provider, providerUrl });
+
     const payload = trimPayload({
-      provider,
+      provider: actualProvider,
       model,
       apiKey: form.getFieldValue('apiKeyMasked'),
     });
@@ -78,7 +84,7 @@ const AIConfig = () => {
       }
     } catch (err) {
       setConnectionTestPassed(false);
-      if (err.response.data.message) {
+      if (err.response?.data?.message) {
         message.error(
           err.response.data.message + '. Vui lòng kiểm tra lại API key',
         );
@@ -87,27 +93,39 @@ const AIConfig = () => {
   };
 
   const handleEdit = async () => {
-    const payload = trimPayload(form.getFieldsValue());
+    const { provider, providerUrl, model, apiKeyMasked, language } =
+      form.getFieldsValue();
+
+    const actualProvider = getActualProvider({ provider, providerUrl });
+
+    const payload = trimPayload({
+      provider: actualProvider,
+      model,
+      apiKey: apiKeyMasked,
+      language,
+    });
 
     try {
       const res = await callEditAIConfigEndpoint(payload);
-
       message.success(res.message.split(':')[1]);
-
       callGetAIConfigEndpoint();
     } catch (err) {
-      if (err.response.data.message) {
+      if (err.response?.data?.message) {
         message.error(err.response.data.message);
       }
     }
   };
 
   const handleCancel = () => {
+    const providerValue = config?.provider;
+    const isCustomProvider = isCustomProviderValue(providerValue);
+
     form.setFieldsValue({
-      provider: config.provider,
-      apiKeyMasked: config.apiKeyMasked,
-      model: config.model,
-      language: config.language,
+      provider: isCustomProvider ? CUSTOM_PROVIDER_VALUE : providerValue,
+      providerUrl: isCustomProvider ? providerValue : '',
+      apiKeyMasked: config?.apiKeyMasked,
+      model: config?.model,
+      language: config?.language,
     });
     setValidationError(false);
     setConnectionTestPassed(false);
@@ -146,6 +164,7 @@ const AIConfig = () => {
                   );
 
                   setValidationError(hasErrors);
+                  setConnectionTestPassed(false);
                 }}
                 className="grid grid-cols-2 gap-x-4 gap-y-1"
               >
@@ -164,11 +183,18 @@ const AIConfig = () => {
                       onChange={(newProvider) => {
                         const models = AI_PROVIDER_MODELS[newProvider] ?? [];
                         const firstModel = models[0]?.[0];
-                        form.setFieldValue('model', firstModel);
+
+                        if (newProvider === CUSTOM_PROVIDER_VALUE) {
+                          form.setFieldValue('providerUrl', '');
+                          form.setFieldValue('model', '');
+                        } else {
+                          form.setFieldValue('model', firstModel);
+                        }
                       }}
                     />
                   </Form.Item>
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                     API Key
@@ -185,6 +211,55 @@ const AIConfig = () => {
                     <Input disabled={!isEdit} />
                   </Form.Item>
                 </div>
+
+                <Form.Item
+                  shouldUpdate={(prevValues, currentValues) =>
+                    prevValues.provider !== currentValues.provider
+                  }
+                >
+                  {({ getFieldValue }) =>
+                    getFieldValue('provider') === CUSTOM_PROVIDER_VALUE ? (
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-500 mb-1.5">
+                          Provider URL
+                        </label>
+                        <Form.Item
+                          name="providerUrl"
+                          rules={[
+                            {
+                              required: true,
+                              message: 'Không được để trống',
+                            },
+                            {
+                              validator: (_, value) => {
+                                if (!value) return Promise.resolve();
+                                const isValid =
+                                  value.startsWith('http://') ||
+                                  value.startsWith('https://');
+
+                                return isValid
+                                  ? Promise.resolve()
+                                  : Promise.reject(
+                                      new Error(
+                                        'URL phải bắt đầu bằng http:// hoặc https://',
+                                      ),
+                                    );
+                              },
+                            },
+                          ]}
+                        >
+                          <Input
+                            disabled={!isEdit}
+                            placeholder="http://host.docker.internal:1234/v1"
+                          />
+                        </Form.Item>
+                      </div>
+                    ) : (
+                      <div />
+                    )
+                  }
+                </Form.Item>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                     AI Model
@@ -197,23 +272,41 @@ const AIConfig = () => {
                     {({ getFieldValue }) => {
                       const provider = getFieldValue('provider');
                       const models = AI_PROVIDER_MODELS[provider] ?? [];
+                      const isCustomProvider = provider === CUSTOM_PROVIDER_VALUE;
+
                       return (
-                        <Form.Item name="model">
-                          <Select
-                            className="w-full"
-                            showSearch
-                            defaultActiveFirstOption={true}
-                            options={models.map(([value, label]) => ({
-                              value,
-                              label,
-                            }))}
-                            disabled={!isEdit}
-                          />
+                        <Form.Item
+                          name="model"
+                          rules={[
+                            {
+                              required: true,
+                              message: 'Không được để trống',
+                            },
+                          ]}
+                        >
+                          {isCustomProvider ? (
+                            <Input
+                              disabled={!isEdit}
+                              placeholder="qwen/qwen3.6-35b-a3b"
+                            />
+                          ) : (
+                            <Select
+                              className="w-full"
+                              showSearch
+                              defaultActiveFirstOption={true}
+                              options={models.map(([value, label]) => ({
+                                value,
+                                label,
+                              }))}
+                              disabled={!isEdit}
+                            />
+                          )}
                         </Form.Item>
                       );
                     }}
                   </Form.Item>
                 </div>
+
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                     Ngôn ngữ nhận xét
@@ -287,10 +380,6 @@ const AIConfig = () => {
               </div>
             </div>
           </CardContainer>
-          {/* 
-          <CardContainer>
-            <div>Placeholder</div>
-          </CardContainer> */}
         </div>
       </ConfigProvider>
     </MainLayout>
