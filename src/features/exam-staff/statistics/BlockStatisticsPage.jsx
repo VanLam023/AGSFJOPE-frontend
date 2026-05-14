@@ -8,6 +8,7 @@ import {
   buildAiOverviewSummary,
   buildAppealFinanceCards,
   buildAppealStatusItems,
+  buildCriteriaStats,
   buildMetricCards,
   buildPassFailSummary,
   buildOopViolationItems,
@@ -22,6 +23,7 @@ const StatisticsAiOverviewCard = lazy(() => import('./components/StatisticsAiOve
 const StatisticsOopViolationChart = lazy(() => import('./components/StatisticsOopViolationChart.jsx'));
 const StatisticsAppealStatusChart = lazy(() => import('./components/StatisticsAppealStatusChart.jsx'));
 const StatisticsAppealFinanceChart = lazy(() => import('./components/StatisticsAppealFinanceChart.jsx'));
+const StatisticsCriteriaDetailTable = lazy(() => import('./components/StatisticsCriteriaDetailTable.jsx'));
 
 function resolveBlobPayload(payload) {
   if (payload instanceof Blob) return payload;
@@ -61,6 +63,7 @@ export default function BlockStatisticsPage({ examId, blockId, onBack }) {
   const passFailSummary = useMemo(() => buildPassFailSummary(statistics), [statistics]);
   const aiOverview = useMemo(() => buildAiOverviewSummary(statistics), [statistics]);
   const oopViolationItems = useMemo(() => buildOopViolationItems(statistics), [statistics]);
+  const criteriaStats = useMemo(() => buildCriteriaStats(statistics), [statistics]);
   const appealStatusItems = useMemo(() => buildAppealStatusItems(statistics), [statistics]);
   const appealFinanceCards = useMemo(() => buildAppealFinanceCards(statistics), [statistics]);
 
@@ -172,6 +175,11 @@ export default function BlockStatisticsPage({ examId, blockId, onBack }) {
             </Suspense>
           </div>
         </div>
+
+        {/* Bảng chi tiết từng tiêu chí OOP */}
+        <Suspense fallback={<ChartSkeleton className="h-[300px]" />}>
+          <StatisticsCriteriaDetailTable items={criteriaStats} />
+        </Suspense>
 
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Suspense fallback={<ChartSkeleton className="h-[380px]" />}>

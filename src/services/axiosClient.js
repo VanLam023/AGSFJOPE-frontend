@@ -30,6 +30,12 @@ const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/forgot-passwo
 
 axiosClient.interceptors.request.use((config) => {
   // Không cần add Authorization header vì token đã nằm trong HttpOnly Cookie
+  // Thêm Cache-Control để tránh browser cache GET responses (quan trọng khi polling grading status)
+  if (!config.method || config.method.toLowerCase() === 'get') {
+    config.headers = config.headers || {};
+    config.headers['Cache-Control'] = 'no-cache';
+    config.headers['Pragma'] = 'no-cache';
+  }
   return config;
 });
 

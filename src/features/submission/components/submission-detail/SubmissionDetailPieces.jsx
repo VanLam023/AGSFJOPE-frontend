@@ -24,7 +24,7 @@ function SubmissionSingleScoreDisplay({ value, maxScore }) {
   if (!hasValue) {
     return (
       <div className="flex items-end justify-center lg:justify-end gap-1.5">
-        <span className="text-5xl font-black text-slate-400">—</span>
+        <span className="text-5xl font-black text-slate-400">-</span>
         {hasMaxScore ? <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span> : null}
       </div>
     );
@@ -32,7 +32,7 @@ function SubmissionSingleScoreDisplay({ value, maxScore }) {
 
   return (
     <div className="flex items-end justify-center lg:justify-end gap-1.5">
-      <span className="text-5xl font-black bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-600">
+      <span className="text-5xl font-black text-emerald-600">
         {num(value)}
       </span>
       {hasMaxScore ? <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span> : null}
@@ -51,7 +51,7 @@ function SubmissionComparedScoreDisplay({ originalValue, nextValue, maxScore, em
   return (
     <div className="flex flex-wrap items-end justify-center gap-2 lg:justify-end">
       <span className="text-2xl font-bold text-slate-400 line-through">{num(originalValue)}</span>
-      <span className={`text-5xl font-black ${emphasize ? 'text-[#F37021]' : 'text-emerald-600'}`}>
+      <span className={`text-5xl font-black ${emphasize ? 'text-emerald-600' : 'text-emerald-600'}`}>
         {num(nextValue)}
       </span>
       <span className="text-xl font-bold text-slate-400">/ {num(maxScore)}</span>
@@ -64,7 +64,7 @@ function SubmissionSingleMetricDisplay({ value, tone = 'neutral' }) {
 
   if (!hasValue) {
     return (
-      <span className="text-base font-black text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-100">—</span>
+      <span className="text-base font-black text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-lg border border-slate-100">-</span>
     );
   }
 
@@ -114,7 +114,7 @@ export const TopActions = React.memo(function TopActions({
       <button
         type="button"
         onClick={onBack}
-        className="flex items-center gap-2 px-5 py-2.5 bg-white/80 backdrop-blur-md border border-slate-200/80 rounded-full hover:bg-white hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold text-slate-700 shadow-sm"
+        className="flex items-center gap-2 px-5 py-2.5 bg-white border border-slate-100 rounded-full hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold text-slate-700 shadow-sm"
       >
         <span className="material-symbols-outlined text-[20px]">arrow_back</span>
         Quay lại
@@ -125,7 +125,7 @@ export const TopActions = React.memo(function TopActions({
           <button
             type="button"
             onClick={onAppeal}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#F37021] border border-[#d9621a] text-white rounded-full hover:bg-orange-600 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm group"
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#F37021] to-orange-500 text-white rounded-full hover:from-orange-500 hover:to-[#F37021] hover:shadow-lg hover:shadow-orange-500/30 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm group border-0"
           >
             <span className="material-symbols-outlined text-[20px] group-hover:-translate-y-0.5 transition-transform duration-300">
               gavel
@@ -139,7 +139,7 @@ export const TopActions = React.memo(function TopActions({
               onClick={onRegrade}
               disabled={isRegrading || disableRegrade}
               title={disableRegrade ? 'Bài đã có kết quả phúc khảo, không thể chấm lại.' : undefined}
-              className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 border border-indigo-700 text-white rounded-full hover:bg-indigo-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm disabled:opacity-70 disabled:hover:-translate-y-0 disabled:cursor-not-allowed group"
+              className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-[#F37021] to-orange-500 text-white rounded-full hover:from-orange-500 hover:to-[#F37021] hover:shadow-lg hover:shadow-orange-500/30 hover:-translate-y-0.5 transition-all duration-300 text-sm font-bold shadow-sm disabled:opacity-70 disabled:hover:-translate-y-0 disabled:cursor-not-allowed group border-0"
             >
               {isRegrading ? (
                 <span className="w-5 h-5 rounded-full border-2 border-white/30 border-t-white animate-spin"></span>
@@ -160,16 +160,16 @@ export const TopActions = React.memo(function TopActions({
 export const LoadingState = React.memo(function LoadingState({ hasDetail }) {
   if (!hasDetail) {
     return (
-      <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-slate-200/60 p-16 text-center shadow-xl">
-        <div className="w-12 h-12 mx-auto rounded-full border-4 border-indigo-100 border-t-indigo-600 animate-spin mb-4" />
+      <div className="bg-white rounded-[2rem] border border-slate-100 p-16 text-center shadow-xl shadow-slate-200/40">
+        <div className="w-12 h-12 mx-auto rounded-full border-4 border-orange-100 border-t-[#F37021] animate-spin mb-4" />
         <p className="text-slate-500 font-medium animate-pulse">Đang nạp dữ liệu đánh giá...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-indigo-50 border border-indigo-100 rounded-2xl px-5 py-3 text-sm font-semibold text-indigo-700 inline-flex items-center gap-3 shadow-sm">
-      <span className="w-4 h-4 rounded-full border-2 border-indigo-300 border-t-indigo-600 animate-spin" />
+    <div className="bg-orange-50 border border-orange-100 rounded-2xl px-5 py-3 text-sm font-semibold text-[#F37021] inline-flex items-center gap-3 shadow-sm">
+      <span className="w-4 h-4 rounded-full border-2 border-orange-200 border-t-[#F37021] animate-spin" />
       Đang cập nhật dữ liệu mới nhất...
     </div>
   );
@@ -204,6 +204,7 @@ export const OverviewHeader = React.memo(function OverviewHeader({
   appealScores,
   showScoreComparison = false,
   isScoreResolving = false,
+  gradingMode,
 }) {
   const finalGradeDisplay = resolveFinalGradeDisplay(
     detail,
@@ -211,36 +212,51 @@ export const OverviewHeader = React.memo(function OverviewHeader({
     showScoreComparison,
   );
 
+  // Resolve grading mode display: label + %TC/%OOP breakdown
+  const modeInfo = React.useMemo(() => {
+    const m = String(gradingMode || detail?.gradingMode || '').toUpperCase();
+    switch (m) {
+      case 'MODE_1': return { label: 'Mode 1', tc: 100, oop: 0 };
+      case 'MODE_2': return { label: 'Mode 2', tc: 50, oop: 50 };
+      case 'MODE_3': return { label: 'Mode 3', tc: 0, oop: 100 };
+      case 'MODE_4': return { label: 'Mode 4', tc: 100, oop: 0, oopNote: 'OOP comment' };
+      case 'MODE_5': return { label: 'Mode 5', tc: 60, oop: 40 };
+      default: return m ? { label: m, tc: null, oop: null } : null;
+    }
+  }, [gradingMode, detail?.gradingMode]);
+
+  const semester = detail?.semesterName || detail?.semester || null;
+
   return (
-    <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden">
-      <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+    <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+      <div className="h-1.5 w-full bg-gradient-to-r from-[#F37021] to-amber-400"></div>
       <div className="p-7 sm:p-8">
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start lg:items-center justify-between">
           <div className="flex items-center gap-5 min-w-0">
-            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white text-2xl font-black flex items-center justify-center shadow-xl shadow-indigo-300/40 shrink-0">
+            <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-[#F37021] to-orange-500 text-white text-2xl font-black flex items-center justify-center shadow-xl shadow-orange-500/30 shrink-0">
               {detail?.studentName?.charAt(0)?.toUpperCase() || 'S'}
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-3 mb-2 flex-wrap">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Detail Report</span>
                 <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border shadow-sm ${status.cls}`}>
                   {status.label}
                 </span>
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Detail Report</span>
               </div>
 
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight truncate">
-                {detail?.studentName || '—'}
+              <h2 className="text-3xl font-black text-slate-800 tracking-tight truncate max-w-full">
+                {detail?.studentName || '-'}
               </h2>
 
-              <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-500 mt-2.5">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-500 mt-2.5">
                 <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md">
                   <span className="material-symbols-outlined text-[16px] text-slate-400">badge</span>
-                  {detail?.studentCode || '—'}
+                  {detail?.studentCode || '-'}
                 </span>
                 <span className="flex items-center gap-1.5 bg-slate-100/50 px-2.5 py-1 rounded-md max-w-full">
                   <span className="material-symbols-outlined text-[16px] text-slate-400">mail</span>
-                  <span className="truncate">{detail?.studentEmail || '—'}</span>
+                  <span className="truncate">{detail?.studentEmail || '-'}</span>
                 </span>
               </div>
             </div>
@@ -291,6 +307,10 @@ export const QuestionCard = React.memo(function QuestionCard({
   const hasRawTestCaseScore = Number.isFinite(rawTestCaseScore);
   const hasRawOopScore = Number.isFinite(rawOopScore);
 
+  // Badge: cho biết điểm OOP được tính từ tiêu chí criteria (không ảnh hưởng tính toán)
+  const criteriaResults = Array.isArray(ans?.criteriaResults) ? ans.criteriaResults : [];
+  const hasCriteriaSum = criteriaResults.length > 0;
+
   const resolveModeWeights = (mode) => {
     const normalized = String(mode || '').toUpperCase();
     switch (normalized) {
@@ -300,6 +320,10 @@ export const QuestionCard = React.memo(function QuestionCard({
         return { tcWeight: 0.0, oopWeight: 1.0 };
       case 'MODE_4':
         return { tcWeight: 1.0, oopWeight: 0.0 }; // OOP comment only
+      case 'MODE_5':
+        // DB (V14): TestCaseWeight=60%, StructureWeight=40% (OopWeight=0 unused)
+        // criteriaResults dùng StructureWeight để hiển thị 40% cho OOP column
+        return { tcWeight: 0.6, oopWeight: 0.4 };
       case 'MODE_1':
       default:
         return { tcWeight: 1.0, oopWeight: 0.0 };
@@ -310,6 +334,7 @@ export const QuestionCard = React.memo(function QuestionCard({
   const weightedTestCaseScore = hasRawTestCaseScore
     ? Number((rawTestCaseScore * tcWeight).toFixed(2))
     : null;
+  // rawOopScore từ backend = SUM(criteria.earnedScore) - đã đúng, chỉ cần nhân weight
   const weightedOopScore = hasRawOopScore
     ? Number((rawOopScore * oopWeight).toFixed(2))
     : null;
@@ -319,19 +344,19 @@ export const QuestionCard = React.memo(function QuestionCard({
   const hasReviewedScore = Number.isFinite(nextQuestionScore);
 
   return (
-    <div className={`bg-white rounded-2xl border border-slate-200/60 shadow-[0_2px_10px_rgb(0,0,0,0.02)] overflow-hidden transition-all duration-300 hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] group border-l-4 ${questionTone(ans)}`}>
+    <div className={`bg-white rounded-3xl border border-slate-100 shadow-md hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 group border-l-4 ${questionTone(ans)}`}>
       <button
         type="button"
         onClick={onToggle}
         className="w-full p-5 flex flex-wrap md:flex-nowrap items-center justify-between transition-colors hover:bg-slate-50/50 relative gap-4"
       >
         <div className="flex items-center gap-5 text-left w-full md:w-auto">
-          <div className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm shadow-sm border bg-white text-slate-700 border-slate-200">
+          <div className="shrink-0 w-10 h-10 flex items-center justify-center rounded-xl font-bold text-sm shadow-sm border bg-white text-slate-700 border-slate-100">
             {ans?.questionNumber ?? index + 1}
           </div>
 
           <div>
-            <p className="font-bold text-slate-800 text-[16px] group-hover:text-indigo-600 transition-colors">
+            <p className="font-bold text-slate-800 text-[16px] group-hover:text-[#F37021] transition-colors">
               {ans?.questionTitle || `Question ${ans?.questionNumber ?? index + 1}`}
             </p>
             <div className="flex items-center flex-wrap gap-2 mt-1.5 text-[12px] font-medium text-slate-500">
@@ -365,7 +390,7 @@ export const QuestionCard = React.memo(function QuestionCard({
               <p className="text-lg font-black text-slate-800">{num(baseOriginalQuestionScore)}</p>
             )}
           </div>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 bg-slate-50 text-slate-400 group-hover:bg-indigo-50 group-hover:text-indigo-600 ${isOpen ? 'rotate-180 bg-indigo-50 text-indigo-600' : ''}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-transform duration-300 bg-slate-50 text-slate-400 group-hover:bg-orange-50 group-hover:text-[#F37021] ${isOpen ? 'rotate-180 bg-orange-50 text-[#F37021]' : ''}`}>
             <span className="material-symbols-outlined text-[20px]">keyboard_arrow_down</span>
           </div>
         </div>
@@ -374,7 +399,7 @@ export const QuestionCard = React.memo(function QuestionCard({
       {isOpen && (
         <div className="px-6 pb-6 pt-2 bg-slate-50/30 border-t border-slate-100">
           <div className="mt-4 space-y-6">
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm ring-1 ring-slate-900/5 hover:shadow-lg transition-all duration-300">
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px] text-slate-400 bg-slate-100 p-1 rounded-md">bug_report</span>
                 Unit Test Results và Danh sách test case
@@ -410,37 +435,65 @@ export const QuestionCard = React.memo(function QuestionCard({
                   {testCases.map((tc, tIdx) => {
                     const isPass = String(tc?.status || '').toUpperCase() === 'PASS_TESTCASE';
                     const badgeClass = tcStatusClass(tc?.status);
+                    const hasExpected = tc?.expectedOutput != null && tc.expectedOutput !== '';
+                    const hasActual = tc?.actualOutput != null && tc.actualOutput !== '';
                     return (
                       <div
-                        key={tc?.testCaseId || tIdx}
-                        className="rounded-xl border border-slate-200/70 bg-slate-50/50 p-4"
+                        key={tc?.testCaseResultId || tIdx}
+                        className={`rounded-2xl border bg-white shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden ${isPass ? 'border-emerald-200' : 'border-rose-200'}`}
                       >
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs shadow-sm border ${isPass ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                        {/* Header row */}
+                        <div className={`flex flex-wrap items-center justify-between gap-4 p-4 border-b ${isPass ? 'bg-emerald-50/80 border-emerald-100' : 'bg-rose-50/80 border-rose-100'}`}>
+                          <div className="flex items-center gap-3">
+                            <span className={`w-6 h-6 rounded-md flex items-center justify-center font-bold text-xs shadow-sm border ${isPass ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-rose-50 text-rose-600 border-rose-200'}`}>
                               {tc?.testCaseNumber ?? tIdx + 1}
                             </span>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm ${badgeClass}`}>
                               {isPass ? 'PASS' : tc?.status || 'FAIL'}
                             </span>
+                            <span className="text-xs font-medium text-slate-500 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[14px] text-slate-400">timer</span>
+                              {tc?.executionTimeMs ?? 0} ms
+                            </span>
                           </div>
                           <span className={`text-sm font-black ${isPass ? 'text-emerald-600' : 'text-rose-600'}`}>
-                            {num(tc?.scoreEarned)}
+                            {num(tc?.scoreEarned)} đ
                           </span>
                         </div>
 
-                        <div className="mt-2 flex items-center justify-between text-xs font-medium text-slate-500">
-                          <span className="flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                            <span className="material-symbols-outlined text-[12px] text-slate-400">timer</span>
-                            {tc?.executionTimeMs ?? 0}ms
-                          </span>
-                        </div>
+                        {/* Expected / Actual output panels */}
+                        <div className="p-4 space-y-4">
+                          {(hasExpected || hasActual) && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-[14px]">fact_check</span>
+                                  Expected Output
+                                </p>
+                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[13px] font-sans text-slate-700 overflow-auto whitespace-pre-wrap break-all max-h-40 shadow-inner">
+                                  {hasExpected ? tc.expectedOutput : '(none)'}
+                                </div>
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-1">
+                                  <span className={`material-symbols-outlined text-[14px] ${isPass ? 'text-emerald-500' : 'text-rose-400'}`}>
+                                    {isPass ? 'check_circle' : 'cancel'}
+                                  </span>
+                                  Student Output
+                                </p>
+                                <div className={`p-3 rounded-xl border text-[13px] font-sans overflow-auto whitespace-pre-wrap break-all max-h-40 shadow-inner ${isPass ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900' : 'bg-rose-50/80 border-rose-200 text-rose-900'}`}>
+                                  {hasActual ? tc.actualOutput : '(no output)'}
+                                </div>
+                              </div>
+                            </div>
+                          )}
 
-                        {!!tc?.errorMessage && (
-                          <div className="mt-3 p-3 bg-rose-50/50 rounded-lg text-xs font-medium text-rose-800 border border-rose-100/50 font-mono overflow-auto">
-                            {tc.errorMessage}
-                          </div>
-                        )}
+                          {!!tc?.errorMessage && (
+                            <div className="mt-2 p-3 bg-rose-50/70 rounded-xl text-[13px] font-medium text-rose-800 border border-rose-100/70 font-sans overflow-auto shadow-sm">
+                              {tc.errorMessage}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     );
                   })}
@@ -448,6 +501,83 @@ export const QuestionCard = React.memo(function QuestionCard({
               </div>
             </div>
 
+            {/* OOP Criteria Results (NEW) */}
+            {(() => {
+              const criteriaResults = Array.isArray(ans?.criteriaResults) ? ans.criteriaResults : [];
+              const hasCriteria = criteriaResults.length > 0;
+              const passCount = criteriaResults.filter(c => c.passed).length;
+              const totalCount = criteriaResults.length;
+
+              if (!hasCriteria) return null;
+
+              return (
+                <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                    <p className="text-[11px] font-bold text-[#F37021] uppercase tracking-widest flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[16px] text-[#F37021] bg-orange-50 p-1 rounded-md">rule</span>
+                      Tiêu chí OOP
+                    </p>
+                    <span className={`text-[11px] font-bold px-3 py-1 rounded-full border shadow-sm ${passCount === totalCount ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-amber-50 border-amber-200 text-amber-700'}`}>
+                      {passCount}/{totalCount} đạt
+                    </span>
+                  </div>
+
+                  {reviewerName ? (
+                    <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3.5">
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Người chấm lại</p>
+                      <p className="text-sm font-semibold text-slate-800">{reviewerName}</p>
+                    </div>
+                  ) : null}
+
+                  <div className="space-y-3">
+                    {criteriaResults.map((cr, crIdx) => (
+                      <div
+                        key={cr?.criteriaResultId || crIdx}
+                        className={`flex flex-col gap-2 p-4 rounded-2xl border transition-all hover:shadow-sm ${cr.passed
+                          ? 'bg-emerald-50/80 border-emerald-200'
+                          : 'bg-rose-50/80 border-rose-200'}`}
+                      >
+                        {/* Criterion header */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 min-w-0">
+                            {cr.passed ? (
+                              <span className="material-symbols-outlined text-[20px] text-emerald-500 shrink-0 mt-0.5">check_circle</span>
+                            ) : (
+                              <span className="material-symbols-outlined text-[20px] text-rose-500 shrink-0 mt-0.5">cancel</span>
+                            )}
+                            <div className="min-w-0 flex items-center gap-2.5">
+                              <span className="shrink-0 text-[11px] font-bold text-slate-500 bg-white border border-slate-200 px-1.5 py-0.5 rounded shadow-sm font-mono tracking-wide">
+                                {cr.criteriaCode}
+                              </span>
+                              <span className="text-sm font-semibold text-slate-800 leading-snug">
+                                {cr.description}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className={`text-base font-black ${cr.passed ? 'text-emerald-600' : 'text-rose-600'}`}>
+                              {num(cr.earnedScore)}
+                            </span>
+                            <span className="text-xs text-slate-400 font-bold">/{num(cr.maxScore)}</span>
+                          </div>
+                        </div>
+
+                        {/* Feedback */}
+                        {!!cr.feedback && (
+                          <div className={`mt-2 ml-8 px-4 py-3 rounded-xl text-[13px] font-medium leading-relaxed font-sans border shadow-inner ${cr.passed
+                            ? 'bg-emerald-100/40 text-emerald-900 border-emerald-200'
+                            : 'bg-rose-100/40 text-rose-900 border-rose-200'}`}>
+                            {cr.feedback}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* [OLD] AI Code Review - kept for reference, replaced by OOP Criteria Results above
             <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm ring-1 ring-slate-900/5 hover:shadow-lg transition-all duration-300">
               <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-[16px] text-indigo-500 bg-indigo-50 p-1 rounded-md">psychology</span>
@@ -492,8 +622,10 @@ export const QuestionCard = React.memo(function QuestionCard({
                 </div>
               )}
             </div>
+            END [OLD] AI Code Review */}
 
-            <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm ring-1 ring-slate-900/5 hover:shadow-lg transition-all duration-300 space-y-3">
+
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 space-y-3">
               <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">Điểm câu</p>
 
               {ans?.guardRuleTriggered && (
@@ -516,11 +648,16 @@ export const QuestionCard = React.memo(function QuestionCard({
                   <div className="text-right space-y-2">
                     <div className="inline-flex flex-wrap items-center justify-end gap-2 text-[12px] font-semibold">
                       <span className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-700">
-                        TC: <span className="font-black text-emerald-700">{Number.isFinite(Number(weightedTestCaseScore)) ? num(weightedTestCaseScore) : '—'}</span>
+                        TC: <span className="font-black text-emerald-700">{Number.isFinite(Number(weightedTestCaseScore)) ? num(weightedTestCaseScore) : '-'}</span>
                       </span>
                       <span className="text-slate-400 font-bold">+</span>
                       <span className="px-2.5 py-1 rounded-lg border border-slate-200 bg-slate-50 text-slate-700">
-                        OOP: <span className="font-black text-indigo-700">{Number.isFinite(Number(weightedOopScore)) ? num(weightedOopScore) : '—'}</span>
+                        OOP: <span className="font-black text-[#F37021]">
+                          {Number.isFinite(Number(weightedOopScore)) ? num(weightedOopScore) : '-'}
+                        </span>
+                        {hasCriteriaSum && (
+                          <span className="text-[10px] text-slate-400 ml-1">(criteria)</span>
+                        )}
                       </span>
                       <span className="text-slate-400 font-bold">=</span>
                       <span className={`px-3 py-1 rounded-lg border font-black ${ans?.guardRuleTriggered
@@ -531,9 +668,9 @@ export const QuestionCard = React.memo(function QuestionCard({
                     </div>
 
                     {hasReviewedScore ? (
-                      <p className="text-[12px] font-semibold text-indigo-700">
+                      <p className="text-[12px] font-semibold text-[#F37021]">
                         Điểm chấm lại:
-                        <span className="ml-1.5 inline-flex items-center px-2.5 py-0.5 rounded-md border border-indigo-200 bg-indigo-50 font-black">
+                        <span className="ml-1.5 inline-flex items-center px-2.5 py-0.5 rounded-md border border-orange-200 bg-orange-50 font-black">
                           {num(nextQuestionScore)}
                         </span>
                       </p>
@@ -563,7 +700,7 @@ export const QuestionsSection = React.memo(function QuestionsSection({
     <>
       <div className="flex items-center justify-between pt-2">
         <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2.5">
-          <span className="material-symbols-outlined text-indigo-500 text-[24px]">analytics</span>
+          <span className="material-symbols-outlined text-[#F37021] text-[24px]">analytics</span>
           Chi tiết từng câu
         </h3>
       </div>
@@ -593,6 +730,7 @@ export const QuestionsSection = React.memo(function QuestionsSection({
 
 export const SummarySidebar = React.memo(function SummarySidebar({
   detail,
+  submissionInfo,
   displaySubmissionStatus,
   tcSummary,
   gradingDurationLabel,
@@ -613,11 +751,11 @@ export const SummarySidebar = React.memo(function SummarySidebar({
 
   return (
     <div className="sticky top-8 space-y-6">
-      <div className="bg-white/90 backdrop-blur-xl rounded-[2rem] border border-white shadow-[0_8px_30px_rgb(0,0,0,0.06)] overflow-hidden">
-        <div className="h-1.5 w-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
+      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+        <div className="h-1.5 w-full bg-gradient-to-r from-[#F37021] to-amber-400"></div>
         <div className="p-8">
           <h4 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-indigo-500 bg-indigo-50 p-1.5 rounded-lg">
+            <span className="material-symbols-outlined text-[#F37021] bg-orange-50 p-1.5 rounded-lg">
               assessment
             </span>
             Tổng quan chấm bài
@@ -627,21 +765,68 @@ export const SummarySidebar = React.memo(function SummarySidebar({
             <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">
               <span className="text-sm font-medium text-slate-500">Học kỳ</span>
               <span className="text-[13px] font-bold text-slate-900 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
-                {detail?.semesterName || '—'}
+                {detail?.semesterName || '-'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">
+              <span className="text-sm font-medium text-slate-500">Năm học</span>
+              <span className="text-[13px] font-bold bg-blue-50 border border-blue-100 text-blue-700 px-2.5 py-1 rounded-lg">
+                {detail?.academicYear || '-'}
               </span>
             </div>
             <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">
               <span className="text-sm font-medium text-slate-500">Block thi</span>
               <span className="text-[13px] font-bold text-slate-900 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
-                {detail?.blockName || '—'}
+                {detail?.blockName || '-'}
+              </span>
+            </div>
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100/80 gap-3">
+              <span className="text-sm font-medium text-slate-500 shrink-0">Tên file</span>
+              <span className="text-[12px] font-bold text-slate-800 bg-slate-50 border border-slate-200/60 px-2 py-1 rounded-lg text-right break-all font-mono max-w-[60%]">
+                {submissionInfo?.fileName || '-'}
               </span>
             </div>
             <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">
-              <span className="text-sm font-medium text-slate-500">Tình trạng bài nộp</span>
-              <span className="text-[13px] font-bold text-slate-900 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg">
-                {displaySubmissionStatus}
+              <span className="text-sm font-medium text-slate-500">Dung lượng</span>
+              <span className="text-[13px] font-bold text-slate-700 bg-slate-50 border border-slate-200/60 px-2.5 py-1 rounded-lg font-mono">
+                {submissionInfo?.fileSizeBytes != null
+                  ? submissionInfo.fileSizeBytes >= 1_048_576
+                    ? `${(submissionInfo.fileSizeBytes / 1_048_576).toFixed(2)} MB`
+                    : `${(submissionInfo.fileSizeBytes / 1024).toFixed(1)} KB`
+                  : '-'}
               </span>
             </div>
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">
+              <span className="text-sm font-medium text-slate-500">Nộp bài lúc</span>
+              <span className="text-[11px] font-bold text-slate-700 bg-slate-50 border border-slate-200/60 px-2 py-1 rounded-lg uppercase tracking-wide">
+                {submissionInfo?.submittedAt ? fmtDateTime(submissionInfo.submittedAt) : '-'}
+              </span>
+            </div>
+            <div className="flex items-start justify-between pb-4 border-b border-slate-100/80 gap-3">
+              <span className="text-sm font-medium text-slate-500 shrink-0">Mode chấm</span>
+              <span className={`text-[12px] font-bold px-2.5 py-1 rounded-lg border ${
+                detail?.gradingMode === 'MODE_5'
+                  ? 'bg-violet-50 border-violet-200 text-violet-700'
+                  : detail?.gradingMode === 'MODE_4'
+                  ? 'bg-blue-50 border-blue-200 text-blue-700'
+                  : detail?.gradingMode === 'MODE_3'
+                  ? 'bg-indigo-50 border-indigo-200 text-indigo-700'
+                  : detail?.gradingMode === 'MODE_2'
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}>
+                {detail?.gradingMode
+                  ? ({
+                      MODE_1: '100% TC · 0% OOP',
+                      MODE_2: '50% TC · 50% OOP',
+                      MODE_3: '0% TC · 100% OOP',
+                      MODE_4: '100% TC · OOP: nhận xét',
+                      MODE_5: '60% TC · 40% OOP',
+                    }[detail.gradingMode] ?? detail.gradingMode)
+                  : '-'}
+              </span>
+            </div>
+
             <div className="flex items-center justify-between pb-4 border-b border-slate-100/80 gap-4">
               <span className="text-sm font-medium text-slate-500">Tổng điểm TestCase</span>
               {isScoreResolving ? (
@@ -668,15 +853,9 @@ export const SummarySidebar = React.memo(function SummarySidebar({
                 {tcSummary.pass}/{tcSummary.total}
               </span>
             </div>
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100/80">
-              <span className="text-sm font-medium text-slate-500">Tiến trình chấm</span>
-              <span className="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-sm">
-                <span className="material-symbols-outlined text-[14px]">check_circle</span>
-                {gradingDurationLabel}
-              </span>
-            </div>
+
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-slate-500">Dấu thời gian</span>
+              <span className="text-sm font-medium text-slate-500">Thời gian chấm</span>
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-1 rounded border border-slate-100">
                 {fmtDateTime(detail?.gradedAt)}
               </span>
@@ -696,8 +875,8 @@ export const SummarySidebar = React.memo(function SummarySidebar({
           )}
 
           {appealRecord ? (
-            <div className="mt-4 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5 shadow-inner">
-              <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <div className="mt-4 rounded-2xl border border-orange-200 bg-orange-50/60 p-5 shadow-inner">
+              <p className="text-[11px] font-bold text-[#F37021] uppercase tracking-widest mb-2 flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-[16px]">assignment_turned_in</span>
                 Thông tin chấm lại
               </p>
@@ -708,7 +887,7 @@ export const SummarySidebar = React.memo(function SummarySidebar({
                 </p>
                 <p>
                   Trạng thái phúc khảo:{' '}
-                  <span className="font-semibold text-slate-900">{appealRecord?.status || '—'}</span>
+                  <span className="font-semibold text-slate-900">{appealRecord?.status || '-'}</span>
                 </p>
               </div>
             </div>

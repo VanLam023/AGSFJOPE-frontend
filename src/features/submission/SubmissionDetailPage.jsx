@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import gradingApi from '../../services/gradingApi';
+import submissionApi from '../../services/submissionApi';
 import appealApi from '../../services/appealApi';
 import { getStaffAppeals } from '../../services/staffApi';
 import {
@@ -16,6 +17,7 @@ import {
   extractApiErrorMessage,
   extractPayload,
   resultBadge,
+  submissionStatusLabel,
 } from './components/submission-detail/submissionDetail.helpers.js';
 import {
   findAppealById,
@@ -83,6 +85,7 @@ export default function SubmissionDetailPage({
   const [error, setError] = useState('');
   const [detailWarning, setDetailWarning] = useState('');
   const [detail, setDetail] = useState(prefill);
+  const [submissionInfo, setSubmissionInfo] = useState(null);
   const [appealRecord, setAppealRecord] = useState(routeAppealRecord);
   const [openQuestion, setOpenQuestion] = useState(-1);
   const [isRegrading, setIsRegrading] = useState(false);
@@ -117,9 +120,10 @@ export default function SubmissionDetailPage({
           : getStaffAppeals({ page: 0, size: 200 });
 
       try {
-        const [resultResponse, appealsResponse] = await Promise.allSettled([
+        const [resultResponse, appealsResponse, submissionResponse] = await Promise.allSettled([
           gradingApi.getSubmissionResult(submissionId),
           appealsPromise,
+          submissionApi.getSubmissionById(submissionId),
         ]);
 
         if (!mounted) return;
@@ -156,6 +160,11 @@ export default function SubmissionDetailPage({
         } else {
           setAppealRecord(routeAppealRecord || null);
         }
+
+        if (submissionResponse?.status === 'fulfilled') {
+          const payload = submissionResponse.value?.data?.data ?? submissionResponse.value?.data ?? null;
+          if (payload) setSubmissionInfo(payload);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -189,6 +198,9 @@ export default function SubmissionDetailPage({
       return;
     }
 
+    // Ghi lại gradedAt trước khi trigger để detect khi nào grading mới hoàn thành
+    const preTriggerGradedAt = detail?.gradedAt ?? null;
+
     setIsRegrading(true);
     setLocalSubmissionStatus('GRADING');
     setDetail((prev) => clearScoringSnapshot(prev));
@@ -199,8 +211,12 @@ export default function SubmissionDetailPage({
       await gradingApi.triggerSingleGrading(examId, blockId, submissionId);
       message.success('Đã gửi yêu cầu chấm lại.');
 
+      // Đợi 1.5s để backend kịp nhận job và bắt đầu xử lý
+      await sleep(1500);
+
       let latestPayload = null;
       let completed = false;
+      let seenGrading = false;
 
       for (let attempt = 0; attempt < GRADING_POLL_MAX_ATTEMPTS; attempt += 1) {
         const response = await gradingApi.getSubmissionResult(submissionId);
@@ -210,9 +226,17 @@ export default function SubmissionDetailPage({
         const statusText = String(
           payload?.submissionStatus || payload?.status || ''
         ).toUpperCase();
-        const isStillGrading = statusText === 'GRADING';
+        const currentGradedAt = payload?.gradedAt ?? null;
 
-        if (!isStillGrading) {
+        if (statusText === 'GRADING') {
+          // Đang chấm — đánh dấu đã thấy GRADING để biết lần sau khi về GRADED là mới
+          seenGrading = true;
+        } else if (seenGrading) {
+          // Đã thấy GRADING và bây giờ không còn GRADING nữa → chấm xong chắc chắn
+          completed = true;
+          break;
+        } else if (currentGradedAt && currentGradedAt !== preTriggerGradedAt) {
+          // gradedAt thay đổi → grading mới hoàn thành (grading nhanh, chưa kịp thấy GRADING)
           completed = true;
           break;
         }
@@ -220,11 +244,27 @@ export default function SubmissionDetailPage({
         await sleep(GRADING_POLL_INTERVAL_MS);
       }
 
-      if (latestPayload) {
-        setDetail((prev) => ({ ...(prev || {}), ...(latestPayload || {}) }));
-      }
+      if (completed) {
+        // Fetch lần cuối lấy data mới nhất (với no-cache header đã có trong axiosClient)
+        try {
+          const finalResponse = await gradingApi.getSubmissionResult(submissionId);
+          const finalPayload = extractPayload(finalResponse);
+          setDetail((prev) => ({ ...(prev || {}), ...(finalPayload || latestPayload || {}) }));
+        } catch (_) {
+          if (latestPayload) setDetail((prev) => ({ ...(prev || {}), ...(latestPayload || {}) }));
+        }
 
-      if (!completed) {
+        // Reload submissionInfo (sidebar)
+        try {
+          const subResponse = await submissionApi.getSubmissionById(submissionId);
+          const subPayload = subResponse?.data?.data ?? subResponse?.data ?? null;
+          if (subPayload) setSubmissionInfo(subPayload);
+        } catch (_) {
+          // không ảnh hưởng UX chính
+        }
+      } else {
+        // Timeout sau GRADING_POLL_MAX_ATTEMPTS lần — vẫn show data mới nhất có được
+        if (latestPayload) setDetail((prev) => ({ ...(prev || {}), ...(latestPayload || {}) }));
         setDetailWarning('Đã gửi yêu cầu chấm lại. Hệ thống vẫn đang xử lý, vui lòng tải lại sau ít phút.');
       }
 
@@ -235,7 +275,7 @@ export default function SubmissionDetailPage({
     } finally {
       setIsRegrading(false);
     }
-  }, [blockId, examId, submissionId]);
+  }, [blockId, detail?.gradedAt, examId, submissionId]);
 
   const handleAppeal = useCallback(() => {
     if (!submissionId) {
@@ -266,8 +306,9 @@ export default function SubmissionDetailPage({
   }, []);
 
   const displayResultStatus = localSubmissionStatus === 'GRADING' ? 'GRADING' : detail?.status;
-  const displaySubmissionStatus =
-    localSubmissionStatus || detail?.submissionStatus || detail?.status || '—';
+  const displaySubmissionStatus = submissionStatusLabel(
+    localSubmissionStatus || detail?.submissionStatus || detail?.status
+  );
 
   const status = useMemo(() => resultBadge(displayResultStatus), [displayResultStatus]);
 
@@ -352,7 +393,7 @@ export default function SubmissionDetailPage({
   return (
     <div className="relative min-h-screen bg-[#F8FAFC]">
       <div className="pointer-events-none absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#a78bfa] to-[#60a5fa] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#F37120] to-amber-300 opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 sm:px-8 py-8 space-y-6">
@@ -378,6 +419,7 @@ export default function SubmissionDetailPage({
                 appealScores={appealScores}
                 showScoreComparison={shouldRenderFinalGradeComparison}
                 isScoreResolving={isScoreResolving}
+                gradingMode={detail?.gradingMode}
               />
 
               <QuestionsSection
@@ -395,6 +437,7 @@ export default function SubmissionDetailPage({
             <div className="xl:col-span-4">
               <SummarySidebar
                 detail={detail}
+                submissionInfo={submissionInfo}
                 displaySubmissionStatus={displaySubmissionStatus}
                 tcSummary={tcSummary}
                 gradingDurationLabel={gradingDurationLabel}

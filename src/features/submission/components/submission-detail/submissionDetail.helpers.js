@@ -19,18 +19,29 @@ export function num(v, digits = 2) {
 export function resultBadge(status) {
   const s = String(status || '').toUpperCase();
   if (s === 'PASS') {
-    return { label: 'PASS', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+    return { label: 'Đạt', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
   }
   if (s === 'FAIL') {
-    return { label: 'FAIL', cls: 'bg-rose-50 text-rose-700 border-rose-200' };
+    return { label: 'Không đạt', cls: 'bg-rose-50 text-rose-700 border-rose-200' };
   }
   if (s === 'GRADING') {
     return {
-      label: 'GRADING',
+      label: 'Đang chấm',
       cls: 'bg-indigo-50 text-indigo-700 border-indigo-200 animate-pulse',
     };
   }
-  return { label: 'PENDING', cls: 'bg-slate-50 text-slate-700 border-slate-200' };
+  return { label: 'Chưa chấm', cls: 'bg-slate-50 text-slate-700 border-slate-200' };
+}
+
+export function submissionStatusLabel(status) {
+  const s = String(status || '').toUpperCase();
+  if (s === 'GRADING') return 'Đang chấm';
+  if (s === 'GRADED') return 'Đã chấm';
+  if (s === 'GRADING_FAILED') return 'Lỗi chấm';
+  if (s === 'SUBMITTED') return 'Đã nộp';
+  if (s === 'PENDING') return 'Chưa chấm';
+  if (s === 'CANCELLED') return 'Đã hủy';
+  return status || '—';
 }
 
 export function tcStatusClass(status) {

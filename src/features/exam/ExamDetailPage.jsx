@@ -58,6 +58,19 @@ function getBlockScheduleLockMessage(block) {
   return '';
 }
 
+function getBlockScheduleStatus(block) {
+  if (!block?.startTime || !block?.endTime) return 'Chưa có lịch';
+
+  const now = Date.now();
+  const start = new Date(block.startTime).getTime();
+  const end = new Date(block.endTime).getTime();
+
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return 'Chưa có lịch';
+  if (now < start) return 'Chưa diễn ra';
+  if (now > end) return 'Đã kết thúc';
+  return 'Đang diễn ra';
+}
+
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
 function UpdateBlockModal({ block, onClose, onSuccess }) {
@@ -286,7 +299,14 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
   }
 
   // Chưa có lịch thi (examDate null)
-  const hasSchedule = !!block?.examDate;
+  const scheduleStatus = getBlockScheduleStatus(block);
+  const scheduleBadgeClass = scheduleStatus === 'Đang diễn ra'
+    ? 'bg-green-50 text-green-700 border-green-200'
+    : scheduleStatus === 'Chưa diễn ra'
+      ? 'bg-blue-50 text-blue-700 border-blue-200'
+      : scheduleStatus === 'Đã kết thúc'
+        ? 'bg-slate-50 text-slate-600 border-slate-200'
+        : 'bg-slate-50 text-slate-500 border-slate-200';
 
   return (
     <div className="bg-white border border-orange-100 rounded-2xl shadow-[0_10px_28px_rgba(15,23,42,0.06)] hover:shadow-[0_14px_34px_rgba(249,115,22,0.14)] transition-all duration-300 flex flex-col overflow-hidden">
@@ -299,8 +319,8 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
           <h4 className="text-base font-extrabold text-slate-800">{displayName}</h4>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
-          <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${hasSchedule ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
-            {hasSchedule ? 'Đã có lịch' : 'Chưa có lịch'}
+          <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${scheduleBadgeClass}`}>
+            {scheduleStatus}
           </span>
           <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold border ${block?.hasPaper ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}>
             {block?.hasPaper ? 'Đã có đề thi' : 'Chưa có đề'}
@@ -318,7 +338,7 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
 
         <div className="grid grid-cols-2 gap-3">
           <InfoItem icon="event" label="Ngày thi" value={block?.examDate ? fmtDate(block.examDate) : null} />
-          <InfoItem icon="description" label="Đề thi" value={block?.hasPaper ? (block?.paperFileName || 'Đã tải lên') : 'Chưa tải lên'} />
+          <InfoItem icon="description" label="Đề thi" value={block?.hasPaper ? (block?.paperExamCode || block?.paperFileName || 'Đã tải lên') : 'Chưa tải lên'} />
           <InfoItem icon="schedule" label="Giờ bắt đầu" value={block?.startTime ? fmtTime(block.startTime) : null} />
           <InfoItem icon="timer_off" label="Giờ kết thúc" value={block?.endTime ? fmtTime(block.endTime) : null} />
           <InfoItem icon="upload_file" label="Số bài nộp" value={String(block?.submissionCount ?? 0)} />
@@ -421,12 +441,16 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
         list.map(async (b) => {
           if (!b?.blockId) return b;
 
-          let paperFileName = b?.paperFileName ?? null;
+          let paperFileName = null;
+          let paperExamCode = null;
           if (b?.hasPaper) {
             try {
               const paperRes = await examPaperApi.getByBlock(examId, b.blockId);
               const paper = paperRes?.data ?? paperRes;
-              paperFileName = paper?.fileName || null;
+              const rawFileName = typeof paper?.fileName === 'string' ? paper.fileName.trim() : '';
+              const looksLikeFile = /\.[a-z0-9]{2,5}$/i.test(rawFileName);
+              paperFileName = looksLikeFile ? rawFileName : null;
+              paperExamCode = typeof paper?.examCode === 'string' ? paper.examCode.trim() : null;
             } catch {
               // keep null, do not fail whole list
             }
@@ -446,6 +470,7 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
           return {
             ...b,
             paperFileName,
+            paperExamCode,
             submissionCount,
             gradedCount,
           };

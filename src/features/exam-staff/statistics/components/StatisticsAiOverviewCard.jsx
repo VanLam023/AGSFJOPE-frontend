@@ -2,12 +2,15 @@ import StatisticsSectionCard from './StatisticsSectionCard.jsx';
 import { formatPercent, formatScore } from '../utils/statisticsHelpers';
 
 export default function StatisticsAiOverviewCard({ summary }) {
+  const hardCodeCount = Number(summary?.hardCodeCount ?? 0);
+  const hardCodeRate  = Number(summary?.hardCodeRate  ?? 0);
+
   const items = [
     {
       key: 'avgOopScore',
       title: 'Điểm OOP trung bình',
       value: formatScore(summary?.avgOopScore),
-      helper: 'Điểm do AI review tổng hợp',
+      helper: 'Tỷ lệ điểm OOP đạt được / tổng điểm OOP (thang 10)',
       accent: 'text-violet-600',
       bg: 'bg-violet-50 border-violet-200',
       icon: 'account_tree',
@@ -16,24 +19,24 @@ export default function StatisticsAiOverviewCard({ summary }) {
       key: 'oopViolatedRate',
       title: 'Tỷ lệ vi phạm OOP',
       value: formatPercent(summary?.oopViolatedRate),
-      helper: `${summary?.oopViolatedCount ?? 0} lượt bị flag`,
+      helper: `${summary?.oopViolatedCount ?? 0} câu trả lời có ít nhất 1 tiêu chí sai`,
       accent: 'text-rose-600',
       bg: 'bg-rose-50 border-rose-200',
       icon: 'warning',
     },
-    {
+    ...(hardCodeCount > 0 || hardCodeRate > 0 ? [{
       key: 'hardCodeRate',
       title: 'Tỷ lệ hard-code',
-      value: formatPercent(summary?.hardCodeRate),
-      helper: `${summary?.hardCodeCount ?? 0} lượt phát hiện`,
+      value: formatPercent(hardCodeRate),
+      helper: `${hardCodeCount} lượt phát hiện`,
       accent: 'text-amber-600',
       bg: 'bg-amber-50 border-amber-200',
       icon: 'code',
-    },
+    }] : []),
   ];
 
   return (
-    <StatisticsSectionCard title="Tổng quan AI / OOP" className="h-full">
+    <StatisticsSectionCard title="Tổng quan phân tích OOP" className="h-full">
       <div className="space-y-3">
         {items.map((item) => (
           <div
@@ -52,6 +55,12 @@ export default function StatisticsAiOverviewCard({ summary }) {
             </div>
           </div>
         ))}
+
+        {/* Nguồn dữ liệu */}
+        <p className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+          <span className="material-symbols-outlined text-[14px]">info</span>
+          Dữ liệu từ phân tích tĩnh (JavaParser) — không dùng AI
+        </p>
       </div>
     </StatisticsSectionCard>
   );

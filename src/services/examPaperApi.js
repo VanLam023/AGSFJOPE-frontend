@@ -17,9 +17,12 @@ const examPaperApi = {
    * @param {File}   file — file .zip hoặc .rar
    * @param {function} onUploadProgress — callback(percent)
    */
-  upload: (examId, blockId, file, onUploadProgress) => {
+  upload: (examId, blockId, file, onUploadProgress, examCode) => {
     const formData = new FormData();
     formData.append('file', file);
+    if (examCode && examCode.trim()) {
+      formData.append('examCode', examCode.trim());
+    }
     return axiosClient.post(
       `/exams/${examId}/blocks/${blockId}/exam-paper`,
       formData,

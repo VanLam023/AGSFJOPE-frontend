@@ -10,11 +10,13 @@ import ExamManagementPage from '../exam/ExamManagementPage.jsx';
 import CreateExamPage from '../exam/CreateExamPage.jsx';
 import ExamDetailPage from '../exam/ExamDetailPage.jsx';
 import UploadExamPaperPage from '../exam-paper/UploadExamPaperPage.jsx';
+import CriteriaPage from '../exam-paper/CriteriaPage.jsx';
 import BlockDetailPage from '../block/BlockDetailPage.jsx';
 import BlockSubmissionsPage from '../submission/BlockSubmissionsPage.jsx';
 import SubmissionDetailPage from '../submission/SubmissionDetailPage.jsx';
 import ExamStaffHomeDashboard from './ExamStaffHomeDashboard.jsx';
 import ExamStaffNotificationsPage from './notifications/ExamStaffNotificationsPage.jsx';
+import AllSubmissionsManagementPage from '../submission/AllSubmissionsManagementPage.jsx';
 
 const BlockStatisticsPage = lazy(() => import('./statistics/BlockStatisticsPage.jsx'));
 
@@ -36,6 +38,9 @@ export default function ExamStaffDashboard() {
   const notificationsIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/notifications') +
     1;
+  const submissionsIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/submissions') +
+    1;
   const auditsIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
     1;
@@ -47,19 +52,27 @@ export default function ExamStaffDashboard() {
     '/exam-staff/appeals': appealsIndex,
     '/exam-staff/withdrawals': withdrawalsIndex,
     '/exam-staff/notifications': notificationsIndex,
+    '/exam-staff/submissions': submissionsIndex,
     '/exam-staff/audits': auditsIndex,
   };
 
   const selectedIndex = location.pathname.startsWith('/exam-staff/exams')
     ? examsIndex
-    : location.pathname.startsWith('/exam-staff/withdrawals')
-      ? withdrawalsIndex
-      : location.pathname.startsWith('/exam-staff/audits')
-        ? auditsIndex
-        : (pathSelectedIndexMap[location.pathname] ?? dashboardIndex);
+    : location.pathname.startsWith('/exam-staff/submissions')
+      ? submissionsIndex
+      : location.pathname.startsWith('/exam-staff/withdrawals')
+        ? withdrawalsIndex
+        : location.pathname.startsWith('/exam-staff/audits')
+          ? auditsIndex
+          : location.pathname.startsWith('/exam-staff/appeals')
+            ? appealsIndex
+            : location.pathname.startsWith('/exam-staff/notifications')
+              ? notificationsIndex
+              : (pathSelectedIndexMap[location.pathname] ?? dashboardIndex);
 
   const isExamManagementPage = location.pathname === '/exam-staff/exams';
   const isNotificationsPage = location.pathname === '/exam-staff/notifications';
+  const isAllSubmissionsPage = location.pathname === '/exam-staff/submissions';
   const isCreateExamPage = location.pathname === '/exam-staff/exams/create';
   const isUpdateExamPage =
     location.pathname.startsWith('/exam-staff/exams/') &&
@@ -77,10 +90,15 @@ export default function ExamStaffDashboard() {
     location.pathname.startsWith('/exam-staff/exams/') &&
     location.pathname.includes('/blocks/') &&
     location.pathname.endsWith('/statistics');
+  const isCriteriaPage =
+    location.pathname.startsWith('/exam-staff/exams/') &&
+    location.pathname.includes('/blocks/') &&
+    location.pathname.endsWith('/criteria');
   const isBlockDetailPage =
     location.pathname.startsWith('/exam-staff/exams/') &&
     location.pathname.includes('/blocks/') &&
     !isUploadExamPaperPage &&
+    !isCriteriaPage &&
     !isBlockSubmissionsPage &&
     !isSubmissionDetailPage &&
     !isStatisticsPage;
@@ -158,11 +176,13 @@ export default function ExamStaffDashboard() {
           examId={examId}
           blockId={blockId}
           submissionId={submissionId}
-          onBack={() =>
-            navigate(
-              `/exam-staff/exams/${examId}/blocks/${blockId}/submissions`,
-            )
-          }
+          onBack={() => {
+            if (window.history.length > 2) {
+              navigate(-1);
+            } else {
+              navigate('/exam-staff/submissions');
+            }
+          }}
         />
       ) : isStatisticsPage ? (
         <Suspense
@@ -180,6 +200,12 @@ export default function ExamStaffDashboard() {
             onBack={() => navigate(`/exam-staff/exams/${examId}/blocks/${blockId}`)}
           />
         </Suspense>
+      ) : isCriteriaPage ? (
+        <CriteriaPage
+          examId={examId}
+          blockId={blockId}
+          onBack={() => navigate(`/exam-staff/exams/${examId}/blocks/${blockId}`)}
+        />
       ) : isBlockDetailPage ? (
         <BlockDetailPage
           examId={examId}
@@ -187,6 +213,9 @@ export default function ExamStaffDashboard() {
           onBack={() => navigate(`/exam-staff/exams/${examId}`)}
           onOpenUploadPaper={(id) =>
             navigate(`/exam-staff/exams/${examId}/blocks/${id}/upload-paper`)
+          }
+          onOpenCriteria={(id) =>
+            navigate(`/exam-staff/exams/${examId}/blocks/${id}/criteria`)
           }
           onOpenSubmissions={(id) =>
             navigate(`/exam-staff/exams/${examId}/blocks/${id}/submissions`)
@@ -209,6 +238,8 @@ export default function ExamStaffDashboard() {
           onCreateExam={() => navigate('/exam-staff/exams/create')}
           onOpenExamDetail={(id) => navigate(`/exam-staff/exams/${id}`)}
         />
+      ) : isAllSubmissionsPage ? (
+        <AllSubmissionsManagementPage />
       ) : isNotificationsPage ? (
         <ExamStaffNotificationsPage />
       ) : (

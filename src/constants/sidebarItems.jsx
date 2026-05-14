@@ -10,6 +10,11 @@ export const STAFF_SIDEBAR_ITEMS = [
     to: '/exam-staff/exams',
   },
   {
+    key: '6',
+    label: 'Quản lí bài nộp',
+    to: '/exam-staff/submissions',
+  },
+  {
     key: '3',
     label: 'Đơn phúc khảo',
     to: '/exam-staff/appeals',
@@ -29,6 +34,7 @@ export const STAFF_SIDEBAR_ITEMS = [
 export const STAFF_ICONS = [
   'dashboard',
   'event_note',
+  'assignment',
   'gavel',
   'payments',
   'notifications',

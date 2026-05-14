@@ -143,65 +143,92 @@ export const buildAiOverviewSummary = (statistics) => {
 export const buildOopViolationItems = (statistics) => {
   const aiOopAnalysis = statistics?.aiOopAnalysis ?? {};
 
-  const dynamicCriteria = ensureArray(aiOopAnalysis?.criteriaStats)
-    .map((item, index) => {
-      const name = String(item?.name || '').trim();
-      if (!name) return null;
-
-      const shortLabel = name.length > 14 ? `${name.slice(0, 14)}…` : name;
-      return {
-        key: `dynamic-${index}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-        label: shortLabel,
-        fullLabel: name,
-        count: toNumber(item?.violationCount),
-        rate: toNumber(item?.violationRate),
-        avgScore: toNumber(item?.avgScore),
-        sampleSize: toNumber(item?.sampleSize),
-      };
-    })
-    .filter(Boolean);
-
-  if (dynamicCriteria.length > 0) {
-    return dynamicCriteria;
-  }
-
-  return [
+  // Luôn hiển thị 3 nhóm cố định từ deterministic grading
+  const fixedGroups = [
     {
       key: 'encap',
-      label: 'Encap',
-      fullLabel: 'Encapsulation',
+      label: 'Encapsulation',
+      fullLabel: 'Encapsulation (FIELD_CHECK, GETTER_SETTER)',
       count: toNumber(aiOopAnalysis?.encapsulationViolations),
       rate: toNumber(aiOopAnalysis?.encapsulationViolationRate),
     },
     {
       key: 'inherit',
-      label: 'Inherit',
-      fullLabel: 'Inheritance',
+      label: 'Inheritance',
+      fullLabel: 'Inheritance (EXTENDS_CHECK, IMPLEMENTS_CHECK, CLASS_EXISTS, INTERFACE_EXISTS)',
       count: toNumber(aiOopAnalysis?.inheritanceViolations),
       rate: toNumber(aiOopAnalysis?.inheritanceViolationRate),
     },
     {
       key: 'poly',
-      label: 'Poly',
-      fullLabel: 'Polymorphism',
+      label: 'Polymorphism',
+      fullLabel: 'Polymorphism (METHOD_SIGNATURE, CONSTRUCTOR_CHECK, NAMING_CONVENTION)',
       count: toNumber(aiOopAnalysis?.polymorphismViolations),
       rate: toNumber(aiOopAnalysis?.polymorphismViolationRate),
     },
-    {
-      key: 'design',
-      label: 'Design',
-      fullLabel: 'Design Quality',
-      count: toNumber(aiOopAnalysis?.designQualityViolations),
-      rate: toNumber(aiOopAnalysis?.designQualityViolationRate),
-    },
-    {
-      key: 'integrity',
-      label: 'Integrity',
-      fullLabel: 'Code Integrity',
-      count: toNumber(aiOopAnalysis?.codeIntegrityViolations),
-      rate: toNumber(aiOopAnalysis?.codeIntegrityViolationRate),
-    },
   ];
+
+  // Nếu tổng các nhóm > 0 thì có data, dùng fixedGroups
+  const hasGroupData = fixedGroups.some(g => g.count > 0 || g.rate > 0);
+  if (hasGroupData) {
+    return fixedGroups;
+  }
+
+  // Fallback: thử đọc từ criteriaStats nếu nhóm đều = 0
+  const dynamicCriteriaSource =
+    aiOopAnalysis?.criteriaStats
+    ?? aiOopAnalysis?.criteria_stats
+    ?? aiOopAnalysis?.criteria
+    ?? aiOopAnalysis?.criteriaBreakdown
+    ?? aiOopAnalysis?.criteria_breakdown;
+
+  const rawCriteriaItems = Array.isArray(dynamicCriteriaSource)
+    ? dynamicCriteriaSource
+    : (dynamicCriteriaSource && typeof dynamicCriteriaSource === 'object')
+      ? Object.entries(dynamicCriteriaSource).map(([name, value]) => ({
+        ...(value && typeof value === 'object' ? value : {}),
+        name: value?.name ?? name,
+      }))
+      : [];
+
+  const dynamicCriteria = rawCriteriaItems
+    .map((item, index) => {
+      const name = String(
+        item?.name ?? item?.criterionName ?? item?.criterion ?? item?.label ?? '',
+      ).trim();
+      if (!name) return null;
+      const shortLabel = name.length > 16 ? `${name.slice(0, 16)}…` : name;
+      return {
+        key: `dynamic-${index}-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+        label: shortLabel,
+        fullLabel: name,
+        count: toNumber(item?.violationCount ?? item?.violatedCount ?? item?.count),
+        rate: toNumber(item?.violationRate ?? item?.violatedRate ?? item?.rate),
+        avgScore: toNumber(item?.avgScore ?? item?.averageScore),
+        sampleSize: toNumber(item?.sampleSize ?? item?.evaluatedCount),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.count - a.count);
+
+  return dynamicCriteria.length > 0 ? dynamicCriteria : fixedGroups;
+};
+
+/**
+ * Trích xuất criteriaStats[] để hiển thị bảng chi tiết.
+ */
+export const buildCriteriaStats = (statistics) => {
+  const source = statistics?.aiOopAnalysis?.criteriaStats
+    ?? statistics?.aiOopAnalysis?.criteria_stats
+    ?? [];
+  if (!Array.isArray(source)) return [];
+  return source.map((item, index) => ({
+    name: item?.name ?? `Tiêu chí ${index + 1}`,
+    avgScore: toNumber(item?.avgScore ?? item?.averageScore),
+    violationCount: toNumber(item?.violationCount ?? item?.violatedCount ?? item?.count),
+    violationRate: toNumber(item?.violationRate ?? item?.violatedRate ?? item?.rate),
+    sampleSize: toNumber(item?.sampleSize ?? item?.evaluatedCount),
+  }));
 };
 
 export const buildAppealStatusItems = (statistics) => {
