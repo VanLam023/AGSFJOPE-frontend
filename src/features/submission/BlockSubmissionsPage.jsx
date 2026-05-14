@@ -455,16 +455,26 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
     try {
       setIsTriggering(true);
       const isSelectedMode = selectedCount > 0;
+
+      // Khi không tick bài nào: lọc theo statusFilter hiện tại (nếu có)
       const idsToGrade =
         selectedCount > 0
           ? selectedSubmissionIds
           : rows
               .filter((item) => {
                 const status = String(item?.submissionStatus || '').toUpperCase();
+                if (statusFilter) {
+                  // Đang lọc theo trạng thái cụ thể → chỉ lấy bài khớp filter VÀ có thể chấm
+                  return status === String(statusFilter).toUpperCase();
+                }
+                // Không có filter → chấm tất cả SUBMITTED và GRADED
                 return status === 'SUBMITTED' || status === 'GRADED';
               })
               .map((item) => item?.submissionId)
               .filter(Boolean);
+
+      // Nếu đang lọc theo filter thì truyền ids cụ thể, không gửi null (chấm cả block)
+      const hasActiveFilter = !isSelectedMode && Boolean(statusFilter);
 
       const statusById = new Map(
         rows.map((item) => [item?.submissionId, String(item?.submissionStatus || '').toUpperCase()])
@@ -479,11 +489,14 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
       const gradedForUpdate = isSelectedMode ? selectedGradedCount : allGradedCount;
       const expectedTotal = isSelectedMode
         ? idsToGrade.length
-        : allSubmittedCount + allGradedCount;
+        : hasActiveFilter
+          ? idsToGrade.length
+          : allSubmittedCount + allGradedCount;
 
       const body = {
         blockId: activeBlockId,
-        submissionIds: isSelectedMode ? selectedSubmissionIds : null,
+        // Gửi ids cụ thể nếu: có tick chọn HOẶC đang filter theo trạng thái
+        submissionIds: isSelectedMode || hasActiveFilter ? idsToGrade : null,
       };
 
       await gradingApi.triggerGrading(activeExamId, activeBlockId, body);
@@ -544,6 +557,7 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
     selectedCount,
     selectedSubmissionIds,
     stats,
+    statusFilter,
   ]);
 
   const handleStopGrading = useCallback(async () => {

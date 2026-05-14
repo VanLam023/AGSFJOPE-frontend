@@ -271,7 +271,23 @@ export default function AppRoutes() {
         }
       />
       <Route
+        path="/exam-staff/exams/:examId/blocks/:blockId/criteria"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/exam-staff/notifications"
+        element={
+          <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
+            <ExamStaffDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/exam-staff/submissions"
         element={
           <ProtectedRoute allowedRoles={['EXAM_STAFF']}>
             <ExamStaffDashboard />

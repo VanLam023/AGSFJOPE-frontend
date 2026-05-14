@@ -126,15 +126,32 @@ const MainLayout = ({
     return baseItems.map(attachLink);
   }, [collapsed, siderItems, siderIcons]);
 
+  // Find the best matching sidebar key using longest-prefix matching
+  // so that sub-pages (e.g. /exam-staff/exams/123/blocks/456) still highlight
+  // their parent menu item (/exam-staff/exams).
   const selectedKey = useMemo(() => {
-    return (
-      findKeyByPath(
-        menuItems,
-        location.pathname.split("/").length === 4
-          ? location.pathname.split("/").slice(0, -1).join("/")
-          : location.pathname,
-      ) ?? "1"
-    );
+    const pathname = location.pathname;
+    let bestKey = '1'; // fallback: dashboard
+    let bestMatchLength = 0;
+
+    const walk = (items) => {
+      for (const item of items) {
+        if (item.to) {
+          const to = String(item.to);
+          // Must be exact match OR pathname starts with `to + '/'`
+          if (pathname === to || pathname.startsWith(to + '/')) {
+            if (to.length > bestMatchLength) {
+              bestMatchLength = to.length;
+              bestKey = String(item.key);
+            }
+          }
+        }
+        if (item.children) walk(item.children);
+      }
+    };
+
+    walk(menuItems);
+    return bestKey;
   }, [menuItems, location.pathname]);
 
   useEffect(() => {

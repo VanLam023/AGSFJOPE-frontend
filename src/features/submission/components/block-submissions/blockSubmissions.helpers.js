@@ -32,6 +32,12 @@ export function getSubmissionStatusBadge(status) {
       cls: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20',
     };
   }
+  if (s === 'GRADING_FAILED') {
+    return {
+      label: 'Thất bại',
+      cls: 'bg-red-50 text-red-700 ring-1 ring-red-600/20',
+    };
+  }
   return {
     label: 'Chưa chấm',
     cls: 'bg-sky-50 text-sky-700 ring-1 ring-sky-600/20',
@@ -163,6 +169,7 @@ export const STATUS_OPTIONS = [
   { value: 'SUBMITTED', label: 'Chưa chấm' },
   { value: 'GRADING', label: 'Đang chấm' },
   { value: 'GRADED', label: 'Đã chấm' },
+  { value: 'GRADING_FAILED', label: 'Thất bại' },
 ];
 
 export const STAT_CARDS = [
@@ -197,5 +204,13 @@ export const STAT_CARDS = [
     bg: 'from-emerald-50/80 via-white to-green-50/70',
     iconBg: 'bg-emerald-100 text-emerald-600',
     blob: 'bg-emerald-200/40',
+  },
+  {
+    key: 'failed',
+    label: 'Thất bại',
+    icon: 'error_outline',
+    bg: 'from-red-50 via-white to-rose-50/70',
+    iconBg: 'bg-red-100 text-red-600',
+    blob: 'bg-red-200/40',
   },
 ];

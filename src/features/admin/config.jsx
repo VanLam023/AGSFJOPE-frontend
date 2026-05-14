@@ -21,6 +21,7 @@ const AI_PROVIDERS = [
   ['deepseek', 'DeepSeek'],
   ['grok', 'xAI Grok'],
   ['claude', 'Anthropic Claude'],
+  ['custom_openai', 'LM Studio / Custom OpenAI-compatible'],
 ];
 
 const AI_PROVIDER_MODELS = {
@@ -53,6 +54,8 @@ const AI_PROVIDER_MODELS = {
     ['claude-haiku-4-5-20251001', 'Claude Haiku 4.5'],
     ['claude-sonnet-4-20250514', 'Claude Sonnet 4'],
   ],
+
+  custom_openai: [],
 };
 
 const LANGUAGE = [
