@@ -278,13 +278,8 @@ function InfoItem({ label, value, accent, icon }) {
 }
 
 /** Card thông tin một Block */
-// blockSource = object thực từ API (luôn có blockId, name),
-// block = cùng object (có thể null nếu không tìm được theo tên)
-function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, onOpenBlockDetail }) {
-  // Dùng blockSource để get blockId khi cần mở modal (block có thể null nếu chưa có lịch)
-  const editTarget = blockSource ?? block;
-  const displayName = editTarget?.name || fallbackName || 'Block';
-  // skeleton
+function BlockCard({ block, loadingBlocks, onEdit, onOpenBlockDetail, onDelete }) {
+  const displayName = block?.name || 'Block';
   if (loadingBlocks) {
     return (
       <div className="bg-white border border-orange-100 rounded-2xl p-6 shadow-[0_10px_28px_rgba(15,23,42,0.06)] flex flex-col animate-pulse">
@@ -298,7 +293,6 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
     );
   }
 
-  // Chưa có lịch thi (examDate null)
   const scheduleStatus = getBlockScheduleStatus(block);
   const scheduleBadgeClass = scheduleStatus === 'Đang diễn ra'
     ? 'bg-green-50 text-green-700 border-green-200'
@@ -335,7 +329,6 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
             {block.description}
           </p>
         )}
-
         <div className="grid grid-cols-2 gap-3">
           <InfoItem icon="event" label="Ngày thi" value={block?.examDate ? fmtDate(block.examDate) : null} />
           <InfoItem icon="description" label="Đề thi" value={block?.hasPaper ? (block?.paperExamCode || block?.paperFileName || 'Đã tải lên') : 'Chưa tải lên'} />
@@ -350,13 +343,9 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
       <div className="px-6 pb-5 flex gap-3">
         <button
           onClick={() => {
-            const target = editTarget ?? { name: fallbackName };
-            const lockMessage = getBlockScheduleLockMessage(target);
-            if (lockMessage) {
-              message.warning(lockMessage);
-              return;
-            }
-            onEdit?.(target);
+            const lockMessage = getBlockScheduleLockMessage(block);
+            if (lockMessage) { message.warning(lockMessage); return; }
+            onEdit?.(block);
           }}
           className="flex-1 py-2.5 px-4 text-xs font-bold border border-orange-200 text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 hover:border-orange-300 hover:-translate-y-0.5 transition-all flex justify-center items-center gap-1.5"
         >
@@ -365,15 +354,232 @@ function BlockCard({ block, blockSource, fallbackName, loadingBlocks, onEdit, on
         </button>
         <button
           type="button"
-          onClick={() => {
-            const targetBlockId = editTarget?.blockId;
-            if (targetBlockId) onOpenBlockDetail?.(targetBlockId);
-          }}
+          onClick={() => block?.blockId && onOpenBlockDetail?.(block.blockId)}
           className="flex-1 py-2.5 px-4 text-xs font-bold border border-slate-200 text-slate-600 bg-white rounded-xl hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-0.5 transition-all shadow-sm flex justify-center items-center gap-1.5"
         >
           <span className="material-symbols-outlined text-[16px]">visibility</span>
           Chi tiết
         </button>
+        <button
+          type="button"
+          onClick={() => onDelete?.(block)}
+          className="py-2.5 px-3 text-xs font-bold border border-red-200 text-red-500 bg-white rounded-xl hover:bg-red-50 hover:border-red-300 hover:-translate-y-0.5 transition-all flex justify-center items-center gap-1"
+          title="Xóa đợt thi"
+        >
+          <span className="material-symbols-outlined text-[16px]">delete</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Modal tạo đợt thi mới — wizard 2 bước: Thông tin → Lịch thi (tuỳ chọn) */
+function CreateBlockModal({ examId, exam, onClose, onSuccess }) {
+  const [step, setStep] = useState(1);
+  // Step 1
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  // Step 2 (optional scheduling)
+  const [examDate, setExamDate] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [skipSchedule, setSkipSchedule] = useState(false);
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+  function goStep2() {
+    if (!name.trim()) { setError('Tên đợt thi không được để trống'); return; }
+    setError('');
+    setStep(2);
+  }
+
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    setSaving(true); setError('');
+    try {
+      // Step 1: Create block
+      const createRes = await blockApi.create(examId, {
+        name: name.trim(),
+        description: description.trim() || null,
+      });
+      const created = createRes?.data ?? createRes;
+      const blockId = created?.blockId;
+
+      // Step 2: Optionally set schedule
+      if (!skipSchedule && examDate && startTime && endTime && blockId) {
+        const startIso = `${examDate}T${startTime}:00+07:00`;
+        const endIso = `${examDate}T${endTime}:00+07:00`;
+        try {
+          await blockApi.update(examId, blockId, {
+            examDate,
+            startTime: startIso,
+            endTime: endIso,
+          });
+        } catch (scheduleErr) {
+          // Block created but schedule failed — still success, warn user
+          onSuccess();
+          message.warning('Đợt thi đã tạo nhưng chưa đặt lịch được: ' +
+            (scheduleErr?.response?.data?.message || 'Vui lòng cập nhật lịch sau.'));
+          return;
+        }
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Tạo đợt thi thất bại.');
+    } finally { setSaving(false); }
+  };
+
+  const inputCls = "w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-orange-400 focus:ring-2 focus:ring-orange-400/20 outline-none transition-all text-sm font-medium text-slate-700";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="relative w-full max-w-lg rounded-3xl bg-white border border-slate-200 shadow-[0_20px_50px_rgba(15,23,42,0.25)] flex flex-col overflow-hidden">
+
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-slate-100 bg-orange-50/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#F37120]">add_circle</span>
+            <h3 className="font-bold text-slate-800">Tạo đợt thi mới</h3>
+          </div>
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        {/* Step indicator */}
+        <div className="px-6 pt-4 flex items-center gap-2">
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all
+            ${step >= 1 ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+            <span className="material-symbols-outlined text-[14px]">edit</span>
+            Thông tin
+          </div>
+          <div className="w-6 h-px bg-slate-200" />
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all
+            ${step >= 2 ? 'bg-orange-100 text-orange-700 border-orange-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`}>
+            <span className="material-symbols-outlined text-[14px]">schedule</span>
+            Lịch thi
+          </div>
+        </div>
+
+        <form onSubmit={(e) => { e.preventDefault(); step === 1 ? goStep2() : handleSubmit(); }} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl flex gap-2 text-red-700 text-sm">
+              <span className="material-symbols-outlined text-[18px] shrink-0">error</span>
+              <p>{error}</p>
+            </div>
+          )}
+
+          {/* ── Step 1: Thông tin ── */}
+          {step === 1 && (
+            <>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">
+                  Tên đợt thi <span className="text-orange-500">*</span>
+                </label>
+                <input type="text" value={name}
+                  onChange={(e) => { setName(e.target.value); setError(''); }}
+                  placeholder="Ví dụ: Block 10, Block 3, Ca 1..."
+                  className={inputCls} maxLength={50} autoFocus />
+                <p className="text-xs text-slate-400 mt-1.5">Tên phải duy nhất trong cùng kỳ thi</p>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Mô tả (tùy chọn)</label>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Mô tả thêm về đợt thi..." rows={2}
+                  className={`${inputCls} resize-none`} maxLength={2000} />
+              </div>
+            </>
+          )}
+
+          {/* ── Step 2: Lịch thi (tuỳ chọn) ── */}
+          {step === 2 && (
+            <>
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex gap-2 text-blue-700 text-sm">
+                <span className="material-symbols-outlined text-[18px] shrink-0">info</span>
+                <p className="font-medium">Bạn có thể đặt lịch ngay hoặc bỏ qua để đặt sau.</p>
+              </div>
+
+              {!skipSchedule && (
+                <>
+                  <div>
+                    <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[16px] text-slate-400">event</span>
+                      Ngày thi
+                    </label>
+                    <input type="date" value={examDate} min={todayStr}
+                      onChange={(e) => setExamDate(e.target.value)} className={inputCls} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-slate-400">schedule</span>
+                        Giờ bắt đầu
+                      </label>
+                      <input type="time" value={startTime}
+                        onChange={(e) => setStartTime(e.target.value)} className={inputCls} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-slate-700 mb-1.5 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-slate-400">timer_off</span>
+                        Giờ kết thúc
+                      </label>
+                      <input type="time" value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)} className={inputCls} />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <label className="flex items-center gap-2 cursor-pointer group select-none">
+                <input type="checkbox" checked={skipSchedule}
+                  onChange={(e) => setSkipSchedule(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-orange-500 focus:ring-orange-400/30" />
+                <span className="text-sm text-slate-600 group-hover:text-slate-800 font-medium transition-colors">
+                  Bỏ qua, đặt lịch sau
+                </span>
+              </label>
+            </>
+          )}
+
+          {/* Actions */}
+          <div className="pt-2 flex items-center justify-between border-t border-slate-100 mt-2">
+            <div>
+              {step === 2 && (
+                <button type="button" onClick={() => { setStep(1); setError(''); }}
+                  className="px-3 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                  Quay lại
+                </button>
+              )}
+            </div>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={onClose} disabled={saving}
+                className="px-4 py-2 text-sm font-semibold text-slate-600 bg-slate-50 border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors disabled:opacity-50">
+                Hủy
+              </button>
+              {step === 1 ? (
+                <button type="submit"
+                  className="px-5 py-2 flex items-center gap-2 text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-[#F37120] rounded-xl shadow-md hover:from-orange-600 hover:to-orange-700 transition-all">
+                  Tiếp tục
+                  <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                </button>
+              ) : (
+                <button type="button" onClick={handleSubmit} disabled={saving}
+                  className="px-5 py-2 flex items-center justify-center min-w-[140px] text-sm font-bold text-white bg-gradient-to-r from-orange-500 to-[#F37120] rounded-xl shadow-md hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                  {saving ? (
+                    <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Đang tạo...</>
+                  ) : (
+                    <><span className="material-symbols-outlined text-[16px]">check_circle</span> Tạo đợt thi</>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -495,8 +701,12 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
     loadBlocks();
   }, [examId]);
 
-  // Handle Update Block modal
+  // Block modals
   const [editingBlock, setEditingBlock] = useState(null);
+  const [showCreateBlock, setShowCreateBlock] = useState(false);
+  const [deletingBlock, setDeletingBlock] = useState(null);
+  const [blockDeleting, setBlockDeleting] = useState(false);
+  const [blockDeleteError, setBlockDeleteError] = useState('');
 
   function openDeleteConfirm() {
     setDeleteError('');
@@ -543,17 +753,18 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
 
   const statusMeta = STATUS_META[exam.status] ?? STATUS_META.UPCOMING;
 
-  // Tìm Block 10 (bên trái) và Block 3 (bên phải)
-  // Ưu tiên match theo tên có chứa số, fallback: blocks[0]/blocks[1]
-  const block10 = blocks.find(b => /\b10\b/.test(b.name || ''))
-               ?? blocks.find(b => !/\b3\b/.test(b.name || ''))
-               ?? blocks[0]
-               ?? null;
-  const block3  = blocks.find(b => /\b3\b/.test(b.name || '') && !/10/.test(b.name || ''))
-               ?? blocks.find(b => b !== block10)
-               ?? blocks[1]
-               ?? null;
-  const displayPairs = loadingBlocks ? [null, null] : [block10, block3];
+  async function handleDeleteBlock() {
+    if (!deletingBlock) return;
+    setBlockDeleting(true); setBlockDeleteError('');
+    try {
+      await blockApi.delete(examId, deletingBlock.blockId);
+      message.success(`Đã xóa đợt thi "${deletingBlock.name}"`);
+      setDeletingBlock(null);
+      loadBlocks();
+    } catch (err) {
+      setBlockDeleteError(err?.response?.data?.message || 'Xóa thất bại.');
+    } finally { setBlockDeleting(false); }
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-6 sm:px-8 py-6 sm:py-8 space-y-6 sm:space-y-7">
@@ -626,35 +837,59 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
 
       {/* ── Block section ── */}
       <div>
-        <div className="flex items-center gap-2 mb-4">
-          <span className="material-symbols-outlined text-[#F37120]">layers</span>
-          <h3 className="text-lg font-extrabold text-slate-800">Danh sách Block</h3>
-          {!loadingBlocks && blocks.length > 0 && (
-            <span className="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full font-bold">
-              {blocks.length} block
-            </span>
-          )}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#F37120]">layers</span>
+            <h3 className="text-lg font-extrabold text-slate-800">Danh sách đợt thi</h3>
+            {!loadingBlocks && (
+              <span className="text-xs bg-orange-100 text-orange-700 border border-orange-200 px-2 py-0.5 rounded-full font-bold">
+                {blocks.length} đợt thi
+              </span>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowCreateBlock(true)}
+            className="px-4 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#F37120] to-orange-500 rounded-xl shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-orange-600 transition-all hover:-translate-y-0.5 flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">add_circle</span>
+            Tạo đợt thi
+          </button>
         </div>
 
+        {!loadingBlocks && blocks.length === 0 && (
+          <div className="bg-gradient-to-br from-orange-50/60 to-amber-50/40 border-2 border-dashed border-orange-200 rounded-2xl p-10 text-center flex flex-col items-center">
+            <div className="w-16 h-16 rounded-2xl bg-orange-100 border border-orange-200 flex items-center justify-center mb-4 shadow-inner">
+              <span className="material-symbols-outlined text-3xl text-[#F37120]">calendar_add_on</span>
+            </div>
+            <p className="text-slate-700 font-bold text-base mb-1">Chưa có đợt thi nào</p>
+            <p className="text-sm text-slate-500 mb-5 max-w-sm">Tạo đợt thi để lên lịch ca thi, tải đề và nhận bài nộp từ sinh viên.</p>
+            <button
+              type="button"
+              onClick={() => setShowCreateBlock(true)}
+              className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-[#F37120] to-orange-500 rounded-xl shadow-md shadow-orange-500/25 hover:from-orange-600 hover:to-orange-600 transition-all hover:-translate-y-0.5 flex items-center gap-2"
+            >
+              <span className="material-symbols-outlined text-[18px]">add_circle</span>
+              Tạo đợt thi đầu tiên
+            </button>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {[
-            { label: 'Block 10', block: displayPairs[0], src: block10 },
-            { label: 'Block 3',  block: displayPairs[1], src: block3  },
-          ].map(({ label, block, src }) => (
+          {(loadingBlocks ? [null, null] : blocks).map((block, idx) => (
             <BlockCard
-              key={label}
+              key={block?.blockId || idx}
               block={block}
-              blockSource={src}
-              fallbackName={label}
               loadingBlocks={loadingBlocks}
               onEdit={setEditingBlock}
               onOpenBlockDetail={onOpenBlockDetail}
+              onDelete={setDeletingBlock}
             />
           ))}
         </div>
       </div>
 
-      {/* ── Update Block modal ── (dùng Portal để tránh bị clip bởi overflow) */}
+      {/* ── Update Block modal ── */}
       {editingBlock && createPortal(
         <UpdateBlockModal
           block={editingBlock}
@@ -667,7 +902,54 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
         document.body
       )}
 
-      {/* ── Delete confirm modal ── */}
+      {/* ── Create Block modal ── */}
+      {showCreateBlock && createPortal(
+        <CreateBlockModal
+          examId={examId}
+          onClose={() => setShowCreateBlock(false)}
+          onSuccess={() => {
+            setShowCreateBlock(false);
+            loadBlocks();
+            message.success('Tạo đợt thi thành công!');
+          }}
+        />,
+        document.body
+      )}
+
+      {/* ── Delete Block confirm modal ── */}
+      {deletingBlock && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button type="button" aria-label="Close" onClick={() => { if (!blockDeleting) { setDeletingBlock(null); setBlockDeleteError(''); } }}
+            className="absolute inset-0 bg-slate-900/45 backdrop-blur-[2px]" />
+          <div className="relative w-full max-w-md rounded-3xl bg-white border border-slate-200 shadow-[0_20px_50px_rgba(15,23,42,0.25)] p-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[20px]">warning</span>
+              </div>
+              <div>
+                <h4 className="text-base font-bold text-slate-900">Xác nhận xóa đợt thi</h4>
+                <p className="text-sm text-slate-600 mt-1 leading-relaxed">
+                  Bạn có chắc muốn xóa đợt thi <span className="font-semibold">"{deletingBlock?.name}"</span>?<br />
+                  Hành động này không thể hoàn tác.
+                </p>
+              </div>
+            </div>
+            {blockDeleteError && (
+              <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{blockDeleteError}</div>
+            )}
+            <div className="mt-6 flex items-center justify-end gap-3">
+              <button type="button" onClick={() => { setDeletingBlock(null); setBlockDeleteError(''); }} disabled={blockDeleting}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors text-sm font-semibold disabled:opacity-60">Hủy</button>
+              <button type="button" onClick={handleDeleteBlock} disabled={blockDeleting}
+                className="px-4 py-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-colors text-sm font-semibold disabled:opacity-70 min-w-[120px] shadow-sm">
+                {blockDeleting ? 'Đang xóa...' : 'Xác nhận xóa'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Exam confirm modal ── */}
       {confirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <button

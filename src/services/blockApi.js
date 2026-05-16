@@ -5,12 +5,12 @@ import axiosClient from './axiosClient';
  * Endpoint base: /api/exams/{examId}/blocks
  *
  * BlockResponse shape:
- *   { blockId, examId, name, description, examDate, startTime, endTime, createdAt }
+ *   { blockId, examId, name, description, examDate, startTime, endTime, createdAt, hasPaper }
  */
 const blockApi = {
   /**
    * GET /api/exams/{examId}/blocks
-   * Lấy danh sách tất cả block của một kỳ thi (luôn là Block 10 + Block 3).
+   * Lấy danh sách tất cả block (đợt thi) của một kỳ thi.
    */
   getByExam: (examId) => axiosClient.get(`/exams/${examId}/blocks`),
 
@@ -21,6 +21,14 @@ const blockApi = {
   getById: (examId, blockId) => axiosClient.get(`/exams/${examId}/blocks/${blockId}`),
 
   /**
+   * POST /api/exams/{examId}/blocks
+   * Tạo đợt thi mới trong kỳ thi.
+   * @param {string} examId
+   * @param {object} body - { name: string, description?: string }
+   */
+  create: (examId, body) => axiosClient.post(`/exams/${examId}/blocks`, body),
+
+  /**
    * PUT /api/exams/{examId}/blocks/{blockId}
    * Cập nhật lịch thi của block (examDate, startTime, endTime).
    * @param {string} examId
@@ -28,6 +36,14 @@ const blockApi = {
    * @param {object} body - { examDate: 'YYYY-MM-DD', startTime: ISO, endTime: ISO }
    */
   update: (examId, blockId, body) => axiosClient.put(`/exams/${examId}/blocks/${blockId}`, body),
+
+  /**
+   * DELETE /api/exams/{examId}/blocks/{blockId}
+   * Xóa một đợt thi.
+   * @param {string} examId
+   * @param {string} blockId
+   */
+  delete: (examId, blockId) => axiosClient.delete(`/exams/${examId}/blocks/${blockId}`),
 };
 
 export default blockApi;

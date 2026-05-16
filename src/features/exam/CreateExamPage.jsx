@@ -283,7 +283,7 @@ export default function CreateExamPage({
           </h2>
           <p className="text-slate-500 text-sm mb-8">
             Kỳ thi <strong>"{form.name}"</strong> đã được {isEdit ? 'cập nhật' : 'khởi tạo'}.
-            {!isEdit && ' Hệ thống đã tự động tạo Block 10 và Block 3.'}
+            {!isEdit && ' Bạn có thể tạo các đợt thi trong trang chi tiết kỳ thi.'}
           </p>
           <button
             onClick={isEdit ? (onGoExamDetail ?? onGoExamManagement) : onGoExamManagement}
@@ -518,10 +518,10 @@ export default function CreateExamPage({
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-5 border border-blue-200/90 flex gap-4 shadow-[0_14px_30px_rgba(59,130,246,0.16)]">
             <span className="material-symbols-outlined text-blue-500 shrink-0 w-9 h-9 rounded-full bg-white border border-blue-200 flex items-center justify-center">info</span>
             <p className="text-sm text-blue-800 leading-relaxed font-medium">
-              Hệ thống sẽ tự động khởi tạo dữ liệu cho{' '}
-              <span className="font-bold underline">Block 10</span> và{' '}
-              <span className="font-bold underline">Block 3</span> ngay sau khi nhấn "Tạo kỳ thi".
-              Vui lòng kiểm tra kỹ thời gian trước khi xác nhận.
+              Sau khi tạo kỳ thi, bạn có thể tạo các{' '}
+              <span className="font-bold underline">đợt thi</span>{' '}
+              (ví dụ: Block 10, Block 3) trong trang chi tiết kỳ thi.
+              Mỗi đợt thi sẽ có tên riêng do bạn tự đặt.
             </p>
           </div>
         )}
