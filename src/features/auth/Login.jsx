@@ -116,15 +116,14 @@ const Login = () => {
                 >
                   Chấm điểm
                   <br />
-                  OOP tự động
+                  thực hành
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-400 to-amber-300">
-                    bằng AI.
+                    Java OOP.
                   </span>
                 </h1>
-                <p className="text-white/40 text-[15px] leading-relaxed mt-5 max-w-[320px]">
-                  Nộp bài, kiểm tra test case, đánh giá OOP với AI —
-                  chính xác và minh bạch.
+                <p className="text-white/40 text-[15px] leading-relaxed mt-5 max-w-[350px]">
+                  Nộp bài, thực thi test case, thẩm định cấu trúc OOP tự động với JavaParser & Reflection — chính xác và minh bạch.
                 </p>
               </div>
 
@@ -138,11 +137,11 @@ const Login = () => {
                     sub: 'Thực thi .jar & so sánh output tự động',
                   },
                   {
-                    icon: 'psychology',
+                    icon: 'schema',
                     color: 'text-sky-400',
                     bg: 'bg-sky-400/10',
-                    label: 'AI OOP Review',
-                    sub: 'AI phân tích encapsulation, design pattern',
+                    label: 'OOP Structural Analysis',
+                    sub: 'Thẩm định tự động theo các tiêu chí thiết kế OOP',
                   },
                   {
                     icon: 'gavel',

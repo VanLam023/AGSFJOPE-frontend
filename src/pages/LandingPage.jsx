@@ -13,11 +13,11 @@ const LandingPage = () => {
     },
     {
       step: '03', icon: 'play_circle', title: 'Chấm tự động',
-      desc: 'Hệ thống tự động chạy test case và AI đánh giá cấu trúc OOP của bài làm.',
+      desc: 'Hệ thống tự động thực thi test case và thẩm định cấu trúc OOP toàn diện của bài làm.',
     },
     {
       step: '04', icon: 'bar_chart', title: 'Xem kết quả',
-      desc: 'Nhận kết quả chi tiết với điểm từng câu, kết quả test case và nhận xét từ AI.',
+      desc: 'Nhận kết quả chi tiết với điểm từng câu, kết quả test case và phản hồi chi tiết cấu trúc OOP.',
     },
   ];
 
@@ -221,14 +221,13 @@ const LandingPage = () => {
                 <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-transparent group-hover:border-blue-500 transition-colors" />
                 <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-transparent group-hover:border-blue-500 transition-colors" />
                 <div className="w-12 h-12 rounded-xl bg-gray-900 border border-gray-700 text-blue-500 flex items-center justify-center mb-6">
-                  <span className="material-symbols-outlined text-2xl">psychology</span>
+                  <span className="material-symbols-outlined text-2xl">schema</span>
                 </div>
                 <h3 className="text-lg font-bold text-white mb-3 font-mono uppercase tracking-wide">
-                  02. AI đánh giá OOP
+                  02. Thẩm định cấu trúc OOP
                 </h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
-                  Gemini AI tự động phân tích cấu trúc OOP trong source code: encapsulation,
-                  inheritance, polymorphism và design pattern.
+                  Thẩm định cấu trúc mã nguồn theo các tiêu chí OOP chuẩn hóa (sự tồn tại của Class/Interface, kế thừa Extends/Implements, Constructor, Thuộc tính, Phương thức, Getter/Setter và Naming Convention) thông qua phân tích tĩnh (JavaParser) & phân tích động (Reflection) tự động.
                 </p>
               </div>
 
@@ -244,7 +243,7 @@ const LandingPage = () => {
                 </h3>
                 <p className="text-gray-400 text-sm leading-relaxed">
                   Sau khi Phòng khảo thí kích hoạt chấm, sinh viên xem được điểm từng câu, kết quả
-                  từng test case và nhận xét OOP từ AI.
+                  từng test case và chi tiết phản hồi cấu trúc OOP.
                 </p>
               </div>
             </div>
