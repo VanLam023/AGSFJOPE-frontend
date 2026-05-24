@@ -21,19 +21,12 @@ const { Header, Content, Sider } = Layout;
 const siderStyle = {
   overflow: "hidden",
   height: "100vh",
-  position: "sticky",
+  minHeight: "100vh",
+  position: "fixed",
   insetInlineStart: 0,
   top: 0,
-  zIndex: 20,
+  zIndex: 30,
   flex: "0 0 auto",
-  scrollbarWidth: "thin",
-  scrollbarGutter: "stable",
-};
-
-const shellStyle = {
-  minWidth: 0,
-  overflowX: "hidden",
-  position: "relative",
 };
 
 const ROLE_LABELS = {
@@ -49,23 +42,10 @@ const ROLE_LABELS = {
 const normalizeRole = (role) =>
   typeof role === "string" ? role.trim().toUpperCase() : "";
 
-const findKeyByPath = (items, pathname) => {
-  for (const item of items) {
-    if (item.to && String(item.to) === pathname) return String(item.key);
-    if (item.children) {
-      const found = findKeyByPath(item.children, pathname);
-      if (found) return found;
-    }
-  }
-  return null;
-};
+const EXPANDED_SIDER_WIDTH = 240;
+const COLLAPSED_SIDER_WIDTH = 80;
 
-const MainLayout = ({
-  children,
-  siderItems,
-  siderIcons,
-  actionBtn = null,
-}) => {
+const MainLayout = ({ children, siderItems, siderIcons, actionBtn = null }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -73,6 +53,22 @@ const MainLayout = ({
   const location = useLocation();
   const navigate = useNavigate();
   const headerDropdownRef = useRef(null);
+  const currentSiderWidth = collapsed
+    ? COLLAPSED_SIDER_WIDTH
+    : EXPANDED_SIDER_WIDTH;
+
+  const shellStyle = useMemo(
+    () => ({
+      minWidth: 0,
+      minHeight: "100vh",
+      minHeight: "100dvh",
+      overflowX: "hidden",
+      position: "relative",
+      marginLeft: currentSiderWidth,
+      width: `calc(100% - ${currentSiderWidth}px)`,
+    }),
+    [currentSiderWidth],
+  );
 
   const { user, logout } = useAuth();
 
@@ -131,7 +127,7 @@ const MainLayout = ({
   // their parent menu item (/exam-staff/exams).
   const selectedKey = useMemo(() => {
     const pathname = location.pathname;
-    let bestKey = '1'; // fallback: dashboard
+    let bestKey = "1"; // fallback: dashboard
     let bestMatchLength = 0;
 
     const walk = (items) => {
@@ -139,7 +135,7 @@ const MainLayout = ({
         if (item.to) {
           const to = String(item.to);
           // Must be exact match OR pathname starts with `to + '/'`
-          if (pathname === to || pathname.startsWith(to + '/')) {
+          if (pathname === to || pathname.startsWith(to + "/")) {
             if (to.length > bestMatchLength) {
               bestMatchLength = to.length;
               bestKey = String(item.key);
@@ -218,10 +214,11 @@ const MainLayout = ({
           trigger={null}
           collapsible
           collapsed={collapsed}
-          width={240}
+          width={EXPANDED_SIDER_WIDTH}
+          collapsedWidth={COLLAPSED_SIDER_WIDTH}
           style={siderStyle}
         >
-          <div className="flex flex-col h-full">
+          <div className={styles.siderInner}>
             {!collapsed ? (
               <div className={styles.logoWrapper}>
                 <img src={logoImg} alt="Logo" className={styles.logo} />
@@ -234,18 +231,20 @@ const MainLayout = ({
               <img src={logoImg} alt="Logo" className={styles.logoCollapsed} />
             )}
 
-            <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-b border-slate-600" />
+            <div className={styles.siderDivider} />
 
-            <Menu
-              selectedKeys={[selectedKey]}
-              items={menuItems}
-              className={styles.menu}
-              mode="inline"
-            />
+            <div className={styles.menuWrap}>
+              <Menu
+                selectedKeys={[selectedKey]}
+                items={menuItems}
+                className={styles.menu}
+                mode="inline"
+              />
+            </div>
 
             {actionBtn && (
-              <div className="px-4 pb-3 mt-auto">
-                <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-t border-slate-600" />
+              <div className={styles.actionArea}>
+                <div className={styles.actionDivider} />
                 {typeof actionBtn === "function"
                   ? actionBtn({ collapsed })
                   : actionBtn}
@@ -254,7 +253,7 @@ const MainLayout = ({
           </div>
         </Sider>
 
-        <Layout style={shellStyle}>
+        <Layout style={shellStyle} className={styles.shell}>
           <Header
             className={`${styles.header} border-b border-slate-200`}
             style={{
@@ -304,7 +303,9 @@ const MainLayout = ({
 
                   <div
                     className={`aspect-square w-10 rounded-full ring-2 transition-all cursor-pointer overflow-hidden flex items-center justify-center text-xs font-black uppercase bg-cover bg-center bg-no-repeat ${
-                      avatarImageUrl ? "bg-slate-200 text-transparent" : "bg-[#F37021]/15 text-[#F37021]"
+                      avatarImageUrl
+                        ? "bg-slate-200 text-transparent"
+                        : "bg-[#F37021]/15 text-[#F37021]"
                     } ${headerDropdownOpen ? "ring-[#F37021]" : "ring-[#F37021]/20 group-hover:ring-[#F37021]/50"}`}
                     style={avatarStyle}
                     aria-hidden="true"

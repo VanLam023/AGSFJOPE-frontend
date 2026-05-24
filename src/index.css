@@ -93,6 +93,18 @@ h6 {
   text-wrap: balance;
 }
 
+html,
+body,
+#root,
+#__next {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
 #root,
 #__next {
   isolation: isolate;

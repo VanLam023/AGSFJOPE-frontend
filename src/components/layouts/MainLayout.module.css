@@ -1,7 +1,21 @@
 .layout {
   min-height: 100vh;
+  min-height: 100dvh;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: hidden;
+  align-items: stretch;
+  background-color: #f8f9fa;
+}
+
+.shell {
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  position: relative;
+  transition:
+    margin-left 0.2s ease,
+    width 0.2s ease;
 }
 
 .header {
@@ -19,15 +33,14 @@
   align-items: center;
   padding: 1rem;
 
-
   .divider {
-    border-left: 1.25px solid #64748B;
+    border-left: 1.25px solid #64748b;
     height: 2rem;
-    margin: 0 .8rem;
+    margin: 0 0.8rem;
   }
 
   .accWrapper {
-    padding: 0 .4rem;
+    padding: 0 0.4rem;
 
     p {
       text-align: right;
@@ -36,26 +49,88 @@
 
     p:first-child {
       font-weight: 600;
-      font-family: 'Be Vietnam Pro', system-ui, sans-serif;
+      font-family: "Be Vietnam Pro", system-ui, sans-serif;
     }
   }
 }
 
 .sider {
+  position: fixed !important;
+  inset-inline-start: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 30;
+  flex: 0 0 auto !important;
+  align-self: flex-start;
+  overflow: hidden !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  min-height: 100vh !important;
+  min-height: 100dvh !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+.layout :global(.ant-layout-sider-children) {
+  height: 100%;
+}
+
+.siderInner {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  height: 100%;
+  min-height: 100%;
+}
+
+.siderDivider,
+.actionDivider {
+  width: auto;
+  margin-left: -24px;
+  margin-right: -24px;
+  border-top: 1px solid rgb(71 85 105 / 1);
+}
+
+.siderDivider {
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.menuWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 0.75rem;
+  scrollbar-width: thin;
+}
+
+.menuWrap :global(.ant-menu),
+.menuWrap :global(.ant-menu-inline) {
+  border-inline-end: none !important;
 }
 
 .menu {
   background-color: transparent;
   font-weight: 500;
+}
 
+.actionArea {
+  margin-top: auto;
+  padding: 0 1rem 0.75rem;
+  background-color: #2d2d2d;
+}
+
+.actionDivider {
+  margin-bottom: 0.75rem;
 }
 
 .content {
-  background-color: #F8F9FA;
+  background-color: #f8f9fa;
   min-width: 0;
+  min-height: calc(100vh - 64px);
+  min-height: calc(100dvh - 64px);
   overflow-x: hidden;
   position: relative;
   isolation: isolate;
@@ -80,24 +155,23 @@ img {
     right: 2rem;
   }
 
-  div>h1 {
-    font-size: .9rem;
+  div > h1 {
+    font-size: 0.9rem;
     color: #ffffff;
     padding: 0;
     width: max-content;
     line-height: 1.5;
   }
 
-  div>p {
-    font-size: .7rem;
-    color: #94A3B8;
+  div > p {
+    font-size: 0.7rem;
+    color: #94a3b8;
     font-weight: 600;
     width: fit-content;
     line-height: 1;
     padding: 0;
   }
 }
-
 
 .logo {
   aspect-ratio: 1;

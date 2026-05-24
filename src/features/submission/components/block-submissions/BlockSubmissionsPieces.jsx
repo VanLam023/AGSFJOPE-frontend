@@ -46,11 +46,10 @@ export const HeaderSection = React.memo(function HeaderSection({
   blockName,
   onExportCsv,
   onExportGradeSheet,
-  onExportZip,
   onRefresh,
   exporting,
 }) {
-  const isAnyExporting = exporting.gradeSheet || exporting.zipBundle;
+  const isAnyExporting = Object.values(exporting || {}).some(Boolean);
 
   return (
     <div className="relative z-10 p-1 flex flex-col xl:flex-row items-center justify-between gap-6 overflow-visible mb-6">
@@ -99,16 +98,6 @@ export const HeaderSection = React.memo(function HeaderSection({
         >
           <span className="material-symbols-outlined text-[20px] text-violet-600">table_view</span>
           {exporting.gradeSheet ? 'Đang xuất bảng điểm...' : 'Xuất bảng điểm'}
-        </button>
-
-        <button
-          type="button"
-          onClick={onExportZip}
-          disabled={isAnyExporting}
-          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white rounded-2xl text-sm font-bold text-slate-600 shadow-sm border border-slate-200 hover:text-[#F37021] hover:border-orange-200 hover:bg-orange-50 hover:shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
-        >
-          <span className="material-symbols-outlined text-[20px] text-amber-600">folder_zip</span>
-          {exporting.zipBundle ? 'Đang xuất file ZIP...' : 'Xuất file ZIP'}
         </button>
 
         <button
