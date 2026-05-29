@@ -45,7 +45,6 @@ export const ADMIN_ICONS = [
   'group',
   'rule',
   'payments',
-  'memory',
   'settings',
   'history',
 ];
@@ -55,7 +54,6 @@ export const ADMIN_SIDEBAR_ITEMS_FLAT = [
   { key: '3', label: 'Người dùng & Roles', to: '/admin/student-management' },
   { key: '4', label: 'Chế độ chấm', to: '/admin/grading-config' },
   { key: '5', label: 'Cấu hình PayOS', to: '/admin/payos-configuration' },
-  { key: '6', label: 'Model AI', to: '/admin/ai-config' },
   {
     key: '7',
     label: 'Hệ thống',
@@ -94,9 +92,8 @@ export const ADMIN_SIDEBAR_ITEMS = [
     label: 'Cấu hình',
     type: 'group',
     children: [
-      { key: '5', label: 'Cấu hình PayOS', to: '/admin/payos-configuration' },
-      { key: '6', label: 'Model AI', to: '/admin/ai-config' },
       { key: '4', label: 'Chế độ chấm', to: '/admin/grading-config' },
+      { key: '5', label: 'Cấu hình PayOS', to: '/admin/payos-configuration' },
       {
         key: '7',
         label: 'Hệ thống',

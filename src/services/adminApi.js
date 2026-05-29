@@ -185,6 +185,26 @@ const getAdminDashboardSystemActivity = ({ period } = {}) => {
   });
 };
 
+const getAdminPayments = ({ from, to, search, page = 0, size = 15 } = {}) => {
+  return axiosClient.get('/admin/config/payments', {
+    params: cleanParams({ from, to, search, page, size }),
+  });
+};
+
+const getPayosConfig = () => {
+  return axiosClient.get('/admin/config/payos');
+};
+
+const updatePayosConfig = ({ clientId, apiKey, checksumKey, appealFee, paymentTimeoutMin }) => {
+  return axiosClient.put('/admin/config/payos', {
+    clientId,
+    apiKey,
+    checksumKey,
+    appealFee,
+    paymentTimeoutMin,
+  });
+};
+
 export {
   importExcel,
   createUser,
@@ -211,4 +231,7 @@ export {
   getAdminDashboardRecentActivities,
   getAdminDashboardSystemHealth,
   getAdminDashboardSystemActivity,
+  getAdminPayments,
+  getPayosConfig,
+  updatePayosConfig,
 };

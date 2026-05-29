@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import StatisticsSectionCard from './StatisticsSectionCard.jsx';
 import { formatPercent, formatScore, toNumber } from '../utils/statisticsHelpers.js';
 
@@ -10,9 +10,16 @@ import { formatPercent, formatScore, toNumber } from '../utils/statisticsHelpers
  *   items – mảng object { name, avgScore, violationCount, violationRate, sampleSize }
  */
 export default function StatisticsCriteriaDetailTable({ items }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const sorted = useMemo(
     () => [...(items ?? [])].sort((a, b) => toNumber(b.violationCount) - toNumber(a.violationCount)),
     [items],
+  );
+
+  const visibleItems = useMemo(
+    () => (isExpanded ? sorted : sorted.slice(0, 5)),
+    [sorted, isExpanded],
   );
 
   const maxViolation = useMemo(
@@ -33,7 +40,7 @@ export default function StatisticsCriteriaDetailTable({ items }) {
   }
 
   return (
-    <StatisticsSectionCard title="Chi tiết tiêu chí OOP (JavaParser)">
+    <StatisticsSectionCard title="Chi tiết tiêu chí OOP">
       <div className="overflow-x-auto rounded-2xl border border-slate-100">
         <table className="w-full text-sm border-collapse">
           <thead>
@@ -47,7 +54,7 @@ export default function StatisticsCriteriaDetailTable({ items }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((item, idx) => {
+            {visibleItems.map((item, idx) => {
               const violationCount = toNumber(item.violationCount);
               const violationRate  = toNumber(item.violationRate);
               const avgScore       = toNumber(item.avgScore);
@@ -128,6 +135,21 @@ export default function StatisticsCriteriaDetailTable({ items }) {
           </tbody>
         </table>
       </div>
+
+      {sorted.length > 5 && (
+        <div className="flex justify-center mt-4">
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-orange-600 hover:text-orange-700 bg-orange-50 hover:bg-orange-100 rounded-full border border-orange-200/50 shadow-sm transition-all duration-200"
+          >
+            <span>{isExpanded ? 'Thu gọn bớt' : `Xem tất cả (${sorted.length} tiêu chí)`}</span>
+            <span className="material-symbols-outlined text-[16px]">
+              {isExpanded ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
+            </span>
+          </button>
+        </div>
+      )}
 
       <p className="text-[11px] text-slate-400 mt-3 flex items-center gap-1">
         <span className="material-symbols-outlined text-[14px]">info</span>

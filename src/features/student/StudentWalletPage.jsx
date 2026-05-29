@@ -289,9 +289,18 @@ export default function StudentWalletPage() {
         cancelUrl: buildWalletRedirectUrl('cancel'),
       });
 
-      const payload = unwrapApiData(response);
+      // response is already unwrapped by axiosClient (returns res.data)
+      const payload = response?.data || response;
+      sessionStorage.setItem('student-wallet-pending-deposit', JSON.stringify({
+        ...payload,
+        createdAt: new Date().toISOString(),
+      }));
       setLastDeposit(payload);
       message.success(response?.message || 'Đã tạo lệnh nạp tiền thành công.');
+      navigate('/student/wallet/deposit/qr', {
+        state: { deposit: payload },
+        replace: true,
+      });
     } catch (apiError) {
       setLastDeposit(null);
       message.error(
@@ -300,7 +309,7 @@ export default function StudentWalletPage() {
     } finally {
       setDepositSubmitting(false);
     }
-  }, [depositAmount]);
+  }, [depositAmount, navigate]);
 
   const handleWithdrawFieldChange = useCallback((field, value) => {
     setWithdrawErrors((prev) => ({ ...prev, [field]: '' }));
@@ -449,6 +458,16 @@ export default function StudentWalletPage() {
               onDepositAmountChange={handleDepositAmountChange}
               onPresetAmountClick={handlePresetAmountClick}
               onSubmit={handleDepositSubmit}
+                onOpenQrPage={(deposit = lastDeposit) => {
+                  if (!deposit) return;
+                  sessionStorage.setItem('student-wallet-pending-deposit', JSON.stringify({
+                    ...deposit,
+                    createdAt: deposit.createdAt || new Date().toISOString(),
+                  }));
+                  navigate('/student/wallet/deposit/qr', {
+                    state: { deposit },
+                  });
+                }}
             />
 
             <WalletWithdrawPanel

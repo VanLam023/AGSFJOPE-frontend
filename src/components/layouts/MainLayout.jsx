@@ -60,7 +60,6 @@ const MainLayout = ({ children, siderItems, siderIcons, actionBtn = null }) => {
   const shellStyle = useMemo(
     () => ({
       minWidth: 0,
-      minHeight: "100vh",
       minHeight: "100dvh",
       overflowX: "hidden",
       position: "relative",

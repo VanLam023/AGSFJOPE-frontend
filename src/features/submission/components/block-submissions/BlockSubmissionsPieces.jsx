@@ -87,7 +87,7 @@ export const HeaderSection = React.memo(function HeaderSection({
           className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white rounded-2xl text-sm font-bold text-slate-600 shadow-sm border border-slate-200 hover:text-[#F37021] hover:border-orange-200 hover:bg-orange-50 hover:shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
         >
           <span className="material-symbols-outlined text-[20px] text-emerald-600">download</span>
-          Xuất file CSV
+          Xuất file Excel
         </button>
 
         <button

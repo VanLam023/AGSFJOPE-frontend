@@ -8,6 +8,7 @@ import {
   Select,
   Form,
   message,
+  Modal,
 } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '../../components/layouts/MainLayout';
@@ -66,6 +67,8 @@ const UserDetail = () => {
   const { callUnlockUserEndpoint, loading: unlockLoading } = useUnlockUser();
   const { callEditUserEndpoint, loading: editLoading } = useEditDetail();
   const [validationError, setValidationError] = useState(false);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
 
   const [form] = Form.useForm();
   const user = userDetail;
@@ -111,11 +114,13 @@ const UserDetail = () => {
   const handleLockUser = async () => {
     try {
       await callDeleteUserEndpoint(userId);
+      setIsLockModalOpen(false);
       message.success('Khóa tài khoản thành công.');
       setTimeout(() => {
         navigate('/admin/student-management');
       }, 1500);
     } catch (err) {
+      setIsLockModalOpen(false);
       if (err?.response?.data?.message) {
         message.error(err.response.data.message);
       } else {
@@ -127,9 +132,11 @@ const UserDetail = () => {
   const handleUnlockUser = async () => {
     try {
       await callUnlockUserEndpoint(userId);
+      setIsUnlockModalOpen(false);
       message.success('Mở khóa tài khoản thành công.');
       await fetchUserDetail(userId);
     } catch (err) {
+      setIsUnlockModalOpen(false);
       if (err?.response?.data?.message) {
         message.error(err.response.data.message);
       } else {
@@ -538,8 +545,7 @@ const UserDetail = () => {
                                 <Button
                                   type="primary"
                                   size="large"
-                                  loading={unlockLoading}
-                                  onClick={handleUnlockUser}
+                                  onClick={() => setIsUnlockModalOpen(true)}
                                 >
                                   Mở khóa tài khoản
                                 </Button>
@@ -547,28 +553,13 @@ const UserDetail = () => {
                                 <Button
                                   danger
                                   size="large"
-                                  loading={deleteLoading}
-                                  onClick={handleLockUser}
+                                  onClick={() => setIsLockModalOpen(true)}
                                 >
                                   Khóa tài khoản
                                 </Button>
                               )}
                             </div>
                           </div>
-                        ),
-                      },
-                      {
-                        key: 'activity',
-                        label: 'Lịch sử hoạt động',
-                        children: (
-                          <div className="px-6 pb-8 text-slate-500 text-sm"></div>
-                        ),
-                      },
-                      {
-                        key: 'submissions',
-                        label: 'Bài nộp',
-                        children: (
-                          <div className="px-6 pb-8 text-slate-500 text-sm"></div>
                         ),
                       },
                     ]}
@@ -578,6 +569,72 @@ const UserDetail = () => {
             </div>
           </div>
         </div>
+
+        <Modal
+          title={
+            <div className="flex items-center gap-2 text-red-600 font-bold text-lg">
+              <span className="material-symbols-outlined text-[24px]">warning</span>
+              Xác nhận khóa tài khoản
+            </div>
+          }
+          open={isLockModalOpen}
+          onOk={handleLockUser}
+          onCancel={() => setIsLockModalOpen(false)}
+          okText="Khóa tài khoản"
+          cancelText="Hủy"
+          okButtonProps={{ danger: true, size: 'large', loading: deleteLoading }}
+          cancelButtonProps={{ size: 'large' }}
+          centered
+          className="custom-confirm-modal"
+        >
+          <div className="py-4 space-y-3">
+            <p className="text-slate-600 leading-relaxed text-sm">
+              Bạn có chắc chắn muốn khóa tài khoản của người dùng{' '}
+              <strong className="text-slate-800 font-bold">{user?.fullName}</strong>?
+            </p>
+            <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2.5">
+              <span className="material-symbols-outlined text-red-500 text-[18px] mt-0.5">
+                info
+              </span>
+              <p className="text-[12px] text-red-600 leading-relaxed">
+                Người dùng này sẽ không thể đăng nhập hoặc thực hiện bất kỳ thao tác nào trên hệ thống sau khi tài khoản bị khóa.
+              </p>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          title={
+            <div className="flex items-center gap-2 text-emerald-600 font-bold text-lg">
+              <span className="material-symbols-outlined text-[24px]">lock_open</span>
+              Xác nhận mở khóa tài khoản
+            </div>
+          }
+          open={isUnlockModalOpen}
+          onOk={handleUnlockUser}
+          onCancel={() => setIsUnlockModalOpen(false)}
+          okText="Mở khóa tài khoản"
+          cancelText="Hủy"
+          okButtonProps={{ size: 'large', loading: unlockLoading }}
+          cancelButtonProps={{ size: 'large' }}
+          centered
+          className="custom-confirm-modal"
+        >
+          <div className="py-4 space-y-3">
+            <p className="text-slate-600 leading-relaxed text-sm">
+              Bạn có chắc chắn muốn mở khóa tài khoản của người dùng{' '}
+              <strong className="text-slate-800 font-bold">{user?.fullName}</strong>?
+            </p>
+            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-2.5">
+              <span className="material-symbols-outlined text-emerald-500 text-[18px] mt-0.5">
+                check_circle
+              </span>
+              <p className="text-[12px] text-emerald-600 leading-relaxed">
+                Người dùng này sẽ được khôi phục quyền truy cập, có thể đăng nhập và làm việc bình thường trên hệ thống ngay lập tức.
+              </p>
+            </div>
+          </div>
+        </Modal>
       </ConfigProvider>
     </MainLayout>
   );

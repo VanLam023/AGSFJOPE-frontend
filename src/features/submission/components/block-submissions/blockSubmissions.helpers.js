@@ -111,6 +111,7 @@ export function mapGradingResultsFallback(items = []) {
     studentName: it?.studentName,
     studentCode: it?.studentCode,
     studentEmail: it?.studentEmail ?? null,
+    fileName: it?.fileName ?? it?.submissionFileName ?? null,
     submittedAt: it?.submittedAt ?? null,
     fileSizeBytes: it?.fileSizeBytes ?? null,
     submissionStatus: it?.submissionStatus ?? 'GRADED',

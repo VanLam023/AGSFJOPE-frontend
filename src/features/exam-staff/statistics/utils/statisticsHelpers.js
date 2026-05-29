@@ -319,3 +319,34 @@ export const getBlockDisplayName = (block, exam) => {
   const examName = exam?.name || 'Kỳ thi';
   return `${blockName} — ${examName}`;
 };
+
+export const buildTestCaseStats = (statistics) => {
+  const rawList = ensureArray(statistics?.testCaseStats);
+  return rawList.map((tc, index) => {
+    const failureRate = toNumber(tc.failureRate);
+    
+    let severity = 'success';
+    let severityLabel = 'Thấp';
+    if (failureRate >= 75) {
+      severity = 'error';
+      severityLabel = 'Nghiêm trọng';
+    } else if (failureRate >= 40) {
+      severity = 'warning';
+      severityLabel = 'Trung bình';
+    } else if (failureRate > 0) {
+      severity = 'info';
+      severityLabel = 'Nhẹ';
+    }
+
+    return {
+      id: index + 1,
+      name: tc.name || 'Test Case',
+      avgScore: toNumber(tc.avgScore),
+      failureCount: toNumber(tc.failureCount),
+      failureRate,
+      sampleSize: toNumber(tc.sampleSize),
+      severity,
+      severityLabel,
+    };
+  });
+};

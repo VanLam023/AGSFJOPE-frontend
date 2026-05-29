@@ -34,6 +34,8 @@ const LecturerAppealReviewPage = lazy(() => import('../../features/lecturer/appe
 const LecturerAppealSubmittedPage = lazy(() => import('../../features/lecturer/appeals/pages/LecturerAppealSubmittedPage.jsx'));
 const LecturerNotificationsPage = lazy(() => import('../../features/lecturer/notifications/pages/LecturerNotificationsPage.jsx'));
 const StudentWalletPage = lazy(() => import('../../features/student/StudentWalletPage.jsx'));
+const StudentWalletDepositQrPage = lazy(() => import('../../features/student/wallet/StudentWalletDepositQrPage.jsx'));
+const StudentWalletDepositSuccessPage = lazy(() => import('../../features/student/wallet/StudentWalletDepositSuccessPage.jsx'));
 const StudentAppealsPage = lazy(() => import('../../features/student/StudentAppealsPage.jsx'));
 const StudentAppealCreatePage = lazy(() => import('../../features/student/StudentAppealCreatePage.jsx'));
 const StudentAppealDetailPage = lazy(() => import('../../features/student/StudentAppealDetailPage.jsx'));
@@ -138,6 +140,26 @@ export default function AppRoutes() {
           <ProtectedRoute allowedRoles={['STUDENT']}>
             <Suspense fallback={<LecturerRouteFallback />}>
               <StudentWalletPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/wallet/deposit/qr"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <Suspense fallback={<LecturerRouteFallback />}>
+              <StudentWalletDepositQrPage />
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/wallet/deposit/success"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <Suspense fallback={<LecturerRouteFallback />}>
+              <StudentWalletDepositSuccessPage />
             </Suspense>
           </ProtectedRoute>
         }

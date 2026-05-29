@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import examPaperApi from '../../services/examPaperApi';
 import gradingCriteriaApi from '../../services/gradingCriteriaApi';
 
@@ -15,6 +16,28 @@ function fmtDate(iso) {
     day: '2-digit', month: '2-digit', year: 'numeric',
     hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh',
   });
+}
+
+function normalizeErrorValue(value) {
+  if (!value) return '';
+  if (typeof value === 'string') return value.trim();
+  if (Array.isArray(value)) {
+    return value.map(normalizeErrorValue).filter(Boolean).join('\n');
+  }
+  if (typeof value === 'object') {
+    return Object.values(value).map(normalizeErrorValue).filter(Boolean).join('\n');
+  }
+  return String(value).trim();
+}
+
+function getApiErrorMessage(err, fallback) {
+  const body = err?.response?.data ?? err?.data ?? err;
+  return normalizeErrorValue(body?.message)
+      || normalizeErrorValue(body?.errors)
+      || normalizeErrorValue(body?.error)
+      || normalizeErrorValue(body?.detail)
+      || normalizeErrorValue(err?.message)
+      || fallback;
 }
 
 const CRITERION_TYPES = [
@@ -115,7 +138,7 @@ function Step1Upload({ examId, blockId, paper, loadingGet, onUploaded }) {
       const data = res?.data?.data ?? res?.data ?? res;
       onUploaded(data);
     } catch (err) {
-      setUploadError(err?.response?.data?.message || 'Upload thất bại. Vui lòng thử lại.');
+      setUploadError(getApiErrorMessage(err, 'Upload thất bại. Vui lòng thử lại.'));
     } finally {
       setUploading(false);
     }
@@ -289,8 +312,9 @@ function Step1Upload({ examId, blockId, paper, loadingGet, onUploaded }) {
 
       {/* Error */}
       {uploadError && (
-        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 text-sm">
-          <span className="material-symbols-outlined text-base">error</span>{uploadError}
+        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-start gap-2 text-sm">
+          <span className="material-symbols-outlined text-base mt-0.5">error</span>
+          <span className="whitespace-pre-line">{uploadError}</span>
         </div>
       )}
 
@@ -414,15 +438,20 @@ const PARAM_SCHEMA = {
       required: false, type: 'csv' },
   ],
   METHOD_SIGNATURE: [
-    { key: 'className',  label: 'Tên lớp',            placeholder: 'VD: Product',    required: true },
-    { key: 'methodName', label: 'Tên phương thức',    placeholder: 'VD: getDiscount', required: true },
-    { key: 'returnType', label: 'Kiểu trả về',        placeholder: 'VD: double',      required: false },
-    { key: 'paramTypes', label: 'Kiểu tham số (cách nhau bởi dấu phẩy)', placeholder: 'VD: String, int  (để trống = không có tham số)',
+    { key: 'className',      label: 'Tên lớp',              placeholder: 'VD: Product',     required: true },
+    { key: 'methodName',     label: 'Tên phương thức',      placeholder: 'VD: getDiscount', required: true },
+    { key: 'returnType',     label: 'Kiểu trả về',          placeholder: 'VD: double',      required: false },
+    { key: 'paramTypes',     label: 'Kiểu tham số (cách nhau bởi dấu phẩy)', placeholder: 'VD: String, int  (để trống = không có tham số)',
       required: false, type: 'csv' },
+    { key: 'accessModifier', label: 'Phạm vi truy cập',     placeholder: 'VD: public',      required: false,
+      type: 'select', options: ['', 'public', 'protected', 'private'] },
+    { key: 'requireOverride', label: 'Yêu cầu annotation @Override', type: 'checkbox', defaultVal: false },
   ],
   GETTER_SETTER: [
-    { key: 'className', label: 'Tên lớp',   placeholder: 'VD: Product', required: true },
-    { key: 'fieldName', label: 'Tên field', placeholder: 'VD: price',   required: true },
+    { key: 'className',      label: 'Tên lớp',   placeholder: 'VD: Product', required: true },
+    { key: 'fieldName',      label: 'Tên field', placeholder: 'VD: price',   required: true },
+    { key: 'accessModifier', label: 'Phạm vi truy cập (getter & setter)', placeholder: 'VD: public', required: false,
+      type: 'select', options: ['', 'public', 'protected', 'private'] },
   ],
   EXTENDS_CHECK: [
     { key: 'className',   label: 'Tên lớp con',  placeholder: 'VD: Car',     required: true },
@@ -567,6 +596,14 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
   const [formValues, setFormValues] = useState(() => parseParamsJson(row.criterionType, row.checkParamsJson));
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   const onChange = (updates) => setRow(r => ({ ...r, ...updates }));
 
   const handleTypeChange = (newType) => {
@@ -590,8 +627,8 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
     onSave(row);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15,23,42,0.6)' }}>
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15,23,42,0.6)' }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ animation: 'modal-pop 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
         
         {/* Header */}
@@ -661,7 +698,8 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -842,10 +880,7 @@ function Step2Criteria({ examId, paper, onBack, onDone }) {
       setSaveOk(true);
       setTimeout(() => onDone?.(), 1500);
     } catch (err) {
-      const msg = err?.response?.data?.message
-               ?? err?.response?.data?.errors?.[0]
-               ?? 'Lưu thất bại. Vui lòng thử lại.';
-      setSaveError(msg);
+      setSaveError(getApiErrorMessage(err, 'Lưu thất bại. Vui lòng thử lại.'));
     } finally {
       setSaving(false);
     }

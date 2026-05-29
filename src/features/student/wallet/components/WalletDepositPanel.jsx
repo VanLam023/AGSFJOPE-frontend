@@ -3,7 +3,6 @@ import {
   DEPOSIT_PRESET_AMOUNTS,
   formatCurrency,
   formatDateTime,
-  isSafeExternalUrl,
 } from '../helpers/walletHelpers';
 
 export default function WalletDepositPanel({
@@ -14,11 +13,8 @@ export default function WalletDepositPanel({
   onDepositAmountChange,
   onPresetAmountClick,
   onSubmit,
+  onOpenQrPage,
 }) {
-  const safeCheckoutUrl = isSafeExternalUrl(lastDeposit?.checkoutUrl)
-    ? lastDeposit?.checkoutUrl
-    : '';
-
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur">
       <div className="border-b border-slate-100 px-6 py-5">
@@ -115,16 +111,15 @@ export default function WalletDepositPanel({
                 </div>
               </div>
 
-              {safeCheckoutUrl && (
-                <a
-                  href={safeCheckoutUrl}
-                  target="_blank"
-                  rel="noreferrer noopener"
+              {lastDeposit?.qrCodeUrl && onOpenQrPage && (
+                <button
+                  type="button"
+                  onClick={() => onOpenQrPage(lastDeposit)}
                   className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#F37021]/20 bg-[#F37021]/10 px-4 text-sm font-black text-[#F37021] transition-colors hover:bg-[#F37021]/15"
                 >
-                  <span className="material-symbols-outlined text-[18px]">open_in_new</span>
-                  Mở trang thanh toán PayOS
-                </a>
+                  <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
+                  Mở trang quét QR thanh toán
+                </button>
               )}
             </div>
           </div>
