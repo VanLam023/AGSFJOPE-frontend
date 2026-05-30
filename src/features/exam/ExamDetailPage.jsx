@@ -35,6 +35,45 @@ function sanitizeUiErrorMessage(message) {
   return message.replace(/\s*\([^)]*\)\.?\s*$/, '').trim();
 }
 
+function fmtConflictDateTime(isoStr) {
+  if (!isoStr) return '—';
+  const value = new Date(isoStr);
+  if (Number.isNaN(value.getTime())) return '—';
+  return value.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'Asia/Ho_Chi_Minh',
+  });
+}
+
+function buildOverlapMessage(conflictingBlock) {
+  const blockName = conflictingBlock?.name || conflictingBlock?.blockName || 'Không rõ tên';
+  const examName = conflictingBlock?.examName || conflictingBlock?.exam?.name || 'Không rõ';
+  return `Đã có block thi "${blockName}" diễn ra vào ${fmtConflictDateTime(conflictingBlock?.startTime)} đến ${fmtConflictDateTime(conflictingBlock?.endTime)}, ở kì ${examName} vui lòng chọn khoảng thời gian khác.`;
+}
+
+function findOverlappingBlock(blocks, candidateStartIso, candidateEndIso, excludeBlockId = null) {
+  if (!Array.isArray(blocks) || !candidateStartIso || !candidateEndIso) return null;
+
+  const candidateStart = new Date(candidateStartIso).getTime();
+  const candidateEnd = new Date(candidateEndIso).getTime();
+  if (!Number.isFinite(candidateStart) || !Number.isFinite(candidateEnd)) return null;
+
+  return blocks.find((item) => {
+    if (!item?.startTime || !item?.endTime) return false;
+    if (excludeBlockId && item?.blockId === excludeBlockId) return false;
+
+    const existingStart = new Date(item.startTime).getTime();
+    const existingEnd = new Date(item.endTime).getTime();
+    if (!Number.isFinite(existingStart) || !Number.isFinite(existingEnd)) return false;
+
+    return candidateStart < existingEnd && candidateEnd > existingStart;
+  }) || null;
+}
+
 function getBlockScheduleLockMessage(block) {
   const now = Date.now();
 
@@ -73,7 +112,7 @@ function getBlockScheduleStatus(block) {
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
 
-function UpdateBlockModal({ block, onClose, onSuccess }) {
+function UpdateBlockModal({ block, allBlocks = [], onClose, onSuccess }) {
   const [examDate, setExamDate] = useState('');
   const [startTime, setStartTime] = useState('');
   const [endTime, setEndTime] = useState('');
@@ -131,6 +170,11 @@ function UpdateBlockModal({ block, onClose, onSuccess }) {
       // Gửi đúng offset +07:00 (múi giờ Việt Nam) thay vì với toISOString() có thể trừ 7 tiếng và lưu sai
       const startIso = `${examDate}T${startTime}:00+07:00`;
       const endIso   = `${examDate}T${endTime}:00+07:00`;
+      const conflictingBlock = findOverlappingBlock(allBlocks, startIso, endIso, block.blockId);
+      if (conflictingBlock) {
+        setError(buildOverlapMessage(conflictingBlock));
+        return;
+      }
 
       setSaving(true);
       setError('');
@@ -374,7 +418,7 @@ function BlockCard({ block, loadingBlocks, onEdit, onOpenBlockDetail, onDelete }
 }
 
 /** Modal tạo đợt thi mới — wizard 2 bước: Thông tin → Lịch thi (tuỳ chọn) */
-function CreateBlockModal({ examId, exam, onClose, onSuccess }) {
+function CreateBlockModal({ examId, allBlocks = [], onClose, onSuccess }) {
   const [step, setStep] = useState(1);
   // Step 1
   const [name, setName] = useState('');
@@ -398,6 +442,39 @@ function CreateBlockModal({ examId, exam, onClose, onSuccess }) {
 
   const handleSubmit = async (e) => {
     e?.preventDefault();
+
+    if (!skipSchedule) {
+      if (!examDate || !startTime || !endTime) {
+        setError('Vui lòng nhập đầy đủ Ngày thi, Giờ bắt đầu và Giờ kết thúc hoặc chọn bỏ qua đặt lịch.');
+        return;
+      }
+
+      const now = new Date();
+      const startDateTime = new Date(`${examDate}T${startTime}:00+07:00`);
+      if (examDate < todayStr) {
+        setError('Ngày thi không được nhỏ hơn ngày hiện tại');
+        return;
+      }
+
+      if (examDate === todayStr && startDateTime <= now) {
+        setError('Nếu chọn ngày hôm nay, giờ bắt đầu phải lớn hơn thời điểm hiện tại');
+        return;
+      }
+
+      if (endTime <= startTime) {
+        setError('Giờ kết thúc phải lớn hơn giờ bắt đầu');
+        return;
+      }
+
+      const startIso = `${examDate}T${startTime}:00+07:00`;
+      const endIso = `${examDate}T${endTime}:00+07:00`;
+      const conflictingBlock = findOverlappingBlock(allBlocks, startIso, endIso);
+      if (conflictingBlock) {
+        setError(buildOverlapMessage(conflictingBlock));
+        return;
+      }
+    }
+
     setSaving(true); setError('');
     try {
       // Step 1: Create block
@@ -419,16 +496,19 @@ function CreateBlockModal({ examId, exam, onClose, onSuccess }) {
             endTime: endIso,
           });
         } catch (scheduleErr) {
-          // Block created but schedule failed — still success, warn user
-          onSuccess();
-          message.warning('Đợt thi đã tạo nhưng chưa đặt lịch được: ' +
-            (scheduleErr?.response?.data?.message || 'Vui lòng cập nhật lịch sau.'));
+          try {
+            await blockApi.delete(examId, blockId);
+          } catch {
+            // keep original schedule error for UI
+          }
+          const rawScheduleMessage = scheduleErr?.response?.data?.message || 'Đặt lịch đợt thi thất bại.';
+          setError(sanitizeUiErrorMessage(rawScheduleMessage));
           return;
         }
       }
       onSuccess();
     } catch (err) {
-      setError(err?.response?.data?.message || 'Tạo đợt thi thất bại.');
+      setError(sanitizeUiErrorMessage(err?.response?.data?.message || 'Tạo đợt thi thất bại.'));
     } finally { setSaving(false); }
   };
 
@@ -609,6 +689,7 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
   const [deleteError, setDeleteError] = useState('');
   // Block state
   const [blocks, setBlocks]           = useState([]);
+  const [allBlocks, setAllBlocks]      = useState([]);
   const [loadingBlocks, setLoadingBlocks] = useState(false);
 
   // Fetch exam detail
@@ -697,8 +778,35 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
     }
   };
 
+  const loadAllBlocks = async () => {
+    try {
+      const res = await blockApi.getAllForStaff();
+      const payload = res?.data ?? res;
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : [];
+
+      setAllBlocks(
+        list.map((item) => ({
+          blockId: item?.blockId,
+          examId: item?.examId,
+          name: item?.blockName || item?.name || '',
+          examName: item?.examName || '',
+          startTime: item?.startTime || null,
+          endTime: item?.endTime || null,
+        }))
+      );
+    } catch (err) {
+      console.error('[Block] get all staff blocks error:', err?.response?.status, err?.response?.data, err?.message);
+      setAllBlocks([]);
+    }
+  };
+
   useEffect(() => {
     loadBlocks();
+    loadAllBlocks();
   }, [examId]);
 
   // Block modals
@@ -761,6 +869,7 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
       message.success(`Đã xóa đợt thi "${deletingBlock.name}"`);
       setDeletingBlock(null);
       loadBlocks();
+      loadAllBlocks();
     } catch (err) {
       setBlockDeleteError(err?.response?.data?.message || 'Xóa thất bại.');
     } finally { setBlockDeleting(false); }
@@ -893,10 +1002,12 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
       {editingBlock && createPortal(
         <UpdateBlockModal
           block={editingBlock}
+          allBlocks={allBlocks}
           onClose={() => setEditingBlock(null)}
           onSuccess={() => {
             setEditingBlock(null);
             loadBlocks();
+            loadAllBlocks();
           }}
         />,
         document.body
@@ -906,10 +1017,12 @@ export default function ExamDetailPage({ examId, onBack, onEdit, onOpenBlockDeta
       {showCreateBlock && createPortal(
         <CreateBlockModal
           examId={examId}
+          allBlocks={allBlocks}
           onClose={() => setShowCreateBlock(false)}
           onSuccess={() => {
             setShowCreateBlock(false);
             loadBlocks();
+            loadAllBlocks();
             message.success('Tạo đợt thi thành công!');
           }}
         />,

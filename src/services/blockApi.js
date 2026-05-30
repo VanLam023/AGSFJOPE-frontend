@@ -15,6 +15,12 @@ const blockApi = {
   getByExam: (examId) => axiosClient.get(`/exams/${examId}/blocks`),
 
   /**
+   * GET /api/staff/blocks
+   * Lấy toàn bộ block trên hệ thống kèm thông tin exam để staff validate lịch.
+   */
+  getAllForStaff: () => axiosClient.get('/staff/blocks'),
+
+  /**
    * GET /api/exams/{examId}/blocks/{blockId}
    * Lấy chi tiết một block.
    */
