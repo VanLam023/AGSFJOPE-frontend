@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { message } from 'antd';
 import { useAuth } from '../../app/context/authContext';
 import { loginApi } from '../../services/authApi';
+
+const SESSION_EXPIRED_STORAGE_KEY = 'agsfjope.sessionExpiredMessage';
 
 const ROLE_ROUTES = {
   SYSTEM_ADMIN: '/admin',
@@ -19,6 +22,15 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const sessionExpiredMessage = sessionStorage.getItem(SESSION_EXPIRED_STORAGE_KEY);
+
+    if (!sessionExpiredMessage) return;
+
+    sessionStorage.removeItem(SESSION_EXPIRED_STORAGE_KEY);
+    message.warning(sessionExpiredMessage);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();

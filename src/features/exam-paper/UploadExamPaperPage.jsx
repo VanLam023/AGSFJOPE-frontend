@@ -52,12 +52,6 @@ const CRITERION_TYPES = [
   { value: 'NAMING_CONVENTION',  label: 'Quy tắc đặt tên (NAMING_CONVENTION)' },
 ];
 
-// Kiểm tra JSON hợp lệ — chuỗi rỗng được coi là hợp lệ (dùng {} mặc định)
-function isValidJson(str) {
-  if (!str || str.trim() === '') return true;
-  try { JSON.parse(str); return true; } catch { return false; }
-}
-
 function StepBar({ step }) {
   return (
     <div className="flex items-center mb-10 w-full max-w-md mx-auto">
@@ -312,14 +306,14 @@ function Step1Upload({ examId, blockId, paper, loadingGet, onUploaded }) {
 
       {/* Error */}
       {uploadError && (
-        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-start gap-2 text-sm">
+        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-start gap-2 text-sm animate-fade-up">
           <span className="material-symbols-outlined text-base mt-0.5">error</span>
           <span className="whitespace-pre-line">{uploadError}</span>
         </div>
       )}
 
       {/* Warning */}
-      <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-4 shadow-sm flex gap-3">
+      <div className="bg-amber-50/80 border border-amber-200/60 rounded-xl p-4 shadow-sm flex gap-3 animate-fade-up">
         <span className="material-symbols-outlined text-amber-500 mt-0.5">info</span>
         <div>
           <p className="text-sm font-bold text-amber-800">Lưu ý quan trọng</p>
@@ -331,7 +325,7 @@ function Step1Upload({ examId, blockId, paper, loadingGet, onUploaded }) {
       </div>
 
       {/* Action */}
-      <div className="pt-2 space-y-3">
+      <div className="pt-2 space-y-3 animate-fade-up">
         <button type="button" onClick={handleUpload} disabled={!selectedFile || uploading}
           className="w-full bg-gradient-to-r from-[#F37120] to-orange-500 hover:from-orange-600 hover:to-orange-600 text-white font-extrabold py-3.5 px-6
                      rounded-xl transition-all shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2
@@ -353,10 +347,10 @@ function Step1Upload({ examId, blockId, paper, loadingGet, onUploaded }) {
 
     {/* ── Custom Confirm Modal ────────────────────────────────── */}
     {showConfirmModal && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-        style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.5)' }}>
-        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
-          style={{ animation: 'modal-pop 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+        style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.5)' }}
+        onMouseDown={(event) => { if (event.target === event.currentTarget) setShowConfirmModal(false); }}>
+        <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-pop-in">
 
           {/* Header */}
           <div className="bg-gradient-to-br from-red-50 to-orange-50 px-6 pt-6 pb-4 flex items-start gap-4">
@@ -404,13 +398,6 @@ function Step1Upload({ examId, blockId, paper, loadingGet, onUploaded }) {
             </button>
           </div>
         </div>
-
-        <style>{`
-          @keyframes modal-pop {
-            from { opacity: 0; transform: scale(0.85) translateY(12px); }
-            to   { opacity: 1; transform: scale(1) translateY(0); }
-          }
-        `}</style>
       </div>
     )}
     </>
@@ -492,7 +479,9 @@ function buildParamsJson(criterionType, formValues) {
 function parseParamsJson(criterionType, jsonStr) {
   const schema = PARAM_SCHEMA[criterionType] ?? [];
   let parsed = {};
-  try { if (jsonStr && jsonStr.trim() && jsonStr.trim() !== '{}') parsed = JSON.parse(jsonStr); } catch {}
+  try { if (jsonStr && jsonStr.trim() && jsonStr.trim() !== '{}') parsed = JSON.parse(jsonStr); } catch {
+    // ignore invalid JSON
+  }
   const out = {};
   for (const field of schema) {
     const raw = parsed[field.key];
@@ -564,7 +553,7 @@ function ParamFields({ criterionType, formValues, onChange }) {
 function CriterionListItem({ row, index, onEdit, onRemove }) {
   const typeLabel = CRITERION_TYPES.find(t => t.value === row.criterionType)?.label || row.criterionType || 'Chưa chọn';
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-orange-300 hover:shadow-md transition-all group">
+    <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-orange-300 hover:shadow-md transition-all group animate-fade-up hover-lift-soft" style={{ "--enter-delay": `${Math.min(index, 6) * 55}ms` }}>
       <div className="flex items-start gap-4">
         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 font-extrabold text-sm border border-slate-200 shrink-0">
           {index + 1}
@@ -579,10 +568,10 @@ function CriterionListItem({ row, index, onEdit, onRemove }) {
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <button onClick={onEdit} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#F37120] transition-colors">
+        <button onClick={onEdit} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#F37120] transition-all duration-200 hover:scale-105">
           <span className="material-symbols-outlined text-lg">edit</span>
         </button>
-        <button onClick={onRemove} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+        <button onClick={onRemove} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 hover:scale-105">
           <span className="material-symbols-outlined text-lg">delete</span>
         </button>
       </div>
@@ -598,11 +587,18 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose?.();
+    };
+
     document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [onClose]);
 
   const onChange = (updates) => setRow(r => ({ ...r, ...updates }));
 
@@ -628,8 +624,8 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15,23,42,0.6)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ animation: 'modal-pop 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in" style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.58)' }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-pop-in">
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
@@ -673,7 +669,7 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
           </div>
 
           {row.criterionType && (
-            <div className="border border-orange-100/60 rounded-xl p-4 bg-orange-50/30 mt-4 relative">
+            <div className="border border-orange-100/60 rounded-xl p-4 bg-orange-50/30 mt-4 relative animate-fade-up">
               <p className="absolute -top-3 left-4 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100/50 text-[10px] font-bold text-[#F37120] uppercase tracking-wider flex items-center gap-1">
                 <span className="material-symbols-outlined text-[12px]">tune</span> Tham số bổ sung
               </p>
@@ -860,8 +856,8 @@ function Step2Criteria({ examId, paper, onBack, onDone }) {
               }
             }
             trimmedParamsJson = JSON.stringify(parsed);
-          } catch (e) {
-            // fallback ignore
+          } catch {
+            // ignore invalid JSON
           }
 
           return {
@@ -907,7 +903,7 @@ function Step2Criteria({ examId, paper, onBack, onDone }) {
   return (
     <div className="space-y-5">
       {/* Question tabs */}
-      <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-100">
+      <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-100 animate-fade-up">
         {questions.map((q, i) => {
           const over = isMismatchScore(q);
           return (
@@ -930,7 +926,7 @@ function Step2Criteria({ examId, paper, onBack, onDone }) {
 
       {/* Current question header */}
       {currentQ && (
-        <div className="bg-gradient-to-r from-orange-50/50 to-white border border-orange-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+        <div className="bg-gradient-to-r from-orange-50/50 to-white border border-orange-100 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm animate-fade-up hover-lift-soft stagger-1">
           <div>
             <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
               <span className="material-symbols-outlined text-[#F37120]">quiz</span>
@@ -959,7 +955,7 @@ function Step2Criteria({ examId, paper, onBack, onDone }) {
 
       {/* Over-limit warning */}
       {currentQ && isMismatchScore(currentQ) && (
-        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 text-sm">
+        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 text-sm animate-fade-up">
           <span className="material-symbols-outlined text-base">error</span>
           Tổng điểm các tiêu chí ({getSum(currentQ.questionId).toFixed(2)}) chưa khớp với điểm tối đa của câu hỏi ({currentQ.maxScore}).
         </div>
@@ -967,7 +963,7 @@ function Step2Criteria({ examId, paper, onBack, onDone }) {
 
       {/* Criteria rows */}
       {currentQ && getCriteria(currentQ.questionId).length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-3xl text-slate-400">
+        <div className="flex flex-col items-center justify-center py-16 border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-3xl text-slate-400 animate-fade-up">
           <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 mb-4">
             <span className="material-symbols-outlined text-4xl text-slate-300">rule</span>
           </div>
@@ -978,7 +974,7 @@ function Step2Criteria({ examId, paper, onBack, onDone }) {
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 animate-fade-up">
           {currentQ && getCriteria(currentQ.questionId).map((row, idx) => (
             <CriterionListItem key={idx} row={row} index={idx}
               onEdit={() => editRow(currentQ.questionId, idx)}
@@ -989,18 +985,18 @@ function Step2Criteria({ examId, paper, onBack, onDone }) {
 
       {/* Save / error */}
       {saveError && (
-        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 text-sm">
+        <div className="p-3 bg-red-50 text-red-700 border border-red-200 rounded-lg flex items-center gap-2 text-sm animate-fade-up">
           <span className="material-symbols-outlined text-base">error</span>{saveError}
         </div>
       )}
       {saveOk && (
-        <div className="p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg flex items-center gap-2 text-sm">
+        <div className="p-3 bg-green-50 text-green-700 border border-green-200 rounded-lg flex items-center gap-2 text-sm animate-fade-up">
           <span className="material-symbols-outlined text-base">check_circle</span>
           Lưu tiêu chí thành công! Đang quay về…
         </div>
       )}
 
-      <div className="flex gap-4 pt-6 mt-6 border-t border-slate-100">
+      <div className="flex gap-4 pt-6 mt-6 border-t border-slate-100 animate-fade-up">
         <button onClick={onBack}
           className="flex-1 bg-white text-slate-700 border-2 border-slate-200 font-bold py-3.5 rounded-xl hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 group">
           <span className="material-symbols-outlined text-lg transition-transform group-hover:-translate-x-1">arrow_back</span>
@@ -1042,7 +1038,14 @@ export default function UploadExamPaperPage({ examId, blockId, onBack, initialSt
       .finally(() => setLoadingGet(false));
   }, [examId, blockId]);
 
-  useEffect(() => { loadPaper(); }, [loadPaper]);
+  useEffect(() => {
+    const run = () => {
+      loadPaper();
+    };
+
+    const timer = window.setTimeout(run, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadPaper]);
 
   const handleUploaded = (data) => {
     setPaper(data);
@@ -1059,13 +1062,13 @@ export default function UploadExamPaperPage({ examId, blockId, onBack, initialSt
 
         {/* Back */}
         <button type="button" onClick={onBack}
-          className="flex items-center gap-2 text-slate-500 hover:text-[#F37120] transition-colors text-sm font-bold group bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit">
+          className="flex items-center gap-2 text-slate-500 hover:text-[#F37120] transition-all duration-200 hover:-translate-x-1 text-sm font-bold group bg-white/50 backdrop-blur-sm px-4 py-2 rounded-full shadow-sm border border-slate-100 w-fit animate-fade-up">
           <span className="material-symbols-outlined group-hover:-translate-x-1 transition-transform">arrow_back</span>
           Quay lại chi tiết Block
         </button>
 
         {/* Card */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white p-6 sm:p-10 relative overflow-hidden">
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white p-6 sm:p-10 relative overflow-hidden animate-fade-up stagger-1">
           {/* Subtle top border gradient */}
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-200 via-[#F37120] to-amber-300 opacity-80" />
           
@@ -1081,7 +1084,7 @@ export default function UploadExamPaperPage({ examId, blockId, onBack, initialSt
 
           <StepBar step={step} />
 
-          <div className="mt-8 transition-all duration-500">
+          <div className="mt-8 transition-all duration-500 animate-fade-up stagger-2">
             {step === 1 && (
               <Step1Upload
                 examId={examId} blockId={blockId}

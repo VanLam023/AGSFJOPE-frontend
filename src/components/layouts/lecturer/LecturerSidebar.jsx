@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import LecturerUserMenu from './LecturerUserMenu';
+import logoImg from '../../../assets/agsfjope-logo.png';
 import { LECTURER_NAV_ITEMS } from './lecturerNavConfig';
 
 function isItemActive(item, pathname) {
@@ -26,8 +27,8 @@ export default function LecturerSidebar({
   return (
     <aside className={`${sidebarOpen ? 'w-64' : 'w-[72px]'} sticky top-0 self-start min-h-screen transition-[width] duration-300 ease-in-out flex-shrink-0 flex flex-col bg-gradient-to-b from-[#2b2b2f] to-[#232327] border-r border-slate-800 shadow-2xl z-20`}>
       <div className="px-5 py-5 flex items-center gap-3 border-b border-slate-700/50">
-        <div className="w-9 h-9 bg-[#F37021] rounded-xl flex items-center justify-center shadow-md flex-shrink-0">
-          <span className="material-symbols-outlined text-white text-[18px]">school</span>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md flex-shrink-0 overflow-hidden bg-black/20 ring-1 ring-white/10">
+          <img src={logoImg} alt="AGSFJOPE logo" className="w-full h-full object-contain" />
         </div>
         {sidebarOpen && (
           <div className="min-w-0">

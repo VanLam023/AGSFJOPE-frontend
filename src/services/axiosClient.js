@@ -19,8 +19,15 @@ const axiosClient = axios.create({
 // ── Centralized force logout: dispatch event → AuthContext handles the rest ──
 // Dùng custom event thay vì xóa localStorage trực tiếp để đảm bảo React state
 // (user) cũng được reset về null, không chỉ xóa localStorage.
-const dispatchSessionExpired = () => {
-  window.dispatchEvent(new CustomEvent("session-expired"));
+let isSessionExpiredDispatched = false;
+
+const dispatchSessionExpired = (message = "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.") => {
+  if (isSessionExpiredDispatched) return;
+
+  isSessionExpiredDispatched = true;
+  window.dispatchEvent(new CustomEvent("session-expired", {
+    detail: { message },
+  }));
 };
 
 // ── Request interceptor: attach Access Token to every outgoing request ──
@@ -73,7 +80,7 @@ axiosClient.interceptors.response.use(
         return axiosClient(originalRequest);
       } catch {
         // Refresh token không có, hết hạn hoặc bị thu hồi → dispatch event để AuthContext logout
-        dispatchSessionExpired();
+        dispatchSessionExpired("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
         return Promise.reject(err);
       }
     }

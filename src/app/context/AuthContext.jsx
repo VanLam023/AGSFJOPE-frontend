@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { AuthContext } from "./authContext";
 
+const SESSION_EXPIRED_STORAGE_KEY = "agsfjope.sessionExpiredMessage";
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -44,9 +46,15 @@ export function AuthProvider({ children }) {
    * On this event: logout and redirect to /login to force re-authentication.
    */
   useEffect(() => {
-    const handleSessionExpired = () => {
+    const handleSessionExpired = (event) => {
+      const message =
+        typeof event?.detail?.message === "string" && event.detail.message.trim()
+          ? event.detail.message.trim()
+          : "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.";
+
+      sessionStorage.setItem(SESSION_EXPIRED_STORAGE_KEY, message);
       logout();
-      window.location.href = "/login";
+      window.location.replace("/login");
     };
 
     window.addEventListener("session-expired", handleSessionExpired);

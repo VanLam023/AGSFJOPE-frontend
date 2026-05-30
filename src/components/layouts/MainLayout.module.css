@@ -142,50 +142,50 @@
   height: 64;
 }
 
-img {
-  padding-top: 1.6rem;
-}
 
 .logoWrapper {
   display: flex;
   align-items: center;
+  gap: 12px;
+  padding: 20px 16px 12px;
+}
 
-  div {
-    position: relative;
-    right: 2rem;
-  }
+.logoWrapper > div:last-child {
+  min-width: 0;
+}
 
-  div > h1 {
-    font-size: 0.9rem;
-    color: #ffffff;
-    padding: 0;
-    width: max-content;
-    line-height: 1.5;
-  }
+.logoWrapper > div:last-child > h1 {
+  font-size: 0.95rem;
+  color: #ffffff;
+  padding: 0;
+  width: max-content;
+  line-height: 1.35;
+  margin: 0;
+}
 
-  div > p {
-    font-size: 0.7rem;
-    color: #94a3b8;
-    font-weight: 600;
-    width: fit-content;
-    line-height: 1;
-    padding: 0;
-  }
+.logoWrapper > div:last-child > p {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+  width: fit-content;
+  line-height: 1.1;
+  padding: 0;
+  margin: 0;
 }
 
 .logo {
-  aspect-ratio: 1;
-  width: 40%;
-  margin-left: auto;
-  margin-right: auto;
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 .logoCollapsed {
-  aspect-ratio: 1;
-
-  /* width: 100%; */
-  margin-left: auto;
-  margin-right: auto;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  margin: 20px auto 12px;
+  display: block;
 }
 
 .fadeIn {

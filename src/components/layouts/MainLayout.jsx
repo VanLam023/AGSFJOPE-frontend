@@ -9,7 +9,7 @@ import React, {
   useCallback,
 } from "react";
 import styles from "./MainLayout.module.css";
-import logoImg from "../../assets/logo.svg";
+import logoImg from "../../assets/agsfjope-logo.png";
 import NotificationBell from "../notifications/NotificationBell";
 import { useAuth } from "../../app/context/authContext";
 import { sidebarItemsWithMaterialIcons } from "../utils/Utils";

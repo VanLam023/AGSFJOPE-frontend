@@ -72,7 +72,9 @@ function buildParamsJson(criterionType, formValues) {
 function parseParamsJson(criterionType, jsonStr) {
   const schema = PARAM_SCHEMA[criterionType] ?? [];
   let parsed = {};
-  try { if (jsonStr && jsonStr.trim() && jsonStr.trim() !== '{}') parsed = JSON.parse(jsonStr); } catch {}
+  try { if (jsonStr && jsonStr.trim() && jsonStr.trim() !== '{}') parsed = JSON.parse(jsonStr); } catch {
+    // ignore invalid JSON
+  }
   const out = {};
   for (const field of schema) {
     const raw = parsed[field.key];
@@ -122,7 +124,7 @@ function ParamFields({ criterionType, formValues, onChange }) {
 function CriterionListItem({ row, index, onEdit, onRemove }) {
   const typeLabel = CRITERION_TYPES.find(t => t.value === row.criterionType)?.label || row.criterionType || 'Chưa chọn';
   return (
-    <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-orange-300 hover:shadow-md transition-all group">
+    <div className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-orange-300 hover:shadow-md transition-all group animate-fade-up hover-lift-soft" style={{ "--enter-delay": `${Math.min(index, 6) * 55}ms` }}>
       <div className="flex items-start gap-4">
         <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-600 font-extrabold text-sm border border-slate-200 shrink-0">
           {index + 1}
@@ -137,10 +139,10 @@ function CriterionListItem({ row, index, onEdit, onRemove }) {
         </div>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <button onClick={onEdit} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#F37120] transition-colors">
+        <button onClick={onEdit} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-[#F37120] transition-all duration-200 hover:scale-105">
           <span className="material-symbols-outlined text-lg">edit</span>
         </button>
-        <button onClick={onRemove} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
+        <button onClick={onRemove} className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all duration-200 hover:scale-105">
           <span className="material-symbols-outlined text-lg">delete</span>
         </button>
       </div>
@@ -153,6 +155,21 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
   const [row, setRow] = useState(() => ({ ...initialRow }));
   const [formValues, setFormValues] = useState(() => parseParamsJson(row.criterionType, row.checkParamsJson));
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') onClose?.();
+    };
+
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onClose]);
 
   const onChange = (updates) => setRow(r => ({ ...r, ...updates }));
 
@@ -178,8 +195,8 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(15,23,42,0.6)' }}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden" style={{ animation: 'modal-pop 0.2s cubic-bezier(0.34,1.56,0.64,1)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.58)' }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-pop-in">
         
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-slate-50/50">
@@ -223,7 +240,7 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
           </div>
 
           {row.criterionType && (
-            <div className="border border-orange-100/60 rounded-xl p-4 bg-orange-50/30 mt-4 relative">
+            <div className="border border-orange-100/60 rounded-xl p-4 bg-orange-50/30 mt-4 relative animate-fade-up">
               <p className="absolute -top-3 left-4 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100/50 text-[10px] font-bold text-[#F37120] uppercase tracking-wider flex items-center gap-1">
                 <span className="material-symbols-outlined text-[12px]">tune</span> Tham số bổ sung
               </p>
@@ -397,7 +414,9 @@ export default function CriteriaPage({ examId, blockId, onBack }) {
               }
             }
             trimmedParamsJson = JSON.stringify(parsed);
-          } catch (e) {}
+          } catch {
+            // ignore invalid JSON
+          }
 
           return {
             criteriaCode:    r.criteriaCode.trim(),
@@ -567,7 +586,7 @@ export default function CriteriaPage({ examId, blockId, onBack }) {
                       <p className="text-sm text-slate-500 max-w-xs">Nhấn nút bên dưới để bắt đầu thêm các quy tắc chấm điểm cho câu hỏi này.</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-3 animate-fade-up">
                       {getCriteria(currentQ.questionId).map((row, idx) => (
                         <CriterionListItem
                           key={idx}

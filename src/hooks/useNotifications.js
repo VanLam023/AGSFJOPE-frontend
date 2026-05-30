@@ -9,6 +9,12 @@ const DEFAULT_FILTER = 'all';
 const DEFAULT_PAGE_SIZE = 10;
 const STREAM_RECONNECT_DELAY_MS = 2000;
 
+const dispatchSessionExpiredEvent = (message = 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.') => {
+  window.dispatchEvent(new CustomEvent('session-expired', {
+    detail: { message },
+  }));
+};
+
 /**
  * Shared notification hook for header bell dropdowns.
  *
@@ -348,6 +354,7 @@ export default function useNotifications({ enabled = true, isOpen = false } = {}
       if (disposed || !mountedRef.current) return;
 
       const controller = new AbortController();
+      let shouldReconnect = true;
       streamAbortRef.current = controller;
 
       try {
@@ -359,6 +366,12 @@ export default function useNotifications({ enabled = true, isOpen = false } = {}
           },
           signal: controller.signal,
         });
+
+        if (response.status === 401) {
+          shouldReconnect = false;
+          dispatchSessionExpiredEvent();
+          return;
+        }
 
         if (!response.ok || !response.body) {
           throw new Error(`Stream connect failed: ${response.status}`);
@@ -398,7 +411,7 @@ export default function useNotifications({ enabled = true, isOpen = false } = {}
           streamAbortRef.current = null;
         }
 
-        if (!disposed && mountedRef.current) {
+        if (!disposed && mountedRef.current && shouldReconnect) {
           reconnectTimerRef.current = window.setTimeout(connect, STREAM_RECONNECT_DELAY_MS);
         }
       }
