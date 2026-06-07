@@ -311,7 +311,17 @@ const GradingModeConfig = () => {
             destroyOnHidden
             width={760}
           >
-            <Form form={createForm} layout="vertical">
+            <Form
+              form={createForm}
+              layout="vertical"
+              onValuesChange={(changedValues) => {
+                if (changedValues.oopCommentOnly === true) {
+                  createForm.setFieldsValue({ failIfOopViolated: false });
+                } else if (changedValues.failIfOopViolated === true) {
+                  createForm.setFieldsValue({ oopCommentOnly: false });
+                }
+              }}
+            >
               <Alert
                 type="info"
                 showIcon
@@ -387,30 +397,30 @@ const GradingModeConfig = () => {
               <p className="text-sm font-semibold text-slate-700 mb-3">Quy tắc áp dụng</p>
 
               <div className="grid grid-cols-2 gap-x-3">
-                <Form.Item name="oopCommentOnly" valuePropName="checked">
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
-                    <span className="text-sm text-slate-700">Chỉ nhận xét OOP</span>
+                <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+                  <span className="text-sm text-slate-700">Chỉ nhận xét OOP</span>
+                  <Form.Item name="oopCommentOnly" valuePropName="checked" noStyle>
                     <Switch />
-                  </div>
-                </Form.Item>
-                <Form.Item name="failIfZeroTestCase" valuePropName="checked">
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
-                    <span className="text-sm text-slate-700">Rớt nếu Test Case 0đ</span>
+                  </Form.Item>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+                  <span className="text-sm text-slate-700">Rớt nếu Test Case 0đ</span>
+                  <Form.Item name="failIfZeroTestCase" valuePropName="checked" noStyle>
                     <Switch />
-                  </div>
-                </Form.Item>
-                <Form.Item name="failIfOopViolated" valuePropName="checked">
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
-                    <span className="text-sm text-slate-700">Rớt nếu vi phạm OOP</span>
+                  </Form.Item>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+                  <span className="text-sm text-slate-700">Rớt nếu vi phạm OOP</span>
+                  <Form.Item name="failIfOopViolated" valuePropName="checked" noStyle>
                     <Switch />
-                  </div>
-                </Form.Item>
-                <Form.Item name="isActive" valuePropName="checked">
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
-                    <span className="text-sm text-slate-700">Kích hoạt mode</span>
+                  </Form.Item>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+                  <span className="text-sm text-slate-700">Kích hoạt mode</span>
+                  <Form.Item name="isActive" valuePropName="checked" noStyle>
                     <Switch />
-                  </div>
-                </Form.Item>
+                  </Form.Item>
+                </div>
               </div>
             </Form>
           </Modal>
@@ -426,7 +436,17 @@ const GradingModeConfig = () => {
             destroyOnHidden
             width={760}
           >
-            <Form form={editForm} layout="vertical">
+            <Form
+              form={editForm}
+              layout="vertical"
+              onValuesChange={(changedValues) => {
+                if (changedValues.oopCommentOnly === true) {
+                  editForm.setFieldsValue({ failIfOopViolated: false });
+                } else if (changedValues.failIfOopViolated === true) {
+                  editForm.setFieldsValue({ oopCommentOnly: false });
+                }
+              }}
+            >
               <Alert
                 type="info"
                 showIcon
@@ -502,42 +522,42 @@ const GradingModeConfig = () => {
               <p className="text-sm font-semibold text-slate-700 mb-3">Quy tắc áp dụng</p>
 
               <div className="grid grid-cols-2 gap-x-3">
-                <Form.Item name="oopCommentOnly" valuePropName="checked">
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
-                    <div>
-                      <p className="text-sm text-slate-700 mb-0">Chỉ nhận xét OOP</p>
-                      <p className="text-xs text-slate-500 mb-0">Không tính điểm OOP, chỉ phản hồi nhận xét.</p>
-                    </div>
-                    <Switch />
+                <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+                  <div>
+                    <p className="text-sm text-slate-700 mb-0">Chỉ nhận xét OOP</p>
+                    <p className="text-xs text-slate-500 mb-0">Không tính điểm OOP, chỉ phản hồi nhận xét.</p>
                   </div>
-                </Form.Item>
-                <Form.Item name="failIfZeroTestCase" valuePropName="checked">
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
-                    <div>
-                      <p className="text-sm text-slate-700 mb-0">Rớt nếu Test Case 0đ</p>
-                      <p className="text-xs text-slate-500 mb-0">Bài làm sẽ bị đánh rớt khi điểm test case bằng 0.</p>
-                    </div>
+                  <Form.Item name="oopCommentOnly" valuePropName="checked" noStyle>
                     <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+                  <div>
+                    <p className="text-sm text-slate-700 mb-0">Rớt nếu Test Case 0đ</p>
+                    <p className="text-xs text-slate-500 mb-0">Bài làm sẽ bị đánh rớt khi điểm test case bằng 0.</p>
                   </div>
-                </Form.Item>
-                <Form.Item name="failIfOopViolated" valuePropName="checked">
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
-                    <div>
-                      <p className="text-sm text-slate-700 mb-0">Rớt nếu vi phạm OOP</p>
-                      <p className="text-xs text-slate-500 mb-0">Bài làm vi phạm quy tắc OOP sẽ bị đánh rớt.</p>
-                    </div>
+                  <Form.Item name="failIfZeroTestCase" valuePropName="checked" noStyle>
                     <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+                  <div>
+                    <p className="text-sm text-slate-700 mb-0">Rớt nếu vi phạm OOP</p>
+                    <p className="text-xs text-slate-500 mb-0">Bài làm vi phạm quy tắc OOP sẽ bị đánh rớt.</p>
                   </div>
-                </Form.Item>
-                <Form.Item name="isActive" valuePropName="checked">
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
-                    <div>
-                      <p className="text-sm text-slate-700 mb-0">Kích hoạt mode</p>
-                      <p className="text-xs text-slate-500 mb-0">Mode tắt sẽ không thể đặt làm mặc định.</p>
-                    </div>
+                  <Form.Item name="failIfOopViolated" valuePropName="checked" noStyle>
                     <Switch />
+                  </Form.Item>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-slate-200 px-3 py-2">
+                  <div>
+                    <p className="text-sm text-slate-700 mb-0">Kích hoạt mode</p>
+                    <p className="text-xs text-slate-500 mb-0">Mode tắt sẽ không thể đặt làm mặc định.</p>
                   </div>
-                </Form.Item>
+                  <Form.Item name="isActive" valuePropName="checked" noStyle>
+                    <Switch />
+                  </Form.Item>
+                </div>
               </div>
             </Form>
           </Modal>
