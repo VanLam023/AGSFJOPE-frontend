@@ -85,6 +85,53 @@ function parseParamsJson(criterionType, jsonStr) {
   return out;
 }
 
+function toPlainScoreString(value) {
+  const raw = String(value ?? '').trim().replace(',', '.');
+  if (!raw) return '0';
+  const numberValue = Number(raw);
+  if (!Number.isFinite(numberValue)) return '0';
+  if (!/[eE]/.test(raw)) return raw;
+  return numberValue.toLocaleString('en-US', {
+    useGrouping: false,
+    maximumFractionDigits: 20,
+  });
+}
+
+function getScoreFractionLength(value) {
+  const fraction = toPlainScoreString(value).split('.')[1] ?? '';
+  return fraction.replace(/0+$/, '').length;
+}
+
+function scoreToScaledInteger(value, scale) {
+  const raw = toPlainScoreString(value);
+  const sign = raw.startsWith('-') ? -1n : 1n;
+  const unsigned = raw.replace(/^[-+]/, '');
+  const [wholeRaw = '0', fractionRaw = ''] = unsigned.split('.');
+  const whole = wholeRaw.replace(/\D/g, '') || '0';
+  const fraction = fractionRaw.replace(/\D/g, '').padEnd(scale, '0').slice(0, scale);
+  return sign * BigInt(`${whole}${fraction}` || '0');
+}
+
+function formatScaledScore(amount, scale) {
+  const sign = amount < 0n ? '-' : '';
+  const absolute = (amount < 0n ? -amount : amount).toString().padStart(scale + 1, '0');
+  if (scale === 0) return `${sign}${absolute}`;
+  const whole = absolute.slice(0, -scale) || '0';
+  const fraction = absolute.slice(-scale).replace(/0+$/, '');
+  return `${sign}${whole}${fraction ? `.${fraction}` : ''}`;
+}
+
+function sumScoresWithoutRounding(values) {
+  const scale = Math.max(0, ...values.map(getScoreFractionLength));
+  const total = values.reduce((sum, value) => sum + scoreToScaledInteger(value, scale), 0n);
+  return formatScaledScore(total, scale);
+}
+
+function scoresAreEqual(left, right) {
+  const scale = Math.max(getScoreFractionLength(left), getScoreFractionLength(right));
+  return scoreToScaledInteger(left, scale) === scoreToScaledInteger(right, scale);
+}
+
 // ─── ParamFields ───────────────────────────────────────────────────────────────
 function ParamFields({ criterionType, formValues, onChange }) {
   const schema = PARAM_SCHEMA[criterionType] ?? [];
@@ -195,7 +242,7 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.58)' }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.58)' }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-pop-in">
         
         {/* Header */}
@@ -375,13 +422,11 @@ export default function CriteriaPage({ examId, blockId, onBack }) {
   };
 
   const removeRow = (qId, idx) => setCriteria(qId, getCriteria(qId).filter((_, i) => i !== idx));
-  const getSum    = (qId) => getCriteria(qId).reduce((s, r) => s + (parseFloat(r.maxScore) || 0), 0);
+  const getSumDisplay = (qId) => sumScoresWithoutRounding(getCriteria(qId).map((r) => r.maxScore));
   
   const isMismatchScore = (q) => {
     if (!q) return false;
-    const sum = getSum(q.questionId);
-    const max = parseFloat(q.maxScore || 0);
-    return Math.abs(sum - max) > 0.001;
+    return !scoresAreEqual(getSumDisplay(q.questionId), q.maxScore || 0);
   };
 
   const hasAnyError = questions.some(isMismatchScore);
@@ -562,7 +607,7 @@ export default function CriteriaPage({ examId, blockId, onBack }) {
                 <div className="text-right">
                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">Tổng điểm tiêu chí</p>
                   <p className={`font-black text-xl flex items-center justify-end gap-1.5 ${isMismatchScore(currentQ) ? 'text-red-600' : 'text-emerald-600'}`}>
-                    {getSum(currentQ.questionId).toFixed(1)} <span className="text-sm font-bold text-slate-400">/ {currentQ.maxScore}</span>
+                    {getSumDisplay(currentQ.questionId)} <span className="text-sm font-bold text-slate-400">/ {currentQ.maxScore}</span>
                   </p>
                   {isMismatchScore(currentQ) && (
                     <p className="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded inline-block mt-1">CHƯA KHỚP</p>

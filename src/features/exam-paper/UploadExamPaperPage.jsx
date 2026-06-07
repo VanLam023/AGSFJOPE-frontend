@@ -624,7 +624,7 @@ function CriterionModal({ initialRow, index, onClose, onSave }) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in" style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.58)' }} onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 animate-fade-in" style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(15,23,42,0.58)' }}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-pop-in">
         
         {/* Header */}
