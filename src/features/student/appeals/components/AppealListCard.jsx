@@ -1,18 +1,19 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import AppealProgressTimeline from './AppealProgressTimeline';
 import AppealStatusBadge from './AppealStatusBadge';
 import {
   formatDateTime,
-  getAppealScoreSummary,
-  getAppealReviewerName,
+  formatScore,
+  hasAppealReviewOutcome,
   isAppealFinalStatus,
+  resolveAppealScores,
 } from '../helpers/appealHelpers';
 
-function ScorePanel({ appeal }) {
-  const score = getAppealScoreSummary(appeal);
+function AppealResultScorePanel({ scoreInfo }) {
+  const originalText = scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—';
+  const newText = scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : 'Chưa có';
 
-  if (score.variant === 'empty') {
+  if (scoreInfo.originalScore == null) {
     return (
       <div className="text-right">
         <p className="text-2xl font-black text-slate-400">—</p>
@@ -20,29 +21,20 @@ function ScorePanel({ appeal }) {
     );
   }
 
-  if (score.variant === 'single') {
-    return (
-      <div className="text-right">
-        <p className="text-3xl font-black text-slate-800">{score.originalText}</p>
-        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
-          Điểm hiện tại
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="text-right">
       <div className="flex items-center justify-end gap-2">
-        <span className="text-sm font-bold text-slate-400 line-through">
-          {score.originalText}
+        <span className={`text-sm font-bold ${scoreInfo.newScore != null ? 'text-slate-400 line-through' : 'text-slate-500'}`}>
+          {originalText}
         </span>
-        <span className="material-symbols-outlined text-[18px] text-emerald-500">
-          arrow_upward
-        </span>
-        <span className="text-3xl font-black text-emerald-600">
-          {score.newText}
-        </span>
+        {scoreInfo.newScore != null ? (
+          <>
+            <span className="material-symbols-outlined text-[18px] text-emerald-500">arrow_upward</span>
+            <span className="text-3xl font-black text-emerald-600">{newText}</span>
+          </>
+        ) : (
+          <span className="text-3xl font-black text-slate-800">{newText}</span>
+        )}
       </div>
       <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
         Kết quả sau phúc khảo
@@ -51,10 +43,26 @@ function ScorePanel({ appeal }) {
   );
 }
 
+function AppealCurrentScorePanel({ scoreInfo }) {
+  const currentText = scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—';
+
+  return (
+    <div className="text-right">
+      <p className="text-3xl font-black text-slate-800">{currentText}</p>
+      <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.14em] text-slate-400">
+        Điểm hiện tại
+      </p>
+    </div>
+  );
+}
+
 export default function AppealListCard({ appeal }) {
   const finalStatus = isAppealFinalStatus(appeal?.status);
-  const score = getAppealScoreSummary(appeal);
-  const reviewerName = getAppealReviewerName(appeal);
+  const hasReviewOutcome = hasAppealReviewOutcome(appeal?.status);
+  const scoreInfo = useMemo(
+    () => resolveAppealScores(appeal, appeal?.gradingDetail),
+    [appeal],
+  );
 
   return (
     <article className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
@@ -75,41 +83,11 @@ export default function AppealListCard({ appeal }) {
             </div>
           </div>
 
-          <ScorePanel appeal={appeal} />
-        </div>
-
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="space-y-1 text-sm text-slate-600">
-              <p>
-                Điểm cũ:{' '}
-                <span className={score.newScore != null ? 'font-bold text-slate-400 line-through' : 'font-bold text-slate-800'}>
-                  {score.originalText}
-                </span>
-              </p>
-              <p>
-                Điểm mới:{' '}
-                <span className={`font-bold ${score.newScore != null ? 'text-emerald-600' : 'text-slate-800'}`}>
-                  {score.newText}
-                </span>
-              </p>
-            </div>
-
-            <div className="space-y-1 text-sm text-slate-600 xl:text-right">
-              <p>
-                Giảng viên:{' '}
-                <span className="font-semibold text-slate-800">{reviewerName || 'Chưa phân công'}</span>
-              </p>
-              <p>
-                Hoàn tất:{' '}
-                <span className="font-semibold text-slate-800">{formatDateTime(appeal?.completedAt)}</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-5 rounded-2xl border border-slate-100 bg-white p-4">
-          <AppealProgressTimeline status={appeal?.status} />
+          {hasReviewOutcome ? (
+            <AppealResultScorePanel scoreInfo={scoreInfo} />
+          ) : (
+            <AppealCurrentScorePanel scoreInfo={scoreInfo} />
+          )}
         </div>
 
         <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 text-sm text-slate-500">

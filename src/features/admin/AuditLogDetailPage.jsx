@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import viVN from 'antd/locale/vi_VN';
 import MainLayout from '../../components/layouts/MainLayout';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
 
 import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils';
 import {
@@ -58,7 +57,6 @@ const Value = ({ children, mono }) => (
 const AuditLogDetailPage = () => {
   const { auditLogId } = useParams();
   const navigate = useNavigate();
-  const [notifCount] = React.useState(5);
 
   const { callGetAuditLogDetailEndpoint, detail, loading } =
     useGetAuditLogDetail();
@@ -79,14 +77,13 @@ const AuditLogDetailPage = () => {
         }
         return ADMIN_SIDEBAR_ITEMS;
       }}
-      notifCount={notifCount}
     >
       <ConfigProvider locale={viVN}>
         <div className="p-8 max-w-7xl mx-auto w-full space-y-6">
           <div className="flex items-center gap-2 text-sm text-slate-500">
             <span
               className="hover:text-[#F37021] cursor-pointer"
-              onClick={() => navigate('/exam-staff/audits')}
+              onClick={() => navigate('/admin/audits')}
             >
               Nhật ký thao tác
             </span>

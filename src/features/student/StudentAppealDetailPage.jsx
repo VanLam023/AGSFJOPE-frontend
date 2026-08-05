@@ -11,7 +11,7 @@ import {
   formatDateTime,
   formatScore,
   getAppealReviewerName,
-  isAppealFinalStatus,
+  hasAppealReviewOutcome,
   resolveAppealScores,
   unwrapApiData,
 } from './appeals/helpers/appealHelpers';
@@ -26,7 +26,7 @@ function MetaCard({ label, value }) {
 }
 
 function ScoreCard({ label, value, emphasize = false, strike = false }) {
-  const hasValue = value != null && value !== '—';
+  const hasValue = value != null && value !== '—' && value !== '';
 
   return (
     <div className={`rounded-2xl border p-5 shadow-sm ${emphasize ? 'border-orange-200 bg-orange-50' : 'border-slate-200 bg-white'}`}>
@@ -51,7 +51,7 @@ export default function StudentAppealDetailPage() {
 
   const [appeal, setAppeal] = useState(location.state?.appeal ?? null);
   const [gradingDetail, setGradingDetail] = useState(null);
-  const [loading, setLoading] = useState(!location.state?.appeal);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [noticeDismissed, setNoticeDismissed] = useState(false);
 
@@ -101,7 +101,13 @@ export default function StudentAppealDetailPage() {
     loadAppeal();
   }, [loadAppeal]);
 
-  const finalStatus = isAppealFinalStatus(appeal?.status);
+  useEffect(() => {
+    if (!appeal && location.state?.appeal) {
+      setAppeal(location.state.appeal);
+    }
+  }, [appeal, location.state]);
+
+  const hasReviewOutcome = hasAppealReviewOutcome(appeal?.status);
   const reviewerName = getAppealReviewerName(appeal);
   const scoreInfo = useMemo(
     () => resolveAppealScores(appeal, gradingDetail),
@@ -109,11 +115,19 @@ export default function StudentAppealDetailPage() {
   );
 
   const scoreDeltaLabel = useMemo(() => {
-    if (scoreInfo.originalScore == null || scoreInfo.newScore == null) return '—';
+    if (!hasReviewOutcome || scoreInfo.originalScore == null || scoreInfo.newScore == null) return 'Chưa có';
     const delta = scoreInfo.newScore - scoreInfo.originalScore;
     const sign = delta > 0 ? '+' : '';
     return `${sign}${formatScore(delta)}`;
-  }, [scoreInfo]);
+  }, [hasReviewOutcome, scoreInfo]);
+
+  const originalScoreLabel = scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—';
+  const reviewedScoreLabel = hasReviewOutcome && scoreInfo.newScore != null
+    ? formatScore(scoreInfo.newScore)
+    : 'Chưa có';
+  const lecturerFeedbackLabel = hasReviewOutcome
+    ? (appeal?.lecturerComment || 'Chưa có')
+    : 'Chưa có';
 
   return (
     <StudentLayout
@@ -165,7 +179,7 @@ export default function StudentAppealDetailPage() {
         </div>
       ) : (
         <>
-          {finalStatus && !noticeDismissed ? (
+          {hasReviewOutcome && !noticeDismissed ? (
             <section className="rounded-3xl border border-emerald-200 bg-emerald-50 px-6 py-5 text-emerald-900 shadow-sm">
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div className="flex gap-3">
@@ -173,7 +187,7 @@ export default function StudentAppealDetailPage() {
                     <span className="material-symbols-outlined">task_alt</span>
                   </div>
                   <div>
-                    <p className="text-base font-black">Đơn phúc khảo đã được xử lý</p>
+                    <p className="text-base font-black">Đơn phúc khảo đã có kết quả</p>
                     <p className="mt-1 text-sm leading-6 text-emerald-800">
                       Bạn có thể xem lại điểm cũ, điểm mới và phản hồi trực tiếp trên trang này.
                     </p>
@@ -208,16 +222,13 @@ export default function StudentAppealDetailPage() {
                 <h1 className="mt-4 text-3xl font-black tracking-tight text-slate-900">
                   {appeal?.examName || 'Đơn phúc khảo'}
                 </h1>
-                {appeal?.semester ? (
-                  <p className="mt-2 text-sm text-slate-500">{appeal.semester}</p>
-                ) : null}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:w-[420px]">
                 <MetaCard label="Ngày tạo đơn" value={formatDateTime(appeal?.createdAt)} />
-                <MetaCard label="Ngày hoàn tất" value={formatDateTime(appeal?.completedAt)} />
+                <MetaCard label="Học kỳ" value={appeal?.semesterName || appeal?.semester || '—'} />
                 <MetaCard label="Giảng viên chấm lại" value={reviewerName || 'Chưa phân công'} />
-                <MetaCard label="Hạn xử lý" value={formatDateTime(appeal?.deadlineAt)} />
+                <MetaCard label="Block / ca thi" value={appeal?.blockName || appeal?.block?.name || '—'} />
               </div>
             </div>
           </section>
@@ -225,12 +236,12 @@ export default function StudentAppealDetailPage() {
           <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <ScoreCard
               label="Điểm cũ"
-              value={scoreInfo.originalScore != null ? formatScore(scoreInfo.originalScore) : '—'}
-              strike={scoreInfo.newScore != null}
+              value={originalScoreLabel}
+              strike={hasReviewOutcome && scoreInfo.newScore != null}
             />
             <ScoreCard
               label="Điểm mới"
-              value={scoreInfo.newScore != null ? formatScore(scoreInfo.newScore) : '—'}
+              value={reviewedScoreLabel}
               emphasize
             />
             <ScoreCard label="Chênh lệch" value={scoreDeltaLabel} />
@@ -256,7 +267,7 @@ export default function StudentAppealDetailPage() {
 
             <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-6">
               <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">Phản hồi của giảng viên</p>
-              <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700">{appeal?.lecturerComment || 'Chưa có phản hồi từ giảng viên.'}</p>
+              <p className="mt-3 whitespace-pre-line text-sm leading-7 text-slate-700">{lecturerFeedbackLabel}</p>
             </section>
           </section>
 

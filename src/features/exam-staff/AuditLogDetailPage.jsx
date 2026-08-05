@@ -2,18 +2,11 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import viVN from 'antd/locale/vi_VN';
 import MainLayout from '../../components/layouts/MainLayout';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
-import {
-  DashboardIcon,
-  ExamManagementIcon,
-  SubmissionsIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  AuditLogIcon,
-} from '../../components/icons/SidebarIcons.jsx';
+import { STAFF_ICONS, STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems';
 import { ConfigProvider, message, Spin } from 'antd';
 import CardContainer from '../../components/CardContainer';
 import { useGetAuditLogDetail } from '../../hooks';
+import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils.jsx';
 
 const formatDateTime = (iso) => {
   if (!iso) return '—';
@@ -59,27 +52,12 @@ const Value = ({ children, mono }) => (
 const AuditLogDetailPage = () => {
   const { auditLogId } = useParams();
   const navigate = useNavigate();
-  const [notifCount] = React.useState(5);
 
   const { callGetAuditLogDetailEndpoint, detail, loading } =
     useGetAuditLogDetail();
 
-  const icons = [
-    DashboardIcon,
-    ExamManagementIcon,
-    // SubmissionsIcon,
-    AppealsIcon,
-    AuditLogIcon,
-  ];
-
-  const activeSidebarIndex =
-    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
-    1;
-
-  const renderedSiderIcons = icons.map((Icon, index) => {
-    const isActive = index + 1 === activeSidebarIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return Icon({ fill: color });
+  const renderedSiderIcons = renderSiderIconsMaterialSymbol({
+    icons: STAFF_ICONS,
   });
 
   useEffect(() => {
@@ -93,7 +71,6 @@ const AuditLogDetailPage = () => {
     <MainLayout
       siderIcons={renderedSiderIcons}
       siderItems={STAFF_SIDEBAR_ITEMS}
-      notifCount={notifCount}
     >
       <ConfigProvider locale={viVN}>
         <div className="p-8 max-w-7xl mx-auto w-full space-y-6">

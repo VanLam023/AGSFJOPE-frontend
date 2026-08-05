@@ -68,33 +68,6 @@ const auditLogs = [
   },
 ];
 
-const resourceMonitors = [
-  {
-    label: "CPU Usage",
-    sub: "Intel Xeon E5",
-    value: 24,
-    color: "bg-blue-600",
-    glow: "shadow-[0_0_10px_rgba(37,99,235,0.5)]",
-    textColor: "text-blue-600",
-  },
-  {
-    label: "Memory",
-    sub: "39.6 GB / 64 GB",
-    value: 62,
-    color: "bg-blue-500",
-    glow: "shadow-[0_0_10px_rgba(59,130,246,0.5)]",
-    textColor: "text-blue-500",
-  },
-  {
-    label: "Storage (NVMe)",
-    sub: "900 GB / 2 TB",
-    value: 45,
-    color: "bg-blue-400",
-    glow: "shadow-[0_0_10px_rgba(96,165,250,0.5)]",
-    textColor: "text-blue-400",
-  },
-];
-
 // ─── Sidebar nav items ─────────────────────────────────────────────────────────
 const NAV_SECTIONS = [
   {
@@ -148,7 +121,7 @@ export default function SystemAdminDashboard() {
 
   const handleLogout = () => {
     logout();
-    localStorage.removeItem("refreshToken");
+    // Cookie HttpOnly sẽ bị backend tự động xóa khi gọi API logout
     navigate("/login");
   };
 
@@ -688,44 +661,15 @@ export default function SystemAdminDashboard() {
                   <span className="material-symbols-outlined text-blue-600 text-[20px]">dns</span>
                 </div>
                 <div>
-                  <h4 className="font-bold text-slate-800 text-base leading-tight">Resource Monitors</h4>
-                  <p className="text-xs text-slate-400">Live server usage</p>
+                  <h4 className="font-bold text-slate-800 text-base leading-tight">Resource monitoring</h4>
+                  <p className="text-xs text-slate-400">Use the live dashboard for real-time metrics</p>
                 </div>
               </div>
 
-              <div className="space-y-5 flex-1">
-                {resourceMonitors.map((res) => (
-                  <div key={res.label} className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">{res.label}</p>
-                        <p className="text-sm font-semibold text-slate-700 mt-0.5">{res.sub}</p>
-                      </div>
-                      <span className={`text-2xl font-black ${res.textColor}`}>{res.value}%</span>
-                    </div>
-                    {/* Segmented bar */}
-                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${res.color} rounded-full transition-all duration-700 ${res.glow}`}
-                        style={{ width: `${res.value}%` }}
-                      />
-                    </div>
-                    <p className={`text-[10px] font-bold ${res.textColor}`}>{res.value}% used</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Footer status */}
-              <div className="mt-6 pt-5 border-t border-slate-100">
-                <div className="flex items-center justify-between bg-green-50 rounded-2xl px-4 py-3 border border-green-100">
-                  <div className="flex items-center gap-2">
-                    <div className="relative flex h-3 w-3">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500" />
-                    </div>
-                    <p className="text-sm font-bold text-green-700">All nodes operational</p>
-                  </div>
-                  <p className="text-[10px] font-bold text-green-500 uppercase tracking-wider">Backup: 2h ago</p>
+              <div className="flex-1 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 flex items-center justify-center text-center">
+                <div>
+                  <p className="text-sm font-semibold text-slate-700">Live CPU, memory, and disk metrics are shown in the current admin dashboard.</p>
+                  <p className="text-xs text-slate-500 mt-1">This legacy template no longer contains hard-coded monitor values.</p>
                 </div>
               </div>
             </div>

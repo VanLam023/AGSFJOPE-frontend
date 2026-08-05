@@ -21,11 +21,25 @@ function assertValidNotificationId(notificationId) {
   }
 }
 
+function normalizePage(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
+}
+
+function normalizeSize(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 10;
+  return Math.min(100, Math.max(1, Math.floor(parsed)));
+}
+
 const notificationApi = {
   getAll: (params = {}) => {
     const safeFilter = normalizeFilter(params?.filter);
+    const page = normalizePage(params?.page);
+    const size = normalizeSize(params?.size);
+
     return axiosClient.get('/notifications', {
-      params: { filter: safeFilter },
+      params: { filter: safeFilter, page, size },
     });
   },
 
@@ -37,6 +51,11 @@ const notificationApi = {
   },
 
   markAllAsRead: () => axiosClient.put('/notifications/read-all'),
+
+  deleteOne: (notificationId) => {
+    assertValidNotificationId(notificationId);
+    return axiosClient.delete(`/notifications/${notificationId}`);
+  },
 };
 
 export { ALLOWED_FILTERS, normalizeFilter };

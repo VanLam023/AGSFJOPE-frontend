@@ -102,7 +102,7 @@ export function mapAppealsOverviewToDashboardOverview(overview) {
   };
 }
 
-export function buildAssignedAppealsFallback(appealRows, limit = 8) {
+export function buildAssignedAppealsFallback(appealRows, limit = 5) {
   return sortByDateDesc(
     toArray(appealRows).map(toDashboardAppealRow),
     (item) => item.assignedDate,

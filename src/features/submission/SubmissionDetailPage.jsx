@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { message } from 'antd';
 import { useLocation, useNavigate } from 'react-router-dom';
 import gradingApi from '../../services/gradingApi';
+import submissionApi from '../../services/submissionApi';
 import appealApi from '../../services/appealApi';
 import { getStaffAppeals } from '../../services/staffApi';
 import {
@@ -16,16 +17,56 @@ import {
   extractApiErrorMessage,
   extractPayload,
   resultBadge,
+  submissionStatusLabel,
 } from './components/submission-detail/submissionDetail.helpers.js';
 import {
-  canRenderAppealScoreComparison,
   findAppealById,
   findAppealBySubmissionId,
   getAppealReviewerName,
+  isAppealFinalStatus,
   resolveAppealScores,
+  normalizeReviewedQuestionScores,
   resolveSubmissionScoreComparison,
   unwrapApiData,
 } from '../student/appeals/helpers/appealHelpers';
+
+const GRADING_POLL_INTERVAL_MS = 2000;
+const GRADING_POLL_MAX_ATTEMPTS = 30;
+
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function clearScoringSnapshot(detail) {
+  if (!detail || typeof detail !== 'object') return detail;
+
+  const answers = Array.isArray(detail.answers)
+    ? detail.answers.map((answer) => ({
+      ...answer,
+      questionScore: null,
+      rawTestCaseScore: null,
+      rawOopScore: null,
+      guardRuleTriggered: false,
+      guardRuleNote: null,
+      aiReview: null,
+      testCaseResults: [],
+    }))
+    : [];
+
+  return {
+    ...detail,
+    status: 'GRADING',
+    submissionStatus: 'GRADING',
+    totalScore: null,
+    testCaseScore: null,
+    oopScore: null,
+    note: null,
+    gradedAt: null,
+    answers,
+  };
+}
 
 export default function SubmissionDetailPage({
   examId,
@@ -44,6 +85,7 @@ export default function SubmissionDetailPage({
   const [error, setError] = useState('');
   const [detailWarning, setDetailWarning] = useState('');
   const [detail, setDetail] = useState(prefill);
+  const [submissionInfo, setSubmissionInfo] = useState(null);
   const [appealRecord, setAppealRecord] = useState(routeAppealRecord);
   const [openQuestion, setOpenQuestion] = useState(-1);
   const [isRegrading, setIsRegrading] = useState(false);
@@ -78,9 +120,10 @@ export default function SubmissionDetailPage({
           : getStaffAppeals({ page: 0, size: 200 });
 
       try {
-        const [resultResponse, appealsResponse] = await Promise.allSettled([
+        const [resultResponse, appealsResponse, submissionResponse] = await Promise.allSettled([
           gradingApi.getSubmissionResult(submissionId),
           appealsPromise,
+          submissionApi.getSubmissionById(submissionId),
         ]);
 
         if (!mounted) return;
@@ -117,6 +160,11 @@ export default function SubmissionDetailPage({
         } else {
           setAppealRecord(routeAppealRecord || null);
         }
+
+        if (submissionResponse?.status === 'fulfilled') {
+          const payload = submissionResponse.value?.data?.data ?? submissionResponse.value?.data ?? null;
+          if (payload) setSubmissionInfo(payload);
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -150,36 +198,84 @@ export default function SubmissionDetailPage({
       return;
     }
 
+    // Ghi lại gradedAt trước khi trigger để detect khi nào grading mới hoàn thành
+    const preTriggerGradedAt = detail?.gradedAt ?? null;
+
     setIsRegrading(true);
     setLocalSubmissionStatus('GRADING');
+    setDetail((prev) => clearScoringSnapshot(prev));
+    setOpenQuestion(-1);
+    setDetailWarning('');
 
     try {
       await gradingApi.triggerSingleGrading(examId, blockId, submissionId);
       message.success('Đã gửi yêu cầu chấm lại.');
 
-      setTimeout(async () => {
-        try {
-          const response = await gradingApi.getSubmissionResult(submissionId);
-          const payload = extractPayload(response);
-          setDetail((prev) => ({ ...(prev || {}), ...(payload || {}) }));
-          setDetailWarning('');
-          setLocalSubmissionStatus('');
-        } catch (errorResponse) {
-          setDetailWarning(
-            extractApiErrorMessage(
-              errorResponse,
-              'Đã gửi yêu cầu chấm lại nhưng chưa tải lại được chi tiết mới.',
-            ),
-          );
+      // Đợi 1.5s để backend kịp nhận job và bắt đầu xử lý
+      await sleep(1500);
+
+      let latestPayload = null;
+      let completed = false;
+      let seenGrading = false;
+
+      for (let attempt = 0; attempt < GRADING_POLL_MAX_ATTEMPTS; attempt += 1) {
+        const response = await gradingApi.getSubmissionResult(submissionId);
+        const payload = extractPayload(response);
+        latestPayload = payload;
+
+        const statusText = String(
+          payload?.submissionStatus || payload?.status || ''
+        ).toUpperCase();
+        const currentGradedAt = payload?.gradedAt ?? null;
+
+        if (statusText === 'GRADING') {
+          // Đang chấm — đánh dấu đã thấy GRADING để biết lần sau khi về GRADED là mới
+          seenGrading = true;
+        } else if (seenGrading) {
+          // Đã thấy GRADING và bây giờ không còn GRADING nữa → chấm xong chắc chắn
+          completed = true;
+          break;
+        } else if (currentGradedAt && currentGradedAt !== preTriggerGradedAt) {
+          // gradedAt thay đổi → grading mới hoàn thành (grading nhanh, chưa kịp thấy GRADING)
+          completed = true;
+          break;
         }
-      }, 1000);
+
+        await sleep(GRADING_POLL_INTERVAL_MS);
+      }
+
+      if (completed) {
+        // Fetch lần cuối lấy data mới nhất (với no-cache header đã có trong axiosClient)
+        try {
+          const finalResponse = await gradingApi.getSubmissionResult(submissionId);
+          const finalPayload = extractPayload(finalResponse);
+          setDetail((prev) => ({ ...(prev || {}), ...(finalPayload || latestPayload || {}) }));
+        } catch (_) {
+          if (latestPayload) setDetail((prev) => ({ ...(prev || {}), ...(latestPayload || {}) }));
+        }
+
+        // Reload submissionInfo (sidebar)
+        try {
+          const subResponse = await submissionApi.getSubmissionById(submissionId);
+          const subPayload = subResponse?.data?.data ?? subResponse?.data ?? null;
+          if (subPayload) setSubmissionInfo(subPayload);
+        } catch (_) {
+          // không ảnh hưởng UX chính
+        }
+      } else {
+        // Timeout sau GRADING_POLL_MAX_ATTEMPTS lần — vẫn show data mới nhất có được
+        if (latestPayload) setDetail((prev) => ({ ...(prev || {}), ...(latestPayload || {}) }));
+        setDetailWarning('Đã gửi yêu cầu chấm lại. Hệ thống vẫn đang xử lý, vui lòng tải lại sau ít phút.');
+      }
+
+      setLocalSubmissionStatus('');
     } catch (errorResponse) {
       setLocalSubmissionStatus('');
       message.error(extractApiErrorMessage(errorResponse, 'Lỗi khi yêu cầu chấm lại.'));
     } finally {
       setIsRegrading(false);
     }
-  }, [blockId, examId, submissionId]);
+  }, [blockId, detail?.gradedAt, examId, submissionId]);
 
   const handleAppeal = useCallback(() => {
     if (!submissionId) {
@@ -210,8 +306,9 @@ export default function SubmissionDetailPage({
   }, []);
 
   const displayResultStatus = localSubmissionStatus === 'GRADING' ? 'GRADING' : detail?.status;
-  const displaySubmissionStatus =
-    localSubmissionStatus || detail?.submissionStatus || detail?.status || '—';
+  const displaySubmissionStatus = submissionStatusLabel(
+    localSubmissionStatus || detail?.submissionStatus || detail?.status
+  );
 
   const status = useMemo(() => resultBadge(displayResultStatus), [displayResultStatus]);
 
@@ -236,19 +333,34 @@ export default function SubmissionDetailPage({
     return 'Đã chấm xong';
   }, [detail?.gradedAt, localSubmissionStatus]);
 
-  const shouldRenderScoreComparison = useMemo(
-    () => canRenderAppealScoreComparison(appealRecord),
+  const rawAppealScores = useMemo(
+    () => resolveAppealScores(appealRecord, detail),
+    [appealRecord, detail],
+  );
+
+  const hasReviewedQuestionScores = useMemo(
+    () => Object.keys(normalizeReviewedQuestionScores(appealRecord)).length > 0,
     [appealRecord],
   );
 
+  const shouldRenderFinalGradeComparison = useMemo(
+    () => Boolean(rawAppealScores?.hasOriginal && rawAppealScores?.hasNew),
+    [rawAppealScores],
+  );
+
+  const shouldRenderDetailedScoreComparison = useMemo(
+    () => Boolean(shouldRenderFinalGradeComparison && hasReviewedQuestionScores),
+    [hasReviewedQuestionScores, shouldRenderFinalGradeComparison],
+  );
+
   const comparableAppealRecord = useMemo(
-    () => (shouldRenderScoreComparison ? appealRecord : null),
-    [appealRecord, shouldRenderScoreComparison],
+    () => (shouldRenderDetailedScoreComparison ? appealRecord : null),
+    [appealRecord, shouldRenderDetailedScoreComparison],
   );
 
   const appealScores = useMemo(
-    () => resolveAppealScores(comparableAppealRecord, detail),
-    [comparableAppealRecord, detail],
+    () => (shouldRenderFinalGradeComparison ? rawAppealScores : null),
+    [rawAppealScores, shouldRenderFinalGradeComparison],
   );
 
   const submissionScoreComparison = useMemo(
@@ -271,10 +383,17 @@ export default function SubmissionDetailPage({
     [appealRecord],
   );
 
+  const disableRegradeByAppeal = useMemo(
+    () => isAppealFinalStatus(appealRecord?.status),
+    [appealRecord?.status],
+  );
+
+  const isScoreResolving = loading || localSubmissionStatus === 'GRADING';
+
   return (
     <div className="relative min-h-screen bg-[#F8FAFC]">
       <div className="pointer-events-none absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#a78bfa] to-[#60a5fa] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
+        <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#F37120] to-amber-300 opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 sm:px-8 py-8 space-y-6">
@@ -284,6 +403,7 @@ export default function SubmissionDetailPage({
           onAppeal={handleAppeal}
           onRegrade={handleRegrade}
           isRegrading={isRegrading}
+          disableRegrade={disableRegradeByAppeal}
         />
 
         {loading && <LoadingState hasDetail={!!detail} />}
@@ -296,9 +416,10 @@ export default function SubmissionDetailPage({
               <OverviewHeader
                 detail={detail}
                 status={status}
-                scoreComparison={submissionScoreComparison}
-                showScoreComparison={shouldRenderScoreComparison}
-                isScoreResolving={loading}
+                appealScores={appealScores}
+                showScoreComparison={shouldRenderFinalGradeComparison}
+                isScoreResolving={isScoreResolving}
+                gradingMode={detail?.gradingMode}
               />
 
               <QuestionsSection
@@ -307,22 +428,24 @@ export default function SubmissionDetailPage({
                 onToggleQuestion={toggleQuestion}
                 reviewedQuestionScores={reviewedQuestionScores}
                 originalQuestionScores={originalQuestionScores}
+                gradingMode={detail?.gradingMode}
                 reviewerName={reviewerName}
-                isScoreResolving={loading}
+                isScoreResolving={isScoreResolving}
               />
             </div>
 
             <div className="xl:col-span-4">
               <SummarySidebar
                 detail={detail}
+                submissionInfo={submissionInfo}
                 displaySubmissionStatus={displaySubmissionStatus}
                 tcSummary={tcSummary}
                 gradingDurationLabel={gradingDurationLabel}
                 appealRecord={appealRecord}
                 appealScores={appealScores}
                 reviewerName={reviewerName}
-                showScoreComparison={shouldRenderScoreComparison}
-                isScoreResolving={loading}
+                showScoreComparison={shouldRenderDetailedScoreComparison}
+                isScoreResolving={isScoreResolving}
               />
             </div>
           </div>

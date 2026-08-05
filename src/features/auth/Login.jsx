@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { message } from 'antd';
 import { useAuth } from '../../app/context/authContext';
 import { loginApi } from '../../services/authApi';
+
+const SESSION_EXPIRED_STORAGE_KEY = 'agsfjope.sessionExpiredMessage';
 
 const ROLE_ROUTES = {
   SYSTEM_ADMIN: '/admin',
@@ -19,6 +22,15 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const sessionExpiredMessage = sessionStorage.getItem(SESSION_EXPIRED_STORAGE_KEY);
+
+    if (!sessionExpiredMessage) return;
+
+    sessionStorage.removeItem(SESSION_EXPIRED_STORAGE_KEY);
+    message.warning(sessionExpiredMessage);
+  }, []);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -46,10 +58,8 @@ const Login = () => {
       }
 
       // Lưu token
-      localStorage.setItem('token', data.accessToken);
-      if (data.refreshToken) {
-        localStorage.setItem('refreshToken', data.refreshToken);
-      }
+      // Không cần lưu token thủ công vào localStorage,
+      // backend đã trả về trong Set-Cookie header (HttpOnly)
 
       // Lưu user vào context
       login({
@@ -118,15 +128,14 @@ const Login = () => {
                 >
                   Chấm điểm
                   <br />
-                  OOP tự động
+                  thực hành
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-400 to-amber-300">
-                    bằng AI.
+                    Java OOP.
                   </span>
                 </h1>
-                <p className="text-white/40 text-[15px] leading-relaxed mt-5 max-w-[320px]">
-                  Nộp bài, kiểm tra test case, đánh giá OOP với AI —
-                  chính xác và minh bạch.
+                <p className="text-white/40 text-[15px] leading-relaxed mt-5 max-w-[350px]">
+                  Nộp bài, thực thi test case, thẩm định cấu trúc OOP tự động với JavaParser & Reflection — chính xác và minh bạch.
                 </p>
               </div>
 
@@ -140,11 +149,11 @@ const Login = () => {
                     sub: 'Thực thi .jar & so sánh output tự động',
                   },
                   {
-                    icon: 'psychology',
+                    icon: 'schema',
                     color: 'text-sky-400',
                     bg: 'bg-sky-400/10',
-                    label: 'AI OOP Review',
-                    sub: 'AI phân tích encapsulation, design pattern',
+                    label: 'OOP Structural Analysis',
+                    sub: 'Thẩm định tự động theo các tiêu chí thiết kế OOP',
                   },
                   {
                     icon: 'gavel',
@@ -269,17 +278,9 @@ const Login = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.14em]">
-                    Mật khẩu
-                  </label>
-                  <Link
-                    to="/forgot-password"
-                    className="text-xs font-bold text-primary hover:underline underline-offset-2 transition-colors"
-                  >
-                    Quên mật khẩu?
-                  </Link>
-                </div>
+                <label className="block text-xs font-black text-gray-500 uppercase tracking-[0.14em]">
+                  Mật khẩu
+                </label>
                 <div className="relative group">
                   <span className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
                     <span className="material-symbols-outlined text-gray-600 group-focus-within:text-primary text-[18px] transition-colors">
@@ -304,6 +305,14 @@ const Login = () => {
                       {showPassword ? 'visibility' : 'visibility_off'}
                     </span>
                   </button>
+                </div>
+                <div className="flex justify-end">
+                  <Link
+                    to="/forgot-password"
+                    className="text-xs font-bold text-primary hover:underline underline-offset-2 transition-colors"
+                  >
+                    Quên mật khẩu?
+                  </Link>
                 </div>
               </div>
 

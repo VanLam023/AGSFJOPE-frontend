@@ -1,43 +1,29 @@
 import React, { Suspense, lazy, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '../../components/layouts/MainLayout.jsx';
-import { STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems.jsx';
+import { STAFF_ICONS, STAFF_SIDEBAR_ITEMS } from '../../constants/sidebarItems.jsx';
 import DashboardCard from '../../components/DashboardCard.jsx';
-import {
-  DashboardIcon,
-  ExamManagementIcon,
-  SubmissionsIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  AuditLogIcon,
-} from '../../components/icons/SidebarIcons.jsx';
+import { renderSiderIconsMaterialSymbol } from '../../components/utils/Utils.jsx';
 import { ConfigProvider, Table, Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import ExamManagementPage from '../exam/ExamManagementPage.jsx';
 import CreateExamPage from '../exam/CreateExamPage.jsx';
 import ExamDetailPage from '../exam/ExamDetailPage.jsx';
 import UploadExamPaperPage from '../exam-paper/UploadExamPaperPage.jsx';
+import CriteriaPage from '../exam-paper/CriteriaPage.jsx';
 import BlockDetailPage from '../block/BlockDetailPage.jsx';
 import BlockSubmissionsPage from '../submission/BlockSubmissionsPage.jsx';
 import SubmissionDetailPage from '../submission/SubmissionDetailPage.jsx';
 import ExamStaffHomeDashboard from './ExamStaffHomeDashboard.jsx';
+import ExamStaffNotificationsPage from './notifications/ExamStaffNotificationsPage.jsx';
+import AllSubmissionsManagementPage from '../submission/AllSubmissionsManagementPage.jsx';
 
 const BlockStatisticsPage = lazy(() => import('./statistics/BlockStatisticsPage.jsx'));
-
-const icons = [
-  DashboardIcon,
-  ExamManagementIcon,
-  // SubmissionsIcon,
-  AppealsIcon,
-  WithdrawalsIcon,
-  AuditLogIcon,
-];
 
 export default function ExamStaffDashboard() {
   const location = useLocation();
   const navigate = useNavigate();
   const { examId, blockId, submissionId } = useParams();
-  const [notifCount] = useState(5);
 
   const dashboardIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff') + 1;
@@ -49,6 +35,12 @@ export default function ExamStaffDashboard() {
   const withdrawalsIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/withdrawals') +
     1;
+  const notificationsIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/notifications') +
+    1;
+  const submissionsIndex =
+    STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/submissions') +
+    1;
   const auditsIndex =
     STAFF_SIDEBAR_ITEMS.findIndex((item) => item.to === '/exam-staff/audits') +
     1;
@@ -59,18 +51,28 @@ export default function ExamStaffDashboard() {
     '/exam-staff/exams/create': examsIndex,
     '/exam-staff/appeals': appealsIndex,
     '/exam-staff/withdrawals': withdrawalsIndex,
+    '/exam-staff/notifications': notificationsIndex,
+    '/exam-staff/submissions': submissionsIndex,
     '/exam-staff/audits': auditsIndex,
   };
 
   const selectedIndex = location.pathname.startsWith('/exam-staff/exams')
     ? examsIndex
-    : location.pathname.startsWith('/exam-staff/withdrawals')
-      ? withdrawalsIndex
-      : location.pathname.startsWith('/exam-staff/audits')
-        ? auditsIndex
-        : (pathSelectedIndexMap[location.pathname] ?? dashboardIndex);
+    : location.pathname.startsWith('/exam-staff/submissions')
+      ? submissionsIndex
+      : location.pathname.startsWith('/exam-staff/withdrawals')
+        ? withdrawalsIndex
+        : location.pathname.startsWith('/exam-staff/audits')
+          ? auditsIndex
+          : location.pathname.startsWith('/exam-staff/appeals')
+            ? appealsIndex
+            : location.pathname.startsWith('/exam-staff/notifications')
+              ? notificationsIndex
+              : (pathSelectedIndexMap[location.pathname] ?? dashboardIndex);
 
   const isExamManagementPage = location.pathname === '/exam-staff/exams';
+  const isNotificationsPage = location.pathname === '/exam-staff/notifications';
+  const isAllSubmissionsPage = location.pathname === '/exam-staff/submissions';
   const isCreateExamPage = location.pathname === '/exam-staff/exams/create';
   const isUpdateExamPage =
     location.pathname.startsWith('/exam-staff/exams/') &&
@@ -88,10 +90,15 @@ export default function ExamStaffDashboard() {
     location.pathname.startsWith('/exam-staff/exams/') &&
     location.pathname.includes('/blocks/') &&
     location.pathname.endsWith('/statistics');
+  const isCriteriaPage =
+    location.pathname.startsWith('/exam-staff/exams/') &&
+    location.pathname.includes('/blocks/') &&
+    location.pathname.endsWith('/criteria');
   const isBlockDetailPage =
     location.pathname.startsWith('/exam-staff/exams/') &&
     location.pathname.includes('/blocks/') &&
     !isUploadExamPaperPage &&
+    !isCriteriaPage &&
     !isBlockSubmissionsPage &&
     !isSubmissionDetailPage &&
     !isStatisticsPage;
@@ -102,17 +109,14 @@ export default function ExamStaffDashboard() {
     !isUploadExamPaperPage &&
     !isBlockDetailPage;
 
-  const renderedSiderIcons = icons.map((item, index) => {
-    const isActive = index + 1 === selectedIndex;
-    const color = isActive ? '#F37021' : '#ffffff';
-    return item({ fill: color });
+  const renderedSiderIcons = renderSiderIconsMaterialSymbol({
+    icons: STAFF_ICONS,
   });
 
   return (
     <MainLayout
       siderIcons={renderedSiderIcons}
       siderItems={STAFF_SIDEBAR_ITEMS}
-      notifCount={notifCount}
       actionBtn={({ collapsed }) => {
         return (
           <Button
@@ -172,11 +176,13 @@ export default function ExamStaffDashboard() {
           examId={examId}
           blockId={blockId}
           submissionId={submissionId}
-          onBack={() =>
-            navigate(
-              `/exam-staff/exams/${examId}/blocks/${blockId}/submissions`,
-            )
-          }
+          onBack={() => {
+            if (window.history.length > 2) {
+              navigate(-1);
+            } else {
+              navigate('/exam-staff/submissions');
+            }
+          }}
         />
       ) : isStatisticsPage ? (
         <Suspense
@@ -194,6 +200,12 @@ export default function ExamStaffDashboard() {
             onBack={() => navigate(`/exam-staff/exams/${examId}/blocks/${blockId}`)}
           />
         </Suspense>
+      ) : isCriteriaPage ? (
+        <CriteriaPage
+          examId={examId}
+          blockId={blockId}
+          onBack={() => navigate(`/exam-staff/exams/${examId}/blocks/${blockId}`)}
+        />
       ) : isBlockDetailPage ? (
         <BlockDetailPage
           examId={examId}
@@ -201,6 +213,9 @@ export default function ExamStaffDashboard() {
           onBack={() => navigate(`/exam-staff/exams/${examId}`)}
           onOpenUploadPaper={(id) =>
             navigate(`/exam-staff/exams/${examId}/blocks/${id}/upload-paper`)
+          }
+          onOpenCriteria={(id) =>
+            navigate(`/exam-staff/exams/${examId}/blocks/${id}/criteria`)
           }
           onOpenSubmissions={(id) =>
             navigate(`/exam-staff/exams/${examId}/blocks/${id}/submissions`)
@@ -223,6 +238,10 @@ export default function ExamStaffDashboard() {
           onCreateExam={() => navigate('/exam-staff/exams/create')}
           onOpenExamDetail={(id) => navigate(`/exam-staff/exams/${id}`)}
         />
+      ) : isAllSubmissionsPage ? (
+        <AllSubmissionsManagementPage />
+      ) : isNotificationsPage ? (
+        <ExamStaffNotificationsPage />
       ) : (
         <ExamStaffHomeDashboard />
       )}

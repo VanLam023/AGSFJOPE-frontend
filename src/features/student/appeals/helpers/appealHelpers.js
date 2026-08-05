@@ -4,7 +4,12 @@ const MAX_REASON_LENGTH = 2000;
 
 const RECEIVED_STATUSES = ['PENDING_PAYMENT', 'PENDING'];
 const ASSIGNED_STATUSES = ['PROCESSING', 'COMPLETED'];
-const DONE_STATUSES = ['APPROVED', 'DENIED', 'CANCELLED'];
+const DONE_STATUSES = ['APPROVED', 'DENIED', 'CANCELLED', 'CANCELED'];
+const REVIEW_OUTCOME_STATUSES = ['APPROVED', 'DENIED', 'CANCELLED', 'CANCELED'];
+
+function normalizeAppealStatus(status) {
+  return String(status ?? '').trim().toUpperCase();
+}
 
 function toScoreNumber(value) {
   const number = Number(value);
@@ -94,6 +99,41 @@ function getScoreCandidates(item, keys = []) {
   return null;
 }
 
+function hasResolvedScore(value) {
+  return value != null;
+}
+
+function hasMeaningfulGradingDetail(gradingDetail = null) {
+  return Boolean(
+    (Array.isArray(gradingDetail?.answers) && gradingDetail.answers.length)
+    || toScoreNumber(gradingDetail?.totalScore) != null,
+  );
+}
+
+function resolveOriginalScoreFromAppeal(item) {
+  return (
+    getScoreCandidates(item, ['originalScore', 'oldScore', 'currentScore', 'initialScore'])
+    ?? sumFromQuestionScores(item?.originalQuestionScores)
+    ?? sumFromQuestionScores(item?.oldQuestionScores)
+    ?? sumFromAnswers(item?.gradingDetail?.answers)
+    ?? sumFromAnswers(item?.answers)
+    ?? null
+  );
+}
+
+function resolveOriginalScoreFromDetail(gradingDetail, item) {
+  return (
+    sumFromAnswers(gradingDetail?.answers)
+    ?? toScoreNumber(gradingDetail?.totalScore)
+    ?? getScoreCandidates(item, ['originalScore', 'oldScore', 'currentScore', 'initialScore'])
+    ?? sumFromQuestionScores(item?.originalQuestionScores)
+    ?? sumFromQuestionScores(item?.oldQuestionScores)
+    ?? sumFromAnswers(item?.gradingDetail?.answers)
+    ?? sumFromAnswers(item?.answers)
+    ?? null
+  );
+}
+
 export function unwrapApiData(response) {
   return getNestedPayload(response);
 }
@@ -101,12 +141,23 @@ export function unwrapApiData(response) {
 export function resolveAppealsList(data) {
   const payload = getNestedPayload(data);
 
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.appeals)) return payload.appeals;
-  if (Array.isArray(payload?.items)) return payload.items;
-  if (Array.isArray(payload?.content)) return payload.content;
-  if (Array.isArray(data?.appeals)) return data.appeals;
-  return [];
+  const list = Array.isArray(payload)
+    ? payload
+    : Array.isArray(payload?.appeals)
+      ? payload.appeals
+      : Array.isArray(payload?.items)
+        ? payload.items
+        : Array.isArray(payload?.content)
+          ? payload.content
+          : Array.isArray(data?.appeals)
+            ? data.appeals
+            : [];
+
+  return [...list].sort((left, right) => {
+    const leftTime = left?.createdAt ? new Date(left.createdAt).getTime() : 0;
+    const rightTime = right?.createdAt ? new Date(right.createdAt).getTime() : 0;
+    return rightTime - leftTime;
+  });
 }
 
 export function formatCurrency(value) {
@@ -186,7 +237,7 @@ export function extractAppealErrorMessage(error, fallback = 'Đã xảy ra lỗi
 }
 
 export function getAppealLifecycleStage(status) {
-  const normalized = String(status || '').toUpperCase();
+  const normalized = normalizeAppealStatus(status);
 
   if (RECEIVED_STATUSES.includes(normalized)) return 'RECEIVED';
   if (ASSIGNED_STATUSES.includes(normalized)) return 'ASSIGNED';
@@ -203,11 +254,11 @@ export function matchesAppealStatusFilter(status, filter) {
   if (filter === 'ASSIGNED') return stage === 'ASSIGNED';
   if (filter === 'DONE') return stage === 'DONE';
 
-  return String(status || '').toUpperCase() === String(filter || '').toUpperCase();
+  return normalizeAppealStatus(status) === normalizeAppealStatus(filter);
 }
 
 export function getAppealStatusMeta(status) {
-  const normalized = String(status || '').toUpperCase();
+  const normalized = normalizeAppealStatus(status);
 
   const map = {
     PENDING_PAYMENT: {
@@ -230,9 +281,9 @@ export function getAppealStatusMeta(status) {
     },
     COMPLETED: {
       label: 'Đã phân công',
-      className: 'border-violet-200 bg-violet-50 text-violet-700',
-      dotClassName: 'bg-violet-500',
-      accentClassName: 'border-l-violet-400',
+      className: 'border-indigo-200 bg-indigo-50 text-indigo-700',
+      dotClassName: 'bg-indigo-500',
+      accentClassName: 'border-l-indigo-400',
     },
     APPROVED: {
       label: 'Đã chấp nhận',
@@ -252,6 +303,12 @@ export function getAppealStatusMeta(status) {
       dotClassName: 'bg-slate-400',
       accentClassName: 'border-l-slate-300',
     },
+    CANCELED: {
+      label: 'Đã hủy',
+      className: 'border-slate-200 bg-slate-50 text-slate-700',
+      dotClassName: 'bg-slate-400',
+      accentClassName: 'border-l-slate-300',
+    },
   };
 
   return map[normalized] || {
@@ -266,6 +323,10 @@ export function isAppealFinalStatus(status) {
   return getAppealLifecycleStage(status) === 'DONE';
 }
 
+export function hasAppealReviewOutcome(status) {
+  return REVIEW_OUTCOME_STATUSES.includes(normalizeAppealStatus(status));
+}
+
 export function getAppealProgressSteps(status) {
   const stage = getAppealLifecycleStage(status);
 
@@ -275,7 +336,7 @@ export function getAppealProgressSteps(status) {
     DONE: 2,
   };
 
-  const currentStep = stepIndexMap[stage] ?? 0;
+  const currentStep = stepIndexMap[stage] ?? -1;
 
   const labels = [
     'Đã tiếp nhận',
@@ -283,36 +344,30 @@ export function getAppealProgressSteps(status) {
     'Hoàn thành đơn',
   ];
 
-  return labels.map((label, index) => {
-    const isDone = currentStep > index;
-    const isCurrent = currentStep === index;
-    return {
-      label,
-      isDone,
-      isCurrent,
-    };
-  });
+  return labels.map((label, index) => ({
+    label,
+    // Every step up to and including the current stage gets a checkmark.
+    // PENDING (0): [✓, -, -] | PROCESSING/COMPLETED (1): [✓, ✓, -] | DONE (2): [✓, ✓, ✓]
+    isDone: index <= currentStep,
+    isCurrent: false,
+  }));
 }
 
+
+
 export function canRenderAppealScoreComparison(item) {
-  const normalizedStatus = String(item?.status || '').toUpperCase();
+  const normalizedStatus = normalizeAppealStatus(item?.status);
   const hasReviewedTotalScore = toScoreNumber(item?.newScore) != null;
   const reviewedQuestionScores = normalizeReviewedQuestionScores(item);
   const hasReviewedQuestionScores = Object.keys(reviewedQuestionScores).length > 0;
 
-  return normalizedStatus === 'COMPLETED' && hasReviewedTotalScore && hasReviewedQuestionScores;
+  return normalizedStatus === 'APPROVED' && hasReviewedTotalScore && hasReviewedQuestionScores;
 }
 
 export function resolveAppealScores(item, gradingDetail = null) {
-  const originalScore =
-    sumFromQuestionScores(item?.originalQuestionScores)
-    ?? sumFromQuestionScores(item?.oldQuestionScores)
-    ?? sumFromAnswers(item?.gradingDetail?.answers)
-    ?? sumFromAnswers(item?.answers)
-    ?? sumFromAnswers(gradingDetail?.answers)
-    ?? getScoreCandidates(item, ['originalScore', 'oldScore', 'currentScore', 'initialScore'])
-    ?? toScoreNumber(gradingDetail?.totalScore)
-    ?? null;
+  const originalScore = hasMeaningfulGradingDetail(gradingDetail)
+    ? resolveOriginalScoreFromDetail(gradingDetail, item)
+    : resolveOriginalScoreFromAppeal(item);
 
   const newScore =
     getScoreCandidates(item, ['newScore', 'reviewedScore', 'finalScore'])
@@ -323,8 +378,8 @@ export function resolveAppealScores(item, gradingDetail = null) {
   return {
     originalScore,
     newScore,
-    hasOriginal: originalScore != null,
-    hasNew: newScore != null,
+    hasOriginal: hasResolvedScore(originalScore),
+    hasNew: hasResolvedScore(newScore),
     changed:
       originalScore != null
       && newScore != null

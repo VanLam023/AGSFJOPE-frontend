@@ -74,7 +74,7 @@ export default function LecturerLayout() {
 
   const handleLogout = () => {
     logout();
-    localStorage.removeItem('refreshToken');
+    // Cookie HttpOnly sẽ bị backend tự động xóa khi gọi API logout
     navigate('/login');
   };
 
@@ -102,7 +102,7 @@ export default function LecturerLayout() {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gradient-to-br from-[#f7f7f8] via-[#f6f6f8] to-[#fffaf6] font-[Inter,sans-serif]">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#f7f7f8] via-[#f6f6f8] to-[#fffaf6] font-[Inter,sans-serif]">
       <LecturerSidebar
         sidebarOpen={sidebarOpen}
         pathname={location.pathname}
@@ -116,7 +116,7 @@ export default function LecturerLayout() {
         onLogout={handleLogout}
       />
 
-      <main className="relative flex flex-1 flex-col overflow-hidden">
+      <main className="relative flex min-w-0 flex-1 flex-col">
         <div className="pointer-events-none absolute -right-20 -top-20 h-72 w-72 rounded-full bg-orange-200/20 blur-3xl" />
 
         <LecturerHeader
@@ -134,7 +134,7 @@ export default function LecturerLayout() {
           onLogout={handleLogout}
         />
 
-        <div className="flex-1 overflow-y-auto bg-transparent px-8 py-8">
+        <div className="flex-1 bg-transparent px-8 py-8">
           <Suspense
             fallback={
               <div className="space-y-4">

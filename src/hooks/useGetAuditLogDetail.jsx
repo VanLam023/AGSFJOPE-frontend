@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getAuditLogById } from '../services/staffApi';
+import { getAdminAuditLogById } from '../services/adminApi';
 
 const useGetAuditLogDetail = () => {
   const [loading, setLoading] = useState(false);
@@ -12,7 +12,7 @@ const useGetAuditLogDetail = () => {
     setError(null);
 
     try {
-      const res = await getAuditLogById(auditLogId);
+      const res = await getAdminAuditLogById(auditLogId);
       // axiosClient returns API body { success, message, data: { ...log } }
       setDetail(res?.data ?? null);
       return res;

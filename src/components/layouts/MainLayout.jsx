@@ -9,10 +9,11 @@ import React, {
   useCallback,
 } from "react";
 import styles from "./MainLayout.module.css";
-import logoImg from "../../assets/logo.svg";
+import logoImg from "../../assets/agsfjope-logo.png";
 import NotificationBell from "../notifications/NotificationBell";
 import { useAuth } from "../../app/context/authContext";
 import { sidebarItemsWithMaterialIcons } from "../utils/Utils";
+import { ROLE_HOME_MAP } from "../../constants/routes";
 import axiosClient from "../../services/axiosClient";
 
 const { Header, Content, Sider } = Layout;
@@ -20,11 +21,12 @@ const { Header, Content, Sider } = Layout;
 const siderStyle = {
   overflow: "hidden",
   height: "100vh",
-  position: "sticky",
+  minHeight: "100vh",
+  position: "fixed",
   insetInlineStart: 0,
   top: 0,
-  scrollbarWidth: "thin",
-  scrollbarGutter: "stable",
+  zIndex: 30,
+  flex: "0 0 auto",
 };
 
 const ROLE_LABELS = {
@@ -40,24 +42,10 @@ const ROLE_LABELS = {
 const normalizeRole = (role) =>
   typeof role === "string" ? role.trim().toUpperCase() : "";
 
-const findKeyByPath = (items, pathname) => {
-  for (const item of items) {
-    if (item.to && String(item.to) === pathname) return String(item.key);
-    if (item.children) {
-      const found = findKeyByPath(item.children, pathname);
-      if (found) return found;
-    }
-  }
-  return null;
-};
+const EXPANDED_SIDER_WIDTH = 240;
+const COLLAPSED_SIDER_WIDTH = 80;
 
-const MainLayout = ({
-  children,
-  siderItems,
-  siderIcons,
-  notifCount,
-  actionBtn = null,
-}) => {
+const MainLayout = ({ children, siderItems, siderIcons, actionBtn = null }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [headerDropdownOpen, setHeaderDropdownOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -65,6 +53,21 @@ const MainLayout = ({
   const location = useLocation();
   const navigate = useNavigate();
   const headerDropdownRef = useRef(null);
+  const currentSiderWidth = collapsed
+    ? COLLAPSED_SIDER_WIDTH
+    : EXPANDED_SIDER_WIDTH;
+
+  const shellStyle = useMemo(
+    () => ({
+      minWidth: 0,
+      minHeight: "100dvh",
+      overflowX: "hidden",
+      position: "relative",
+      marginLeft: currentSiderWidth,
+      width: `calc(100% - ${currentSiderWidth}px)`,
+    }),
+    [currentSiderWidth],
+  );
 
   const { user, logout } = useAuth();
 
@@ -72,6 +75,32 @@ const MainLayout = ({
   const roleLabel = roleKey ? (ROLE_LABELS[roleKey] ?? roleKey) : "Người dùng";
   const userDisplay = user?.fullName ?? user?.username ?? "Người dùng";
   const userSubText = user?.email ?? user?.username ?? roleLabel;
+  const avatarInitials = useMemo(() => {
+    const baseName = String(userDisplay || "").trim();
+
+    if (!baseName) return "?";
+
+    const parts = baseName.split(/\s+/).filter(Boolean);
+
+    if (parts.length >= 2) {
+      return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
+    }
+
+    return baseName.slice(0, 2).toUpperCase();
+  }, [userDisplay]);
+
+  const avatarImageUrl =
+    typeof user?.avatarUrl === "string" && user.avatarUrl.trim()
+      ? user.avatarUrl.trim()
+      : "";
+
+  const avatarStyle = avatarImageUrl
+    ? {
+        backgroundImage: `url("${avatarImageUrl}")`,
+      }
+    : undefined;
+
+  const profileMenuPath = ROLE_HOME_MAP[roleKey] || "/";
 
   const menuItems = useMemo(() => {
     const items =
@@ -92,15 +121,32 @@ const MainLayout = ({
     return baseItems.map(attachLink);
   }, [collapsed, siderItems, siderIcons]);
 
+  // Find the best matching sidebar key using longest-prefix matching
+  // so that sub-pages (e.g. /exam-staff/exams/123/blocks/456) still highlight
+  // their parent menu item (/exam-staff/exams).
   const selectedKey = useMemo(() => {
-    return (
-      findKeyByPath(
-        menuItems,
-        location.pathname.split("/").length === 4
-          ? location.pathname.split("/").slice(0, -1).join("/")
-          : location.pathname,
-      ) ?? "1"
-    );
+    const pathname = location.pathname;
+    let bestKey = "1"; // fallback: dashboard
+    let bestMatchLength = 0;
+
+    const walk = (items) => {
+      for (const item of items) {
+        if (item.to) {
+          const to = String(item.to);
+          // Must be exact match OR pathname starts with `to + '/'`
+          if (pathname === to || pathname.startsWith(to + "/")) {
+            if (to.length > bestMatchLength) {
+              bestMatchLength = to.length;
+              bestKey = String(item.key);
+            }
+          }
+        }
+        if (item.children) walk(item.children);
+      }
+    };
+
+    walk(menuItems);
+    return bestKey;
   }, [menuItems, location.pathname]);
 
   useEffect(() => {
@@ -132,7 +178,7 @@ const MainLayout = ({
       console.error("Logout API failed:", error);
     } finally {
       logout(); // xóa token + user trong AuthContext hiện tại
-      localStorage.removeItem("refreshToken"); // backend có revoke refresh token, frontend cũng nên xóa local
+      // Cookie HttpOnly sẽ bị backend tự động xóa khi gọi API logout
       navigate("/login", { replace: true });
       setLoggingOut(false);
     }
@@ -167,10 +213,11 @@ const MainLayout = ({
           trigger={null}
           collapsible
           collapsed={collapsed}
-          width={240}
+          width={EXPANDED_SIDER_WIDTH}
+          collapsedWidth={COLLAPSED_SIDER_WIDTH}
           style={siderStyle}
         >
-          <div className="flex flex-col h-full">
+          <div className={styles.siderInner}>
             {!collapsed ? (
               <div className={styles.logoWrapper}>
                 <img src={logoImg} alt="Logo" className={styles.logo} />
@@ -183,18 +230,20 @@ const MainLayout = ({
               <img src={logoImg} alt="Logo" className={styles.logoCollapsed} />
             )}
 
-            <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-b border-slate-600" />
+            <div className={styles.siderDivider} />
 
-            <Menu
-              selectedKeys={[selectedKey]}
-              items={menuItems}
-              className={styles.menu}
-              mode="inline"
-            />
+            <div className={styles.menuWrap}>
+              <Menu
+                selectedKeys={[selectedKey]}
+                items={menuItems}
+                className={styles.menu}
+                mode="inline"
+              />
+            </div>
 
             {actionBtn && (
-              <div className="px-4 pb-3 mt-auto">
-                <div className="mb-3 w-auto ml-[-24px] mr-[-24px] border-t border-slate-600" />
+              <div className={styles.actionArea}>
+                <div className={styles.actionDivider} />
                 {typeof actionBtn === "function"
                   ? actionBtn({ collapsed })
                   : actionBtn}
@@ -203,7 +252,7 @@ const MainLayout = ({
           </div>
         </Sider>
 
-        <Layout>
+        <Layout style={shellStyle} className={styles.shell}>
           <Header
             className={`${styles.header} border-b border-slate-200`}
             style={{
@@ -227,7 +276,6 @@ const MainLayout = ({
 
             <div className={styles.uti}>
               <NotificationBell
-                fallbackCount={notifCount}
                 buttonClassName="w-9 h-9 rounded-full bg-slate-100 text-slate-500 hover:text-[#F37021] hover:bg-[#fff7f2] shadow-none"
                 iconClassName="h-4 w-4"
               />
@@ -253,14 +301,16 @@ const MainLayout = ({
                   </div>
 
                   <div
-                    className={`aspect-square w-10 rounded-full bg-slate-200 
-                      ring-2 transition-all cursor-pointer
-                      bg-cover bg-center bg-no-repeat
-                      ${headerDropdownOpen ? "ring-[#F37021]" : "ring-[#F37021]/20 group-hover:ring-[#F37021]/50"}`}
-                    style={{
-                      backgroundImage: `url("https://lh3.googleusercontent.com/aida-public/AB6AXuCo9OzzsHT5Aj1roCt7Nv_ABU8KJRL7UBksbvyl8DFixLZmQ2vxz3SsOFXyWhWJCalc9K3AabCLNaCf3_kDh_9QDIhAzQ9qnUcXAFaH_lfs_mFpcJlPc1CQT9aYTuqZuXXIetZeDRKzu4GYopfz4IUuSuD26s3zs6lAxoPlSBwDwLZQucu91YX_cVtzA-0EIEaY6lqafYO2RGLh7Z6wYmcYsdUmozJEK5oFY4fPidEncDwgS9et7v3C6xbKSoT7OE1y69DF5Fm9bxNd")`,
-                    }}
-                  />
+                    className={`aspect-square w-10 rounded-full ring-2 transition-all cursor-pointer overflow-hidden flex items-center justify-center text-xs font-black uppercase bg-cover bg-center bg-no-repeat ${
+                      avatarImageUrl
+                        ? "bg-slate-200 text-transparent"
+                        : "bg-[#F37021]/15 text-[#F37021]"
+                    } ${headerDropdownOpen ? "ring-[#F37021]" : "ring-[#F37021]/20 group-hover:ring-[#F37021]/50"}`}
+                    style={avatarStyle}
+                    aria-hidden="true"
+                  >
+                    {!avatarImageUrl ? avatarInitials : null}
+                  </div>
                 </button>
 
                 {headerDropdownOpen && (
@@ -273,13 +323,13 @@ const MainLayout = ({
                     </div>
 
                     <Link
-                      to="/exam-staff/profile"
+                      to={profileMenuPath}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                     >
                       <span className="material-symbols-outlined text-[18px] text-slate-400">
                         person
                       </span>
-                      Hồ sơ cá nhân
+                      Trang chính
                     </Link>
 
                     <button

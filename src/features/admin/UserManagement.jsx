@@ -61,7 +61,6 @@ const rolesMap = new Map([
 const UserManagement = () => {
   const navigate = useNavigate();
   const [selectedIndex, setSelectedIndex] = useState(1);
-  const [notifCount] = useState(5);
   const [query, setQuery] = useState('');
   const debouncedQuery = useDebounce(query, 500);
   const [form] = Form.useForm();
@@ -71,6 +70,7 @@ const UserManagement = () => {
   const debouncedFilter = useDebounce(roleFilter, 500);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isExportingUsers, setIsExportingUsers] = useState(false);
+  const [selectedPageSize, setSelectedPageSize] = useState(8);
 
   const {
     fetchUsers,
@@ -107,11 +107,31 @@ const UserManagement = () => {
   );
 
   useEffect(() => {
-    fetchUsers({ search: debouncedQuery, roleName: debouncedFilter });
-  }, [debouncedQuery, debouncedFilter]);
+    fetchUsers({
+      page: 0,
+      size: selectedPageSize,
+      search: debouncedQuery,
+      roleName: debouncedFilter,
+    });
+  }, [debouncedQuery, debouncedFilter, selectedPageSize]);
 
   const USER_COLUMNS = useMemo(
     () => [
+      {
+        title: <p className="text-xs uppercase tracking-wider font-bold text-center">STT</p>,
+        key: 'stt',
+        width: 72,
+        align: 'center',
+        render: (_, __, index) => {
+          const safePage = Math.max(Number(currentPage || 1), 1);
+          const safePageSize = Math.max(Number(pageSize || 8), 1);
+          return (
+            <span className="text-[13px] font-bold text-slate-500">
+              {(safePage - 1) * safePageSize + index + 1}
+            </span>
+          );
+        },
+      },
       {
         title: (
           <p className="text-xs uppercase tracking-wider font-bold">
@@ -188,8 +208,22 @@ const UserManagement = () => {
         ),
       },
     ],
-    [navigate],
+    [currentPage, navigate, pageSize],
   );
+
+  const pageStatusStats = useMemo(() => {
+    const safeUsers = Array.isArray(users) ? users : [];
+    return safeUsers.reduce(
+      (acc, item) => {
+        const status = item?.status;
+        if (status === 'đang hoạt động') acc.active += 1;
+        else if (status === 'đã bị khóa') acc.locked += 1;
+        else if (status === 'chưa kích hoạt') acc.pending += 1;
+        return acc;
+      },
+      { active: 0, locked: 0, pending: 0 },
+    );
+  }, [users]);
 
   const handleUpload = async ({ file, onSuccess, onError }) => {
     try {
@@ -224,7 +258,12 @@ const UserManagement = () => {
       message.success('Tạo người dùng thành công.');
       setIsModalOpen(false);
 
-      fetchUsers({ search: debouncedQuery, page: 0, size: 8 });
+      fetchUsers({
+        search: debouncedQuery,
+        roleName: debouncedFilter,
+        page: 0,
+        size: selectedPageSize,
+      });
     } catch (err) {
       if (err?.response?.data?.message) {
         message.error(err.response.data.message);
@@ -250,7 +289,6 @@ const UserManagement = () => {
       const pageData = res?.data ?? {};
       console.log(pageData);
       const list = pageData?.content ?? [];
-      const total = pageData?.totalItems ?? 0;
       collected.push(...list);
 
       if (!collected.length) {
@@ -275,7 +313,11 @@ const UserManagement = () => {
         fullName: String(u.fullName ?? ''),
         email: String(u.email ?? ''),
         roleName: roleLabel(u.roleName),
-        status: u.isActive ? 'Đang hoạt động' : 'Không hoạt động',
+        status: u.isLocked
+          ? 'Đã bị khóa'
+          : u.isActive
+            ? 'Đang hoạt động'
+            : 'Chưa kích hoạt',
         createdAt: u.createdAt
           ? new Date(u.createdAt).toLocaleString('vi-VN')
           : '—',
@@ -306,6 +348,27 @@ const UserManagement = () => {
     }
   };
 
+  const handleDownloadImportTemplate = async () => {
+    try {
+      const columns = [
+        { header: 'Email', key: 'email', width: 36 },
+        { header: 'FullName', key: 'fullName', width: 30 },
+        { header: 'MSSV', key: 'mssv', width: 16 },
+      ];
+
+      await exportToExcel({
+        fileName: 'user_import_template.xlsx',
+        sheetName: 'users',
+        columns,
+        rows: [],
+      });
+
+      message.success('Tải template Excel thành công.');
+    } catch (err) {
+      message.error('Tải template Excel thất bại.');
+    }
+  };
+
   return (
     <MainLayout
       siderIcons={renderSiderIconsMaterialSymbol({ icons: ADMIN_ICONS })}
@@ -316,7 +379,6 @@ const UserManagement = () => {
           return ADMIN_SIDEBAR_ITEMS;
         }
       }}
-      notifCount={notifCount}
       currentSelectedItem={(item) => setSelectedIndex(Number(item.key))}
     >
       <ConfigProvider
@@ -345,51 +407,143 @@ const UserManagement = () => {
           },
         }}
       >
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="px-4 py-5 max-w-7xl mx-auto w-full flex items-center gap-2 z-0">
-            <Input
-              className="flex-2 min-w-[300px]"
-              enterButton={false}
-              size="large"
-              placeholder="Tìm kiếm theo tên, email, MSSV"
-              value={query}
-              onChange={(e) => {
-                setQuery(e.target.value);
-              }}
-              allowClear
-            />
-            <Select
-              className="flex-1 min-w-[200px]"
-              options={createUserRoleOptions}
-              size="large"
-              placeholder="Vai trò"
-              allowClear
-              value={roleFilter}
-              onChange={(v) => {
-                setRoleFilter(v);
-              }}
-            />
-            <Button
-              className="flex-1 min-w-[150px]"
-              size="large"
-              icon={<DownloadOutlined />}
-              variant="outlined"
-              loading={isExportingUsers}
-              onClick={handleExportUsers}
-            >
-              Xuất Excel
-            </Button>
-            <Button
-              size="large"
-              icon={<PlusOutlined />}
-              type="primary"
-              onClick={() => setIsModalOpen(true)}
-            >
-              Thêm người dùng
-            </Button>
+        <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-b from-[#FFF7F2] via-[#FFFDFB] to-white">
+          <div className="px-4 pt-5 pb-3 max-w-7xl mx-auto w-full">
+            <div className="rounded-2xl border border-orange-100 bg-white/95 backdrop-blur px-6 py-5 shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div>
+                  <p className="text-[11px] uppercase tracking-wider font-black text-[#F37021]">
+                    Admin Panel
+                  </p>
+                  <h1 className="mt-1 text-2xl font-black text-slate-900">
+                    Quản lý người dùng
+                  </h1>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Quản trị danh sách tài khoản, phân quyền và trạng thái hoạt động người dùng.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 min-w-[120px]">
+                    <p className="text-[11px] uppercase tracking-wide text-slate-400 font-bold">
+                      Tổng
+                    </p>
+                    <p className="text-lg font-black text-slate-800">
+                      {Number(totalItems || 0).toLocaleString('vi-VN')}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 min-w-[120px]">
+                    <p className="text-[11px] uppercase tracking-wide text-emerald-600 font-bold">
+                      Đang hoạt động
+                    </p>
+                    <p className="text-lg font-black text-emerald-700">
+                      {pageStatusStats.active}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 min-w-[120px]">
+                    <p className="text-[11px] uppercase tracking-wide text-rose-600 font-bold">
+                      Bị khóa
+                    </p>
+                    <p className="text-lg font-black text-rose-700">
+                      {pageStatusStats.locked}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-100 px-3 py-2.5 min-w-[120px]">
+                    <p className="text-[11px] uppercase tracking-wide text-slate-500 font-bold">
+                      Chưa kích hoạt
+                    </p>
+                    <p className="text-lg font-black text-slate-700">
+                      {pageStatusStats.pending}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <div className="px-4 pb-5 max-w-7xl mx-auto w-full">
+            <div className="rounded-2xl border border-slate-200 bg-white/95 backdrop-blur px-4 py-4 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+              <div className="flex flex-col xl:flex-row xl:items-center gap-3 z-0">
+                <Input
+                  className="xl:flex-[2] min-w-[300px]"
+                  enterButton={false}
+                  size="large"
+                  placeholder="Tìm kiếm theo tên, email, MSSV"
+                  value={query}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                  }}
+                  allowClear
+                />
+                <Select
+                  className="xl:flex-1 min-w-[200px]"
+                  options={createUserRoleOptions}
+                  size="large"
+                  placeholder="Vai trò"
+                  allowClear
+                  value={roleFilter}
+                  onChange={(v) => {
+                    setRoleFilter(v);
+                  }}
+                />
+                <Button
+                  className="xl:flex-1 min-w-[150px]"
+                  size="large"
+                  icon={<DownloadOutlined />}
+                  variant="outlined"
+                  loading={isExportingUsers}
+                  onClick={handleExportUsers}
+                >
+                  Xuất Excel
+                </Button>
+                <Button
+                  size="large"
+                  icon={<PlusOutlined />}
+                  type="primary"
+                  onClick={() => setIsModalOpen(true)}
+                >
+                  Thêm người dùng
+                </Button>
+              </div>
+            </div>
+          </div>
+
           <div className="px-4 max-w-7xl mx-auto w-full">
-            <div className="bg-white rounded-md mb-8 shadow-sm border border-slate-200 overflow-hidden">
+            <div className="bg-white rounded-2xl mb-8 shadow-[0_12px_28px_rgba(15,23,42,0.06)] border border-slate-200 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between gap-2">
+                <div>
+                  <p className="text-sm font-bold text-slate-800">Danh sách người dùng</p>
+                  <p className="text-xs text-slate-500">
+                    Hiển thị {Array.isArray(users) ? users.length : 0} / {Number(totalItems || 0).toLocaleString('vi-VN')} tài khoản
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Select
+                    size="small"
+                    className="min-w-[120px]"
+                    value={selectedPageSize}
+                    disabled={usersLoading}
+                    options={[
+                      { label: '8 / trang', value: 8 },
+                      { label: '20 / trang', value: 20 },
+                      { label: '50 / trang', value: 50 },
+                      { label: '100 / trang', value: 100 },
+                    ]}
+                    onChange={(nextSize) => {
+                      setSelectedPageSize(Number(nextSize));
+                      fetchUsers({
+                        page: 0,
+                        size: Number(nextSize),
+                        search: debouncedQuery,
+                        roleName: debouncedFilter,
+                      });
+                    }}
+                  />
+                  <span className="text-xs font-semibold text-slate-500 bg-white border border-slate-200 px-2.5 py-1 rounded-lg">
+                    Trang {currentPage || 1}
+                  </span>
+                </div>
+              </div>
               <Table
                 rowKey="userId"
                 columns={USER_COLUMNS}
@@ -399,10 +553,15 @@ const UserManagement = () => {
                 pagination={{
                   total: totalItems,
                   current: currentPage,
-                  pageSize: 8,
+                  pageSize: Number(pageSize || selectedPageSize),
                   showSizeChanger: false,
                   onChange: (page) => {
-                    fetchUsers({ page: page - 1, size: 8 });
+                    fetchUsers({
+                      page: page - 1,
+                      size: selectedPageSize,
+                      search: debouncedQuery,
+                      roleName: debouncedFilter,
+                    });
                   },
                 }}
                 locale={{
@@ -580,6 +739,18 @@ const UserManagement = () => {
                   label: 'Thêm nhiều người dùng',
                   children: (
                     <div className="space-y-4 pt-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm text-slate-500 mb-0">
+                          Tải file mẫu và điền đúng 3 cột: Email, FullName, MSSV.
+                        </p>
+                        <Button
+                          icon={<DownloadOutlined />}
+                          onClick={handleDownloadImportTemplate}
+                        >
+                          Tải template Excel
+                        </Button>
+                      </div>
+
                       <Upload.Dragger
                         name="file"
                         multiple={false}

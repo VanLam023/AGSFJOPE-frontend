@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getAuditLogs } from '../services/staffApi';
+import { getAdminAuditLogs } from '../services/adminApi';
 
 const useGetAuditLogs = () => {
   const [loading, setLoading] = useState(false);
@@ -19,7 +19,7 @@ const useGetAuditLogs = () => {
     setError(null);
 
     try {
-      const res = await getAuditLogs({
+      const res = await getAdminAuditLogs({
         action,
         entityType,
         userId,

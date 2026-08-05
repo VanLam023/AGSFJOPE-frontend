@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AuthContext } from "./authContext";
 
+const SESSION_EXPIRED_STORAGE_KEY = "agsfjope.sessionExpiredMessage";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -29,11 +30,40 @@ export function AuthProvider({ children }) {
     localStorage.setItem("user", JSON.stringify(userData));
   };
 
-  const logout = () => {
+  /**
+   * Clears all auth state from React and localStorage.
+   * Always call this function instead of manually removing items —
+   * ensures React state (user) is reset and all keys are cleaned up.
+   */
+  const logout = useCallback(() => {
     setUser(null);
-    localStorage.removeItem("token");
     localStorage.removeItem("user");
-  };
+  }, []);
+
+  /**
+   * Listens for the 'session-expired' custom event dispatched by axiosClient
+   * when the refresh token call fails (token expired or revoked).
+   * On this event: logout and redirect to /login to force re-authentication.
+   */
+  useEffect(() => {
+    const handleSessionExpired = (event) => {
+      const message =
+        typeof event?.detail?.message === "string" && event.detail.message.trim()
+          ? event.detail.message.trim()
+          : "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.";
+
+      sessionStorage.setItem(SESSION_EXPIRED_STORAGE_KEY, message);
+      logout();
+      window.location.replace("/login");
+    };
+
+    window.addEventListener("session-expired", handleSessionExpired);
+
+    // Cleanup listener khi component unmount
+    return () => {
+      window.removeEventListener("session-expired", handleSessionExpired);
+    };
+  }, [logout]);
 
   const value = {
     user,
@@ -49,3 +79,4 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+

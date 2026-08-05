@@ -5,14 +5,30 @@ import axios from "axios";
  * - Base URL: http://localhost:8080/api
  * - Request interceptor: auto-attaches Bearer token from localStorage
  * - Response interceptor: on 401, attempts a silent token refresh then retries
- *   the original request once. On refresh failure, clears storage and redirects to /login.
+ *   the original request once. On refresh failure, dispatches 'session-expired'
+ *   event which AuthContext handles to logout + redirect to /login.
  */
 const axiosClient = axios.create({
   // Đỏ nhưng mà xài dc
   baseURL: `${__BASE_URL__}`,
   // timeout: 10000,
   timeout: 30000,
+  withCredentials: true,
 });
+
+// ── Centralized force logout: dispatch event → AuthContext handles the rest ──
+// Dùng custom event thay vì xóa localStorage trực tiếp để đảm bảo React state
+// (user) cũng được reset về null, không chỉ xóa localStorage.
+let isSessionExpiredDispatched = false;
+
+const dispatchSessionExpired = (message = "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.") => {
+  if (isSessionExpiredDispatched) return;
+
+  isSessionExpiredDispatched = true;
+  window.dispatchEvent(new CustomEvent("session-expired", {
+    detail: { message },
+  }));
+};
 
 // ── Request interceptor: attach Access Token to every outgoing request ──
 // Skip Authorization header for public auth endpoints (login, register, etc.)
@@ -20,10 +36,12 @@ const PUBLIC_AUTH_PATHS = ["/auth/login", "/auth/register", "/auth/forgot-passwo
   "/auth/reset-password", "/auth/verify-reset-token", "/auth/verify-account"];
 
 axiosClient.interceptors.request.use((config) => {
-  const isPublic = PUBLIC_AUTH_PATHS.some((path) => config.url?.includes(path));
-  if (!isPublic) {
-    const token = localStorage.getItem("token");
-    if (token) config.headers.Authorization = `Bearer ${token}`;
+  // Không cần add Authorization header vì token đã nằm trong HttpOnly Cookie
+  // Thêm Cache-Control để tránh browser cache GET responses (quan trọng khi polling grading status)
+  if (!config.method || config.method.toLowerCase() === 'get') {
+    config.headers = config.headers || {};
+    config.headers['Cache-Control'] = 'no-cache';
+    config.headers['Pragma'] = 'no-cache';
   }
   return config;
 });
@@ -49,40 +67,20 @@ axiosClient.interceptors.response.use(
     if (is401 && notRetried && notRefreshEndpoint && !isPublicAuthPath) {
       originalRequest._retry = true; // flag to prevent infinite retry loop
 
-      const refreshToken = localStorage.getItem("refreshToken");
+      try {
+        // Call the refresh endpoint directly (bypass interceptor to avoid recursion)
+        await axios.post(
+          `${__BASE_URL__}/auth/refresh`,
+          {},
+          { withCredentials: true }
+        );
 
-      if (refreshToken) {
-        try {
-          // Call the refresh endpoint directly (bypass interceptor to avoid recursion)
-          const refreshResponse = await axios.post(
-            `${__BASE_URL__}/auth/refresh`,
-            { refreshToken }
-          );
-
-          // Backend wraps response: { success, message, data: { accessToken, ... } }
-          const newAccessToken =
-            refreshResponse.data?.data?.accessToken ??
-            refreshResponse.data?.accessToken;
-
-          // Persist the new access token
-          localStorage.setItem("token", newAccessToken);
-
-          // Patch the original failed request with the new token and retry it
-          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-          return axiosClient(originalRequest);
-        } catch {
-          // Refresh failed (token expired or revoked) → force logout
-          localStorage.removeItem("token");
-          localStorage.removeItem("refreshToken");
-          localStorage.removeItem("user");
-          window.location.href = "/login";
-          return Promise.reject(err);
-        }
-      } else {
-        // No refresh token found → session gone, redirect to login
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
+        // Backend automatically sets the new access token and refresh token in HttpOnly cookies
+        // Retry the original request (browser will automatically include the new cookies)
+        return axiosClient(originalRequest);
+      } catch {
+        // Refresh token không có, hết hạn hoặc bị thu hồi → dispatch event để AuthContext logout
+        dispatchSessionExpired("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.");
         return Promise.reject(err);
       }
     }
@@ -92,3 +90,4 @@ axiosClient.interceptors.response.use(
 );
 
 export default axiosClient;
+

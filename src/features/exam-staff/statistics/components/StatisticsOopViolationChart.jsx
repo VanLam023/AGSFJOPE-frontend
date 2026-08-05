@@ -20,10 +20,18 @@ export default function StatisticsOopViolationChart({ items }) {
         formatter: (params) => {
           const point = params?.[0]?.data;
           if (!point) return '';
+          const extra = [];
+          if (Number.isFinite(Number(point.sampleSize)) && Number(point.sampleSize) > 0) {
+            extra.push(`<div>Mẫu đánh giá: <b>${Number(point.sampleSize).toLocaleString('vi-VN')}</b></div>`);
+          }
+          if (Number.isFinite(Number(point.avgScore))) {
+            extra.push(`<div>Điểm TB tiêu chí: <b>${Number(point.avgScore).toFixed(2)}</b></div>`);
+          }
           return [
             `<div style="font-weight:700;margin-bottom:4px;">${point.fullLabel}</div>`,
             `<div>Số bài vi phạm: <b>${point.count.toLocaleString('vi-VN')}</b></div>`,
             `<div>Tỷ lệ: <b>${formatPercent(point.rate)}</b></div>`,
+            ...extra,
           ].join('');
         },
       },
@@ -70,6 +78,8 @@ export default function StatisticsOopViolationChart({ items }) {
             fullLabel: item.fullLabel || item.label,
             count: item.count,
             rate: item.rate,
+            avgScore: item.avgScore,
+            sampleSize: item.sampleSize,
             itemStyle: {
               color: ['#F37120', '#fb923c', '#fdba74', '#f59e0b', '#f97316'][index % 5],
               borderRadius: 0,

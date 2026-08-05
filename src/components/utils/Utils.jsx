@@ -139,7 +139,7 @@ const renderRolePill = ({ role }) => {
 };
 
 const renderStatusPill = ({ status }) => {
-  if (status === 'Đang hoạt động') {
+  if (status === 'đang hoạt động') {
     return (
       <span className="text-green-700 bg-green-50 border border-green-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
         {status}
@@ -147,7 +147,15 @@ const renderStatusPill = ({ status }) => {
     );
   }
 
-  if (status === 'Tạm khóa' || status == 'Không hoạt động') {
+  if (status === 'đã bị khóa') {
+    return (
+      <span className="text-red-700 bg-red-50 border border-red-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
+        {status}
+      </span>
+    );
+  }
+
+  if (status === 'chưa kích hoạt') {
     return (
       <span className="text-slate-600 bg-slate-100 border border-slate-200 text-xs font-semibold whitespace-nowrap px-2 py-1 rounded-md">
         {status}
@@ -238,25 +246,36 @@ const renderPaymentStatusPill = (paymentStatus) => {
 };
 
 const mapUserFromApi = ({ user, index }) => {
+  const status = user?.isLocked
+    ? 'đã bị khóa'
+    : user?.isActive
+      ? 'đang hoạt động'
+      : 'chưa kích hoạt';
+
+  const safeName = user?.fullName?.trim() || user?.username || user?.email || 'Không có tên';
+
   return {
     key: index + 1,
     user: {
-      initials: getInitialsFromName(user.fullName),
+      initials: getInitialsFromName(safeName),
       initialsColor: getInitialsColor(index),
-      name: user.fullName,
+      name: safeName,
     },
     id: {
-      email: user.email,
-      mssv: user.mssv,
+      email: user?.email || '—',
+      mssv: user?.mssv || '—',
     },
     userId: user.userId,
     role: mapRoleFromApi(user.roleName),
-    status: user.isActive ? 'Đang hoạt động' : 'Không hoạt động',
+    status,
   };
 };
 
 const getInitialsFromName = (fullName) => {
-  const words = fullName.split(' ');
+  const safeFullName = String(fullName || '').trim();
+  if (!safeFullName) return '?';
+
+  const words = safeFullName.split(/\s+/);
   const firstChars = words.map((word) => word.charAt(0));
   if (firstChars.length === 1) return firstChars[0];
   return [firstChars[0], firstChars[firstChars.length - 1]];
@@ -282,7 +301,7 @@ const mapRoleFromApi = (role) => {
     ['SYSTEM_ADMIN', 'Quản trị viên'],
   ]);
 
-  return rolesMap.get(role);
+  return rolesMap.get(role) || role || '—';
 };
 
 // const mapUsersFromApi = (users) => users.map((user) => mapUserFromApi(user));

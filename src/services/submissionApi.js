@@ -57,6 +57,26 @@ const submissionApi = {
    */
   getBlockSubmissions: (examId, blockId, params = {}) =>
     axiosClient.get(`/exams/${examId}/blocks/${blockId}/submissions`, { params }),
+
+  /**
+   * Lấy toàn bộ danh sách Block kèm thông tin Exam trong 1 lần gọi (dành cho Staff).
+   * GET /api/staff/blocks
+   *
+   * @returns {Promise<{ success, message, data: BlockWithExamResponse[] }>}
+   */
+  getStaffBlocks: () =>
+    axiosClient.get('/staff/blocks'),
+
+  /**
+   * Lấy metadata của một bài nộp theo submissionId (không cần examId/blockId).
+   * GET /api/submissions/{submissionId}
+   *
+   * @param {string} submissionId - UUID của bài nộp
+   * @returns {Promise<{ success, message, data: SubmissionResponse }>}
+   */
+  getSubmissionById: (submissionId) =>
+    axiosClient.get(`/submissions/${submissionId}`),
 };
+
 
 export default submissionApi;

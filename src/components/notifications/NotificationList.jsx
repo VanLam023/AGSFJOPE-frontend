@@ -13,7 +13,14 @@ export default function NotificationList({
   activeFilter,
   onRetry,
   onItemClick,
+  onDeleteItem,
+  deletingId,
+  selectable = false,
+  selectedIds = [],
+  onToggleSelect,
 }) {
+  const selectedSet = selectedIds instanceof Set ? selectedIds : new Set(selectedIds);
+
   if (loading) {
     return (
       <div className="px-5 py-8 flex flex-col items-center justify-center gap-3 text-slate-400 bg-white">
@@ -64,6 +71,11 @@ export default function NotificationList({
             key={notification.notificationId}
             notification={notification}
             onClick={onItemClick}
+            onDelete={onDeleteItem}
+            deleting={deletingId === notification.notificationId}
+            selectable={selectable}
+            selected={selectedSet.has(notification.notificationId)}
+            onToggleSelect={onToggleSelect}
           />
         ))}
       </div>

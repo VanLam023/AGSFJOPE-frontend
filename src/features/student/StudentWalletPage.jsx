@@ -3,6 +3,7 @@ import { message } from 'antd';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import StudentLayout from '../../components/layouts/student';
 import walletApi from '../../services/walletApi';
+import { getVietnamBanks } from '../../services/bankApi';
 import WalletSummaryCards from './wallet/components/WalletSummaryCards';
 import WalletDepositPanel from './wallet/components/WalletDepositPanel';
 import WalletWithdrawPanel from './wallet/components/WalletWithdrawPanel';
@@ -31,6 +32,40 @@ const INITIAL_WITHDRAW_FORM = {
 
 const DEPOSIT_POLL_INTERVAL_MS = 4000;
 const DEPOSIT_POLL_MAX_ROUNDS = 6;
+
+function normalizeBankOptions(items) {
+  if (!Array.isArray(items)) return [];
+
+  const seen = new Set();
+
+  return items
+    .map((bank) => {
+      const code = normalizeFreeText(bank?.code, 20);
+      const shortName = normalizeFreeText(bank?.shortName || bank?.short_name, 80);
+      const name = normalizeFreeText(bank?.name, 180);
+      const bin = normalizeFreeText(bank?.bin, 20);
+      const logo = typeof bank?.logo === 'string' ? bank.logo : '';
+
+      const optionValue = shortName || code || name;
+      if (!optionValue) return null;
+
+      const optionKey = [bin || code || shortName || name, code, shortName].join('|').toLowerCase();
+      if (seen.has(optionKey)) return null;
+      seen.add(optionKey);
+
+      return {
+        code,
+        shortName,
+        name,
+        bin,
+        logo,
+        label: [shortName, name].filter(Boolean).join(' - ') || optionValue,
+        value: optionValue,
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => left.label.localeCompare(right.label, 'vi'));
+}
 
 function QueryStatusBanner({ type, onClear }) {
   if (!type) return null;
@@ -94,6 +129,8 @@ export default function StudentWalletPage() {
   const [withdrawForm, setWithdrawForm] = useState(INITIAL_WITHDRAW_FORM);
   const [withdrawErrors, setWithdrawErrors] = useState({});
   const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [bankOptions, setBankOptions] = useState([]);
+  const [banksLoading, setBanksLoading] = useState(false);
 
   const depositStatus = searchParams.get('depositStatus');
 
@@ -146,9 +183,36 @@ export default function StudentWalletPage() {
     }
   }, []);
 
+  const loadBankOptions = useCallback(async () => {
+    setBanksLoading(true);
+
+    try {
+      const response = await walletApi.getBanks();
+      const payload = normalizeBankOptions(unwrapApiData(response));
+
+      if (payload.length > 0) {
+        setBankOptions(payload);
+        return;
+      }
+
+      const fallbackBanks = normalizeBankOptions(await getVietnamBanks());
+      setBankOptions(fallbackBanks);
+    } catch {
+      try {
+        const fallbackBanks = normalizeBankOptions(await getVietnamBanks());
+        setBankOptions(fallbackBanks);
+      } catch {
+        setBankOptions([]);
+      }
+    } finally {
+      setBanksLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadWalletData().catch(() => {});
-  }, [loadWalletData]);
+    loadBankOptions().catch(() => {});
+  }, [loadBankOptions, loadWalletData]);
 
   useEffect(() => () => clearDepositPolling(), [clearDepositPolling]);
 
@@ -194,7 +258,8 @@ export default function StudentWalletPage() {
 
   const handleRefresh = useCallback(() => {
     loadWalletData({ silent: true }).catch(() => {});
-  }, [loadWalletData]);
+    loadBankOptions().catch(() => {});
+  }, [loadBankOptions, loadWalletData]);
 
   const handleDepositAmountChange = useCallback((value) => {
     setDepositAmount(sanitizeAmountInput(value));
@@ -224,9 +289,18 @@ export default function StudentWalletPage() {
         cancelUrl: buildWalletRedirectUrl('cancel'),
       });
 
-      const payload = unwrapApiData(response);
+      // response is already unwrapped by axiosClient (returns res.data)
+      const payload = response?.data || response;
+      sessionStorage.setItem('student-wallet-pending-deposit', JSON.stringify({
+        ...payload,
+        createdAt: new Date().toISOString(),
+      }));
       setLastDeposit(payload);
       message.success(response?.message || 'Đã tạo lệnh nạp tiền thành công.');
+      navigate('/student/wallet/deposit/qr', {
+        state: { deposit: payload },
+        replace: true,
+      });
     } catch (apiError) {
       setLastDeposit(null);
       message.error(
@@ -235,7 +309,7 @@ export default function StudentWalletPage() {
     } finally {
       setDepositSubmitting(false);
     }
-  }, [depositAmount]);
+  }, [depositAmount, navigate]);
 
   const handleWithdrawFieldChange = useCallback((field, value) => {
     setWithdrawErrors((prev) => ({ ...prev, [field]: '' }));
@@ -305,7 +379,7 @@ export default function StudentWalletPage() {
         title="Làm mới dữ liệu ví"
         className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition-all hover:bg-slate-100 hover:text-slate-800"
       >
-        <span className={`material-symbols-outlined text-[20px] ${refreshing ? 'animate-spin' : ''}`}>refresh</span>
+        <span className={`material-symbols-outlined text-[20px] ${refreshing || banksLoading ? 'animate-spin' : ''}`}>refresh</span>
       </button>
 
       <button
@@ -384,6 +458,16 @@ export default function StudentWalletPage() {
               onDepositAmountChange={handleDepositAmountChange}
               onPresetAmountClick={handlePresetAmountClick}
               onSubmit={handleDepositSubmit}
+                onOpenQrPage={(deposit = lastDeposit) => {
+                  if (!deposit) return;
+                  sessionStorage.setItem('student-wallet-pending-deposit', JSON.stringify({
+                    ...deposit,
+                    createdAt: deposit.createdAt || new Date().toISOString(),
+                  }));
+                  navigate('/student/wallet/deposit/qr', {
+                    state: { deposit },
+                  });
+                }}
             />
 
             <WalletWithdrawPanel
@@ -392,6 +476,8 @@ export default function StudentWalletPage() {
               submitting={withdrawSubmitting}
               withdrawableBalance={summary.withdrawableBalance}
               pendingWithdrawalAmount={summary.pendingWithdrawalAmount}
+              bankOptions={bankOptions}
+              banksLoading={banksLoading}
               onFieldChange={handleWithdrawFieldChange}
               onSubmit={handleWithdrawSubmit}
             />

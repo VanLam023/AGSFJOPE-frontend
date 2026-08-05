@@ -124,33 +124,6 @@ const auditLogs = [
   },
 ];
 
-const resourceMonitors = [
-  {
-    label: 'CPU',
-    sub: 'Intel Xeon E5',
-    value: 24,
-    color: 'bg-[#F37021]',
-    glow: 'shadow-[0_0_10px_rgba(243,112,33,0.35)]',
-    textColor: 'text-[#F37021]',
-  },
-  {
-    label: 'Bộ nhớ',
-    sub: '39.6 GB / 64 GB',
-    value: 62,
-    color: 'bg-[#FB923C]',
-    glow: 'shadow-[0_0_10px_rgba(251,146,60,0.35)]',
-    textColor: 'text-[#EA580C]',
-  },
-  {
-    label: 'Lưu trữ (NVMe)',
-    sub: '900 GB / 2 TB',
-    value: 45,
-    color: 'bg-[#FDBA74]',
-    glow: 'shadow-[0_0_10px_rgba(253,186,116,0.45)]',
-    textColor: 'text-[#C2410C]',
-  },
-];
-
 const allRoles = [
   { value: 'Sinh viên', label: 'Sinh viên' },
   { value: 'Giảng viên', label: 'Giảng viên' },
@@ -782,7 +755,6 @@ export {
   submissionsBlock10,
   userData,
   auditLogs,
-  resourceMonitors,
   allRoles,
   allStatus,
   userSeedData,

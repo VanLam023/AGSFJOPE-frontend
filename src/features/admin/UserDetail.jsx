@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useAuth } from '../../app/context/authContext';
 import {
   ConfigProvider,
   Tabs,
@@ -7,6 +8,7 @@ import {
   Select,
   Form,
   message,
+  Modal,
 } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import MainLayout from '../../components/layouts/MainLayout';
@@ -17,7 +19,12 @@ import {
   ADMIN_SIDEBAR_ITEMS_FLAT,
 } from '../../constants/sidebarItems';
 import { renderStatusPill } from '../../components/utils/Utils';
-import { useDeleteUser, useGetUserDetail, useEditDetail } from '../../hooks';
+import {
+  useDeleteUser,
+  useGetUserDetail,
+  useEditDetail,
+  useUnlockUser,
+} from '../../hooks';
 
 const ROLE_LABEL_VI = {
   STUDENT: 'Sinh viên',
@@ -51,20 +58,26 @@ const formatDateVi = (iso) => {
 };
 
 const UserDetail = () => {
+  const { user: currentUser } = useAuth();
   const navigate = useNavigate();
   const { userId } = useParams();
   const [selectedIndex, setSelectedIndex] = useState(1);
-  const [notifCount] = useState(5);
   const { fetchUserDetail, loading, userDetail } = useGetUserDetail();
   const { callDeleteUserEndpoint, loading: deleteLoading } = useDeleteUser();
+  const { callUnlockUserEndpoint, loading: unlockLoading } = useUnlockUser();
   const { callEditUserEndpoint, loading: editLoading } = useEditDetail();
   const [validationError, setValidationError] = useState(false);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
+  const [isUnlockModalOpen, setIsUnlockModalOpen] = useState(false);
 
   const [form] = Form.useForm();
   const user = userDetail;
   useEffect(() => {
     if (!userId) return;
-    fetchUserDetail(userId);
+    fetchUserDetail(userId).catch((err) => {
+      const msg = err?.response?.data?.message || 'Không thể tải thông tin người dùng.';
+      message.error(msg);
+    });
   }, [userId]);
 
   const [isEdit, setIsEdit] = useState(false);
@@ -75,7 +88,7 @@ const UserDetail = () => {
       fullName: user?.fullName,
       mssv: user?.mssv,
       email: user?.email,
-      roleName: ROLE_MAP.get(`${user?.roleName}`),
+      roleName: user?.roleName,
       phone: user?.phone,
       username: user?.username,
     });
@@ -86,45 +99,73 @@ const UserDetail = () => {
     value,
     label,
   }));
+  const isSelfProfile = Boolean(
+    currentUser?.userId && user?.userId && currentUser.userId === user.userId,
+  );
 
-  const statusLabel = user?.isLocked
-    ? 'Đã khóa'
+  const isUserLocked = Boolean(user?.isLocked);
+
+  const statusLabel = isUserLocked
+    ? 'đã bị khóa'
     : user?.isActive
-      ? 'Đang hoạt động'
-      : 'Không hoạt động';
+      ? 'đang hoạt động'
+      : 'chưa kích hoạt';
 
-  const handleDeleteUser = async () => {
+  const handleLockUser = async () => {
     try {
       await callDeleteUserEndpoint(userId);
-      message.success('Xóa người dùng thành công.');
+      setIsLockModalOpen(false);
+      message.success('Khóa tài khoản thành công.');
       setTimeout(() => {
         navigate('/admin/student-management');
       }, 1500);
     } catch (err) {
+      setIsLockModalOpen(false);
       if (err?.response?.data?.message) {
         message.error(err.response.data.message);
       } else {
-        message.error('Xóa người dùng thất bại.');
+        message.error('Khóa tài khoản thất bại.');
+      }
+    }
+  };
+
+  const handleUnlockUser = async () => {
+    try {
+      await callUnlockUserEndpoint(userId);
+      setIsUnlockModalOpen(false);
+      message.success('Mở khóa tài khoản thành công.');
+      await fetchUserDetail(userId);
+    } catch (err) {
+      setIsUnlockModalOpen(false);
+      if (err?.response?.data?.message) {
+        message.error(err.response.data.message);
+      } else {
+        message.error('Mở khóa tài khoản thất bại.');
       }
     }
   };
 
   const handleEdit = async () => {
-    const payload = Object.fromEntries(
-      Object.entries(form.getFieldsValue()).map(([key, value]) => [
-        key,
-        value.trim(),
-      ]),
-    );
-
-    if (Object.values(payload).some((value) => value === '')) {
-      message.warning('Vui lòng nhập đầy đủ thông tin người dùng.');
-      return;
-    }
-    const { roleName } = payload;
-    const roleToServer = ROLE_MAP_REVERSE.get(roleName);
-
     try {
+      const payload = Object.fromEntries(
+        Object.entries(form.getFieldsValue()).map(([key, value]) => [
+          key,
+          typeof value === 'string' ? value.trim() : value,
+        ]),
+      );
+
+      if (Object.values(payload).some((value) => value === '')) {
+        message.warning('Vui lòng nhập đầy đủ thông tin người dùng.');
+        return;
+      }
+
+      const { roleName } = payload;
+      const roleToServer = isSelfProfile
+        ? user?.roleName
+        : ROLE_LABEL_VI[roleName]
+          ? roleName
+          : ROLE_MAP_REVERSE.get(roleName) || user?.roleName;
+
       await callEditUserEndpoint({
         userId,
         ...payload,
@@ -141,10 +182,13 @@ const UserDetail = () => {
         username: '',
       });
 
-      fetchUserDetail(userId);
+      await fetchUserDetail(userId);
+      setIsEdit(false);
     } catch (err) {
       if (err?.response?.data?.message) {
         message.error(err.response.data.message);
+      } else {
+        message.error('Cập nhật thông tin người dùng thất bại.');
       }
     }
   };
@@ -155,7 +199,7 @@ const UserDetail = () => {
       fullName: user?.fullName,
       mssv: user?.mssv,
       email: user?.email,
-      roleName: ROLE_MAP.get(`${user?.roleName}`),
+      roleName: user?.roleName,
       phone: user?.phone,
       username: user?.username,
     });
@@ -166,7 +210,6 @@ const UserDetail = () => {
       siderItems={({ collapsed }) =>
         collapsed ? ADMIN_SIDEBAR_ITEMS_FLAT : ADMIN_SIDEBAR_ITEMS
       }
-      notifCount={notifCount}
       currentSelectedItem={(item) => setSelectedIndex(Number(item.key))}
     >
       <ConfigProvider
@@ -384,20 +427,19 @@ const UserDetail = () => {
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
                                     Vai trò
                                   </label>
-                                  {/* <Select
-                                    className="w-full"
-                                    size="large"
-                                    options={roleOptions}
-                                    value={user?.roleName}
-                                    disabled={!isEdit}
-                                  /> */}
                                   <Form.Item name="roleName">
-                                    <Input
+                                    <Select
                                       className="w-full"
                                       size="large"
-                                      disabled={true}
+                                      options={roleOptions}
+                                      disabled={!isEdit || isSelfProfile}
                                     />
                                   </Form.Item>
+                                  {isSelfProfile && (
+                                    <p className="text-[11px] text-amber-600 mt-1">
+                                      Bạn không thể chỉnh sửa role của chính mình.
+                                    </p>
+                                  )}
                                 </div>
                                 <div>
                                   <label className="block text-xs font-semibold text-slate-500 mb-1.5">
@@ -499,30 +541,25 @@ const UserDetail = () => {
                               >
                                 {isEdit ? 'Lưu thay đổi' : 'Chỉnh sửa'}
                               </Button>
-                              <Button
-                                danger
-                                size="large"
-                                loading={deleteLoading}
-                                onClick={handleDeleteUser}
-                              >
-                                Xóa
-                              </Button>
+                              {isUserLocked ? (
+                                <Button
+                                  type="primary"
+                                  size="large"
+                                  onClick={() => setIsUnlockModalOpen(true)}
+                                >
+                                  Mở khóa tài khoản
+                                </Button>
+                              ) : (
+                                <Button
+                                  danger
+                                  size="large"
+                                  onClick={() => setIsLockModalOpen(true)}
+                                >
+                                  Khóa tài khoản
+                                </Button>
+                              )}
                             </div>
                           </div>
-                        ),
-                      },
-                      {
-                        key: 'activity',
-                        label: 'Lịch sử hoạt động',
-                        children: (
-                          <div className="px-6 pb-8 text-slate-500 text-sm"></div>
-                        ),
-                      },
-                      {
-                        key: 'submissions',
-                        label: 'Bài nộp',
-                        children: (
-                          <div className="px-6 pb-8 text-slate-500 text-sm"></div>
                         ),
                       },
                     ]}
@@ -532,6 +569,72 @@ const UserDetail = () => {
             </div>
           </div>
         </div>
+
+        <Modal
+          title={
+            <div className="flex items-center gap-2 text-red-600 font-bold text-lg">
+              <span className="material-symbols-outlined text-[24px]">warning</span>
+              Xác nhận khóa tài khoản
+            </div>
+          }
+          open={isLockModalOpen}
+          onOk={handleLockUser}
+          onCancel={() => setIsLockModalOpen(false)}
+          okText="Khóa tài khoản"
+          cancelText="Hủy"
+          okButtonProps={{ danger: true, size: 'large', loading: deleteLoading }}
+          cancelButtonProps={{ size: 'large' }}
+          centered
+          className="custom-confirm-modal"
+        >
+          <div className="py-4 space-y-3">
+            <p className="text-slate-600 leading-relaxed text-sm">
+              Bạn có chắc chắn muốn khóa tài khoản của người dùng{' '}
+              <strong className="text-slate-800 font-bold">{user?.fullName}</strong>?
+            </p>
+            <div className="p-3 bg-red-50 border border-red-100 rounded-xl flex items-start gap-2.5">
+              <span className="material-symbols-outlined text-red-500 text-[18px] mt-0.5">
+                info
+              </span>
+              <p className="text-[12px] text-red-600 leading-relaxed">
+                Người dùng này sẽ không thể đăng nhập hoặc thực hiện bất kỳ thao tác nào trên hệ thống sau khi tài khoản bị khóa.
+              </p>
+            </div>
+          </div>
+        </Modal>
+
+        <Modal
+          title={
+            <div className="flex items-center gap-2 text-emerald-600 font-bold text-lg">
+              <span className="material-symbols-outlined text-[24px]">lock_open</span>
+              Xác nhận mở khóa tài khoản
+            </div>
+          }
+          open={isUnlockModalOpen}
+          onOk={handleUnlockUser}
+          onCancel={() => setIsUnlockModalOpen(false)}
+          okText="Mở khóa tài khoản"
+          cancelText="Hủy"
+          okButtonProps={{ size: 'large', loading: unlockLoading }}
+          cancelButtonProps={{ size: 'large' }}
+          centered
+          className="custom-confirm-modal"
+        >
+          <div className="py-4 space-y-3">
+            <p className="text-slate-600 leading-relaxed text-sm">
+              Bạn có chắc chắn muốn mở khóa tài khoản của người dùng{' '}
+              <strong className="text-slate-800 font-bold">{user?.fullName}</strong>?
+            </p>
+            <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-start gap-2.5">
+              <span className="material-symbols-outlined text-emerald-500 text-[18px] mt-0.5">
+                check_circle
+              </span>
+              <p className="text-[12px] text-emerald-600 leading-relaxed">
+                Người dùng này sẽ được khôi phục quyền truy cập, có thể đăng nhập và làm việc bình thường trên hệ thống ngay lập tức.
+              </p>
+            </div>
+          </div>
+        </Modal>
       </ConfigProvider>
     </MainLayout>
   );

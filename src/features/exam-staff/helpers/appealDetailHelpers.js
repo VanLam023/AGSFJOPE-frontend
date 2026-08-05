@@ -4,6 +4,14 @@ const toNumber = (value) => {
   return Number.isNaN(parsed) ? null : parsed;
 };
 
+const REVIEWED_SCORE_VISIBLE_STATUSES = ['COMPLETED', 'APPROVED'];
+
+const normalizeStatus = (status) => String(status ?? '').trim().toUpperCase();
+
+export const canDisplayReviewedScores = (status) => {
+  return REVIEWED_SCORE_VISIBLE_STATUSES.includes(normalizeStatus(status));
+};
+
 const extractQuestionNumberFromKey = (key) => {
   const normalized = String(key || '').trim().toLowerCase();
   if (!normalized) return null;
@@ -15,9 +23,10 @@ const extractQuestionNumberFromKey = (key) => {
   return Number.isNaN(value) ? null : value;
 };
 
-export const buildAppealQuestionRows = ({ gradingDetail, newQuestionScores } = {}) => {
+export const buildAppealQuestionRows = ({ gradingDetail, newQuestionScores, status } = {}) => {
   const answers = Array.isArray(gradingDetail?.answers) ? gradingDetail.answers : [];
   const editedMap = newQuestionScores ?? {};
+  const shouldDisplayReviewedScores = canDisplayReviewedScores(status);
 
   const mappedRows = answers.map((answer, index) => {
     const questionNumber = Number(answer?.questionNumber ?? index + 1);
@@ -49,7 +58,8 @@ export const buildAppealQuestionRows = ({ gradingDetail, newQuestionScores } = {
       editedValue = matchedEntry?.[1] ?? null;
     }
 
-    const newScore = toNumber(editedValue) ?? oldScore;
+    const reviewedScore = toNumber(editedValue);
+    const newScore = shouldDisplayReviewedScores ? (reviewedScore ?? oldScore) : null;
 
     return {
       id: answer?.answerId || `${questionKey}-${index}`,
@@ -67,7 +77,7 @@ export const buildAppealQuestionRows = ({ gradingDetail, newQuestionScores } = {
   });
 
   const knownNumbers = new Set(mappedRows.map((row) => row.questionNumber));
-  const extraRows = Object.entries(editedMap)
+  const extraRows = shouldDisplayReviewedScores ? Object.entries(editedMap)
     .map(([key, value], index) => {
       const questionNumber = extractQuestionNumberFromKey(key);
       if (questionNumber == null || knownNumbers.has(questionNumber)) return null;
@@ -86,7 +96,7 @@ export const buildAppealQuestionRows = ({ gradingDetail, newQuestionScores } = {
         guardRuleNote: '',
       };
     })
-    .filter(Boolean);
+    .filter(Boolean) : [];
 
   return [...mappedRows, ...extraRows].sort((a, b) => {
     if (a.questionNumber != null && b.questionNumber != null) {
@@ -119,6 +129,8 @@ export const resolveOriginalScore = (detail, gradingDetail, questionRows) => {
 };
 
 export const resolveNewScore = (detail, questionRows, originalScore) => {
+  if (!canDisplayReviewedScores(detail?.status)) return null;
+
   const detailNew = toNumber(detail?.newScore);
   if (detailNew != null) return detailNew;
 

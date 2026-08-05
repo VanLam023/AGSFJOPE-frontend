@@ -69,12 +69,12 @@ export default function StudentLayout({
 
   const handleLogout = () => {
     logout();
-    localStorage.removeItem('refreshToken');
+    // Cookie HttpOnly sẽ bị backend tự động xóa khi gọi API logout
     navigate('/login');
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#f7f7f8] via-[#f6f6f8] to-[#fffaf6] font-[Inter,sans-serif] overflow-hidden">
+    <div className="flex min-h-screen bg-gradient-to-br from-[#f7f7f8] via-[#f6f6f8] to-[#fffaf6] font-[Inter,sans-serif]">
       <StudentSidebar
         sidebarOpen={sidebarOpen}
         activeNavKey={activeNavKey}
@@ -88,7 +88,7 @@ export default function StudentLayout({
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 flex flex-col overflow-hidden relative">
+      <main className="relative flex min-w-0 flex-1 flex-col">
         <div className="pointer-events-none absolute -top-20 -right-20 w-72 h-72 bg-orange-200/20 rounded-full blur-3xl" />
 
         <StudentHeader
@@ -106,7 +106,7 @@ export default function StudentLayout({
           onLogout={handleLogout}
         />
 
-        <div className="flex-1 overflow-y-auto bg-transparent">
+        <div className="flex-1 bg-transparent">
           {useBodyContainer ? (
             <div className={bodyClassName}>{children}</div>
           ) : (

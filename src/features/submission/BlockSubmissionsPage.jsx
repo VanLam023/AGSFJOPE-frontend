@@ -455,16 +455,26 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
     try {
       setIsTriggering(true);
       const isSelectedMode = selectedCount > 0;
+
+      // Khi không tick bài nào: lọc theo statusFilter hiện tại (nếu có)
       const idsToGrade =
         selectedCount > 0
           ? selectedSubmissionIds
           : rows
               .filter((item) => {
                 const status = String(item?.submissionStatus || '').toUpperCase();
+                if (statusFilter) {
+                  // Đang lọc theo trạng thái cụ thể → chỉ lấy bài khớp filter VÀ có thể chấm
+                  return status === String(statusFilter).toUpperCase();
+                }
+                // Không có filter → chấm tất cả SUBMITTED và GRADED
                 return status === 'SUBMITTED' || status === 'GRADED';
               })
               .map((item) => item?.submissionId)
               .filter(Boolean);
+
+      // Nếu đang lọc theo filter thì truyền ids cụ thể, không gửi null (chấm cả block)
+      const hasActiveFilter = !isSelectedMode && Boolean(statusFilter);
 
       const statusById = new Map(
         rows.map((item) => [item?.submissionId, String(item?.submissionStatus || '').toUpperCase()])
@@ -479,11 +489,14 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
       const gradedForUpdate = isSelectedMode ? selectedGradedCount : allGradedCount;
       const expectedTotal = isSelectedMode
         ? idsToGrade.length
-        : allSubmittedCount + allGradedCount;
+        : hasActiveFilter
+          ? idsToGrade.length
+          : allSubmittedCount + allGradedCount;
 
       const body = {
         blockId: activeBlockId,
-        submissionIds: isSelectedMode ? selectedSubmissionIds : null,
+        // Gửi ids cụ thể nếu: có tick chọn HOẶC đang filter theo trạng thái
+        submissionIds: isSelectedMode || hasActiveFilter ? idsToGrade : null,
       };
 
       await gradingApi.triggerGrading(activeExamId, activeBlockId, body);
@@ -544,6 +557,7 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
     selectedCount,
     selectedSubmissionIds,
     stats,
+    statusFilter,
   ]);
 
   const handleStopGrading = useCallback(async () => {
@@ -610,6 +624,11 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
         setIsTriggering(true);
         await gradingApi.triggerSingleGrading(activeExamId, activeBlockId, item.submissionId);
 
+        const previousStatus = String(item?.submissionStatus || '').toUpperCase();
+        const isFromSubmitted = previousStatus === 'SUBMITTED';
+        const isFromGraded = previousStatus === 'GRADED';
+        const shouldMoveToGrading = isFromSubmitted || isFromGraded;
+
         setRows((prev) =>
           prev.map((row) =>
             row?.submissionId === item.submissionId
@@ -625,6 +644,15 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
               : row
           )
         );
+
+        if (shouldMoveToGrading) {
+          setStats((prev) => ({
+            ...prev,
+            submitted: Math.max(0, Number(prev?.submitted || 0) - (isFromSubmitted ? 1 : 0)),
+            graded: Math.max(0, Number(prev?.graded || 0) - (isFromGraded ? 1 : 0)),
+            grading: Math.max(0, Number(prev?.grading || 0) + 1),
+          }));
+        }
 
         setOptimisticRun({
           active: true,
@@ -675,62 +703,162 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
     }
   }, []);
 
-  const handleExportCsv = useCallback(() => {
+  const handleExportCsv = useCallback(async () => {
     if (!rows.length) {
-      message.info('Hiện chưa có dữ liệu để xuất CSV.');
+      message.info('Hiện chưa có dữ liệu để xuất Excel.');
       return;
     }
 
-    if (!isBrowserFileDownloadSupported()) {
-      message.warning('Web chưa hỗ trợ xuất file CSV ở màn này.');
-      return;
-    }
+    try {
+      const ExcelJS = await import('exceljs');
+      const { saveAs } = await import('file-saver');
 
-    const headers = [
-      'STT',
-      'Sinh viên',
-      'Mã SV',
-      'Email',
-      'Thời gian nộp',
-      'Dung lượng',
-      'Trạng thái',
-      'Điểm số',
-      'Kết quả',
-    ];
+      const workbook = new ExcelJS.Workbook();
+      const sheetName = 'Danh Sách Bài Nộp';
+      const worksheet = workbook.addWorksheet(sheetName, {
+        views: [{ showGridLines: true }]
+      });
 
-    const csvRows = rows.map((item, idx) => {
-      const statusBadge = getSubmissionStatusBadge(item.submissionStatus);
-      const resultBadge = getResultBadge(item.gradingStatus);
-      const score =
-        item.totalScore != null
-          ? `${Number(item.totalScore).toFixed(2)}/${Number(item.maxScore || 10).toFixed(0)}`
-          : '—';
-      return [
-        pagination.page * pagination.size + idx + 1,
-        item.studentName ?? '',
-        item.studentCode ?? '',
-        item.studentEmail ?? '',
-        fmtDateTime(item.submittedAt),
-        fmtSize(item.fileSizeBytes),
-        statusBadge.label,
-        score,
-        resultBadge ? resultBadge.label : '—',
+      // 1. Tiêu đề Block
+      worksheet.mergeCells('A1:I1');
+      const titleCell = worksheet.getCell('A1');
+      titleCell.value = `DANH SÁCH BÀI NỘP - ${block?.name || 'Block'} [${exam?.name || ''}]`;
+      titleCell.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FF1E293B' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      worksheet.getRow(1).height = 40;
+
+      // 2. Dòng trống
+      worksheet.addRow([]);
+      worksheet.getRow(2).height = 10;
+
+      // 3. Headers
+      const headers = [
+        'STT',
+        'Tên',
+        'MSSV',
+        'Email',
+        'Tên bài nộp',
+        'Dung lượng',
+        'Nộp bài vào lúc',
+        'Chấm điểm',
+        'Đánh giá',
       ];
-    });
+      worksheet.addRow(headers);
+      const headerRow = worksheet.getRow(3);
+      headerRow.height = 28;
+      headerRow.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
 
-    const escapeCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-    const csv = [headers, ...csvRows].map((row) => row.map(escapeCell).join(',')).join('\n');
-    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8;' });
-    const fileName = `danh-sach-bai-nop-${slugifyFilePart(block?.name || activeBlockId, 'block')}.csv`;
+      const HEADER_FILL = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF1E293B' }, // Dark Slate color for header
+      };
 
-    const ok = saveBlobFile(blob, fileName);
-    if (!ok) {
-      message.warning('Web chưa hỗ trợ xuất file CSV ở màn này.');
-      return;
+      for (let i = 1; i <= 9; i++) {
+        const cell = headerRow.getCell(i);
+        cell.fill = HEADER_FILL;
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'FF475569' } },
+          left: { style: 'thin', color: { argb: 'FF475569' } },
+          bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
+          right: { style: 'thin', color: { argb: 'FF475569' } },
+        };
+      }
+
+      // 4. Data rows
+      rows.forEach((item, idx) => {
+        const resultBadge = getResultBadge(item.gradingStatus);
+        const scoreVal = item.totalScore != null ? Number(item.totalScore) : null;
+        
+        const rowData = [
+          pagination.page * pagination.size + idx + 1,
+          item.studentName ?? '',
+          item.studentCode ?? '',
+          item.studentEmail ?? '',
+          item.fileName ?? '—',
+          fmtSize(item.fileSizeBytes),
+          fmtDateTime(item.submittedAt),
+          scoreVal,
+          resultBadge ? resultBadge.label : '—',
+        ];
+
+        worksheet.addRow(rowData);
+        const dataRow = worksheet.getRow(4 + idx);
+        dataRow.height = 22;
+        dataRow.font = { name: 'Arial', size: 10 };
+
+        // Border & Alignment styles for each cell
+        const thinBorder = {
+          top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+          right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        };
+
+        // Custom styling per cell
+        for (let colIdx = 1; colIdx <= 9; colIdx++) {
+          const cell = dataRow.getCell(colIdx);
+          cell.border = thinBorder;
+
+          // Alignment
+          if ([1, 3, 6, 7, 8, 9].includes(colIdx)) {
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+          } else {
+            cell.alignment = { horizontal: 'left', vertical: 'middle' };
+          }
+
+          // Grading Status fill highlights
+          if (colIdx === 9) {
+            const val = String(cell.value || '');
+            if (val === 'Đạt') {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFDCFCE7' }, // light green
+              };
+              cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF14532D' } };
+            } else if (val === 'Không đạt') {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFFEE2E2' }, // light red
+              };
+              cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF7F1D1D' } };
+            }
+          }
+
+          // Grade number formatting
+          if (colIdx === 8 && scoreVal !== null) {
+            cell.numFmt = '0.00';
+          }
+        }
+      });
+
+      // Set specific columns width override
+      worksheet.getColumn(1).width = 8;  // STT
+      worksheet.getColumn(2).width = 24; // Tên
+      worksheet.getColumn(3).width = 14; // MSSV
+      worksheet.getColumn(4).width = 28; // Email
+      worksheet.getColumn(5).width = 26; // Tên bài nộp
+      worksheet.getColumn(6).width = 14; // dung lượng
+      worksheet.getColumn(7).width = 20; // nộp bài vào lúc
+      worksheet.getColumn(8).width = 12; // Chấm điểm
+      worksheet.getColumn(9).width = 14; // Đánh giá
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const fileName = `danh-sach-bai-nop-${slugifyFilePart(block?.name || activeBlockId, 'block')}.xlsx`;
+      saveAs(blob, fileName);
+
+      message.success('Đã tải báo cáo danh sách bài nộp file Excel thành công!');
+    } catch (err) {
+      console.error('[BlockSubmissionsPage] Export excel error:', err);
+      message.error('Không thể xuất báo cáo Excel lúc này. Vui lòng thử lại.');
     }
-
-    message.success('Đã bắt đầu tải file CSV.');
-  }, [activeBlockId, block?.name, pagination.page, pagination.size, rows]);
+  }, [activeBlockId, block?.name, exam?.name, pagination.page, pagination.size, rows]);
 
   const handleExportGradeSheet = useCallback(async () => {
     if (!activeExamId || !activeBlockId) {
@@ -753,6 +881,8 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
       setExporting((prev) => ({ ...prev, gradeSheet: false }));
     }
   }, [activeBlockId, activeExamId, block?.name, downloadProtectedFile]);
+
+
 
   const totalPages = pagination.totalPages;
   const currentPage = pagination.page;
@@ -783,7 +913,7 @@ export default function BlockSubmissionsPage({ examId, blockId, onBack }) {
   );
 
   return (
-    <div className="relative max-w-7xl mx-auto w-full p-6 sm:p-8 pt-20 sm:pt-24 space-y-6">
+    <div className="relative isolate overflow-x-hidden max-w-7xl mx-auto w-full p-6 sm:p-8 pt-20 sm:pt-24 space-y-6">
       <PageBackdrop />
 
       <BackSection onBack={handleBack} />

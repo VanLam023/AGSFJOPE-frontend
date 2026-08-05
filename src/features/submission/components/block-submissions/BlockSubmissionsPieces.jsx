@@ -13,9 +13,9 @@ import {
 export const PageBackdrop = React.memo(function PageBackdrop() {
   return (
     <>
-      <div className="pointer-events-none absolute top-10 -left-14 w-56 h-56 rounded-full bg-orange-100/70 blur-3xl" />
-      <div className="pointer-events-none absolute top-1/4 -right-12 w-56 h-56 rounded-full bg-amber-100/50 blur-3xl" />
-      <div className="pointer-events-none absolute bottom-10 left-1/3 w-48 h-48 rounded-full bg-sky-100/40 blur-3xl" />
+      <div className="pointer-events-none absolute -z-10 top-10 -left-14 w-56 h-56 rounded-full bg-orange-100/55 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -z-10 top-1/4 -right-12 w-56 h-56 rounded-full bg-amber-100/40 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -z-10 bottom-10 left-1/3 w-48 h-48 rounded-full bg-amber-100/30 blur-3xl" aria-hidden="true" />
     </>
   );
 });
@@ -49,12 +49,12 @@ export const HeaderSection = React.memo(function HeaderSection({
   onRefresh,
   exporting,
 }) {
-  const isAnyExporting = exporting.gradeSheet;
+  const isAnyExporting = Object.values(exporting || {}).some(Boolean);
 
   return (
     <div className="relative z-10 p-1 flex flex-col xl:flex-row items-center justify-between gap-6 overflow-visible mb-6">
       <div className="relative w-full xl:w-auto text-center xl:text-left">
-        <div className="inline-flex items-center justify-center xl:justify-start gap-2 px-3 py-1.5 rounded-full bg-slate-100/80 backdrop-blur-sm shadow-inner text-slate-600 border border-slate-200/60 text-xs font-bold uppercase tracking-widest mb-4 mx-auto xl:mx-0">
+        <div className="inline-flex items-center justify-center xl:justify-start gap-2 px-3 py-1.5 rounded-full bg-orange-50 shadow-sm border border-orange-100 text-[#F37021] text-xs font-bold uppercase tracking-widest mb-4 mx-auto xl:mx-0">
           <span className="relative flex h-2.5 w-2.5 items-center justify-center">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
             <span className="relative inline-flex h-2 w-2 rounded-full bg-orange-500"></span>
@@ -84,17 +84,17 @@ export const HeaderSection = React.memo(function HeaderSection({
           type="button"
           onClick={onExportCsv}
           disabled={isAnyExporting}
-          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white/70 backdrop-blur-md rounded-2xl text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-900/5 hover:bg-white hover:shadow-md hover:ring-slate-900/10 transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white rounded-2xl text-sm font-bold text-slate-600 shadow-sm border border-slate-200 hover:text-[#F37021] hover:border-orange-200 hover:bg-orange-50 hover:shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
         >
           <span className="material-symbols-outlined text-[20px] text-emerald-600">download</span>
-          Xuất file CSV
+          Xuất file Excel
         </button>
 
         <button
           type="button"
           onClick={onExportGradeSheet}
           disabled={isAnyExporting}
-          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white/70 backdrop-blur-md rounded-2xl text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-900/5 hover:bg-white hover:shadow-md hover:ring-slate-900/10 transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white rounded-2xl text-sm font-bold text-slate-600 shadow-sm border border-slate-200 hover:text-[#F37021] hover:border-orange-200 hover:bg-orange-50 hover:shadow-md transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
         >
           <span className="material-symbols-outlined text-[20px] text-violet-600">table_view</span>
           {exporting.gradeSheet ? 'Đang xuất bảng điểm...' : 'Xuất bảng điểm'}
@@ -103,7 +103,7 @@ export const HeaderSection = React.memo(function HeaderSection({
         <button
           type="button"
           onClick={onRefresh}
-          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white/70 backdrop-blur-md rounded-2xl text-sm font-bold text-slate-700 shadow-sm ring-1 ring-slate-900/5 hover:bg-white hover:shadow-md hover:ring-slate-900/10 transition-all hover:-translate-y-0.5 group"
+          className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 bg-white rounded-2xl text-sm font-bold text-slate-600 shadow-sm border border-slate-200 hover:text-[#F37021] hover:border-orange-200 hover:bg-orange-50 hover:shadow-md transition-all hover:-translate-y-0.5 group"
           title="Làm mới"
         >
           <span className="material-symbols-outlined text-[20px] text-blue-600 group-hover:rotate-180 transition-transform duration-700">
@@ -118,14 +118,14 @@ export const HeaderSection = React.memo(function HeaderSection({
 
 export const StatsGrid = React.memo(function StatsGrid({ stats }) {
   return (
-    <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+    <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
       {STAT_CARDS.map((card) => (
         <div
           key={card.key}
-          className="group relative overflow-hidden bg-white/60 backdrop-blur-xl p-6 rounded-[28px] shadow-sm ring-1 ring-slate-900/5 hover:shadow-xl hover:ring-slate-900/10 transition-all duration-500 min-h-[140px] isolate flex flex-col justify-between hover:-translate-y-1"
+          className="group relative overflow-hidden bg-white p-6 rounded-3xl shadow-lg shadow-slate-200/30 border border-slate-100 hover:border-orange-200 hover:shadow-xl hover:shadow-orange-100 transition-all duration-500 min-h-[140px] isolate flex flex-col justify-between hover:-translate-y-1"
         >
-          <div className={`absolute inset-0 bg-gradient-to-br ${card.bg} opacity-40 group-hover:opacity-60 transition-opacity duration-500 mix-blend-multiply rounded-[28px]`} />
-          <div className={`absolute -right-8 -bottom-8 w-40 h-40 rounded-full ${card.blob} blur-3xl opacity-50 group-hover:scale-150 transition-transform duration-700 ease-out z-[-1]`} />
+          <div className={`absolute inset-0 bg-gradient-to-br ${card.bg} opacity-30 group-hover:opacity-50 transition-opacity duration-500 rounded-3xl`} />
+          <div className={`absolute -right-8 -bottom-8 w-40 h-40 rounded-full ${card.blob} blur-3xl opacity-40 group-hover:scale-150 transition-transform duration-700 ease-out z-[-1]`} />
 
           <div className="relative z-10">
             <div className="flex items-start justify-between mb-4">
@@ -164,14 +164,14 @@ export const FilterBar = React.memo(function FilterBar({
   isStopping,
 }) {
   return (
-    <div className="relative z-10 bg-white/80 backdrop-blur-xl p-2 rounded-2xl border border-white shadow-sm ring-1 ring-slate-900/5 flex flex-col md:flex-row gap-2">
-      <div className="flex-1 flex flex-col md:flex-row gap-2">
+    <div className="relative z-10 bg-white p-3 rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 flex flex-col md:flex-row gap-3">
+      <div className="flex-1 flex flex-col md:flex-row gap-3">
         <div className="relative flex-1">
           <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">search</span>
           <input
             value={searchInput}
             onChange={(e) => onSearchInput(e.target.value)}
-            className="w-full h-12 pl-12 pr-4 bg-slate-50/50 hover:bg-slate-50 focus:bg-white border border-transparent rounded-xl text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all"
+            className="w-full h-12 pl-12 pr-4 bg-slate-50 border border-slate-200 hover:bg-white focus:bg-white rounded-2xl text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all shadow-sm"
             placeholder="Nhập tên hoặc mã số sinh viên..."
             type="text"
           />
@@ -181,7 +181,7 @@ export const FilterBar = React.memo(function FilterBar({
           <select
             value={statusFilter}
             onChange={(e) => onStatusChange(e.target.value)}
-            className="h-12 pl-4 pr-10 bg-slate-50/50 hover:bg-slate-50 focus:bg-white border border-transparent rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all cursor-pointer min-w-[170px]"
+            className="h-12 pl-4 pr-10 bg-slate-50 border border-slate-200 hover:bg-white focus:bg-white rounded-2xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all cursor-pointer min-w-[170px] shadow-sm"
           >
             {STATUS_OPTIONS.map((option) => (
               <option key={option.value || 'all'} value={option.value}>
@@ -193,7 +193,7 @@ export const FilterBar = React.memo(function FilterBar({
           <select
             value={size}
             onChange={(e) => onSizeChange(e.target.value)}
-            className="h-12 pl-4 pr-10 bg-slate-50/50 hover:bg-slate-50 focus:bg-white border border-transparent rounded-xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all cursor-pointer min-w-[140px]"
+            className="h-12 pl-4 pr-10 bg-slate-50 border border-slate-200 hover:bg-white focus:bg-white rounded-2xl text-sm font-medium text-slate-700 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none transition-all cursor-pointer min-w-[140px] shadow-sm"
           >
             {PAGE_SIZE_OPTIONS.map((n) => (
               <option key={n} value={n}>
@@ -210,7 +210,7 @@ export const FilterBar = React.memo(function FilterBar({
             type="button"
             onClick={onTriggerGrading}
             disabled={isTriggering || loading}
-            className="w-full h-12 inline-flex items-center justify-center gap-2 px-6 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl text-sm font-extrabold shadow-lg shadow-emerald-500/25 hover:shadow-xl hover:shadow-emerald-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+            className="w-full h-12 inline-flex items-center justify-center gap-2 px-6 bg-gradient-to-r from-[#F37021] to-orange-500 hover:from-orange-600 hover:to-orange-600 text-white rounded-2xl text-sm font-extrabold shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
           >
             <span className="material-symbols-outlined text-[20px]">play_circle</span>
             <span>
@@ -222,16 +222,16 @@ export const FilterBar = React.memo(function FilterBar({
             </span>
           </button>
         ) : (
-          <div className="flex items-center gap-2 h-12">
-            <span className="flex items-center gap-2 px-4 h-full bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-sm font-bold">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
+          <div className="flex items-center gap-3 h-12">
+            <span className="flex items-center gap-2 px-4 h-full bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl text-sm font-bold shadow-sm">
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
               {progressDoneDisplay} / {progressTotalDisplay}
             </span>
             <button
               type="button"
               onClick={onStopGrading}
               disabled={isStopping}
-              className="h-12 inline-flex items-center justify-center gap-2 px-6 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl text-sm font-extrabold shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
+              className="h-12 inline-flex items-center justify-center gap-2 px-6 bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-2xl text-sm font-extrabold shadow-lg shadow-red-500/25 hover:shadow-xl hover:shadow-red-500/40 hover:-translate-y-0.5 transition-all disabled:opacity-60 disabled:cursor-not-allowed disabled:transform-none"
             >
               <span className="material-symbols-outlined text-[20px]">stop_circle</span>
               <span>{isStopping ? 'Đang dừng...' : 'Dừng chấm'}</span>
@@ -245,7 +245,7 @@ export const FilterBar = React.memo(function FilterBar({
 
 export const LoadingState = React.memo(function LoadingState() {
   return (
-    <div className="relative z-10 bg-white/80 backdrop-blur-xl rounded-3xl border border-white shadow-sm ring-1 ring-slate-900/5 p-16 text-center text-slate-500 flex flex-col items-center justify-center min-h-[400px]">
+    <div className="relative z-10 bg-white rounded-3xl border border-slate-100 shadow-xl shadow-slate-200/40 p-16 text-center text-slate-500 flex flex-col items-center justify-center min-h-[400px]">
       <div className="relative w-12 h-12 mb-4">
         <div className="absolute inset-0 rounded-full border-4 border-slate-100 mix-blend-multiply" />
         <div className="absolute inset-0 rounded-full border-4 border-[#F37120] border-t-transparent animate-spin" />
@@ -270,7 +270,7 @@ export const ErrorState = React.memo(function ErrorState({ error }) {
 
 const TableSectionHeader = React.memo(function TableSectionHeader({ pagination }) {
   return (
-    <div className="px-8 py-6 border-b border-slate-200/50 flex flex-col sm:flex-row items-center justify-between bg-white/50">
+    <div className="px-8 py-6 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between bg-white rounded-t-[32px]">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center text-[#F37120] shadow-sm ring-1 ring-orange-200/50">
           <span className="material-symbols-outlined text-[24px]">view_list</span>
@@ -321,8 +321,8 @@ const SubmissionTableRow = React.memo(function SubmissionTableRow({
 
       <td className="px-3 py-4 transition-colors">
         <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-50 to-purple-100 flex items-center justify-center shrink-0 border border-indigo-100 shadow-inner">
-            <span className="text-sm font-black text-indigo-600">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-orange-50 to-amber-100 flex items-center justify-center shrink-0 border border-orange-100 shadow-inner">
+            <span className="text-sm font-black text-[#F37120]">
               {String(item?.studentName || '—').charAt(0).toUpperCase()}
             </span>
           </div>
@@ -403,7 +403,7 @@ const SubmissionTableRow = React.memo(function SubmissionTableRow({
             title={canOpen ? 'Xem chi tiết' : 'Bài này chưa có kết quả chấm'}
             disabled={!canOpen}
             onClick={() => onOpenDetail(item)}
-            className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all bg-slate-50 shadow-sm border border-slate-200 ${canOpen ? 'text-slate-400 hover:text-indigo-600 hover:bg-indigo-100 hover:shadow-indigo-200/50 hover:scale-105 active:scale-95' : 'text-slate-300 cursor-not-allowed opacity-50'}`}
+            className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all bg-slate-50 shadow-sm border border-slate-200 ${canOpen ? 'text-slate-400 hover:text-[#F37120] hover:bg-orange-100 hover:shadow-orange-200/50 hover:scale-105 active:scale-95' : 'text-slate-300 cursor-not-allowed opacity-50'}`}
           >
             <span className="material-symbols-outlined text-[20px]">visibility</span>
           </button>
@@ -440,7 +440,7 @@ const PaginationBar = React.memo(function PaginationBar({
   if (!totalElements || pageNumbers.length === 0) return null;
 
   return (
-    <div className="px-6 pb-6 pt-2 flex flex-wrap items-center justify-center gap-2 border-t border-slate-200/50 bg-white/40">
+    <div className="px-6 pb-6 pt-2 flex flex-wrap items-center justify-center gap-2 border-t border-slate-100 bg-white">
       {pageNumbers.map((item, idx) => (
         item === '...'
           ? (
@@ -482,7 +482,7 @@ export const SubmissionsTableCard = React.memo(function SubmissionsTableCard({
   return (
     <div
       ref={tableSectionRef}
-      className="relative z-10 bg-white/70 backdrop-blur-xl rounded-[32px] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.05)] ring-1 ring-slate-900/5 mt-8 overflow-hidden flex flex-col"
+      className="relative z-10 bg-white rounded-[32px] shadow-xl shadow-slate-200/40 border border-slate-100 mt-8 overflow-hidden flex flex-col"
     >
       <TableSectionHeader pagination={pagination} />
 
@@ -540,3 +540,4 @@ export const SubmissionsTableCard = React.memo(function SubmissionsTableCard({
     </div>
   );
 });
+

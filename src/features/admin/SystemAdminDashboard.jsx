@@ -64,7 +64,6 @@ export default function SystemAdminDashboard() {
     overview,
     userStats,
     recentActivities,
-    systemHealth,
     systemActivity,
     loading,
     activityLoading,
@@ -137,51 +136,6 @@ export default function SystemAdminDashboard() {
       ],
     };
   }, [systemActivity]);
-
-  const resourceRows = useMemo(() => {
-    const h = systemHealth;
-    if (!h) return [];
-    const cpu = h.cpuUsagePercent;
-    const cpuOk = cpu != null && cpu >= 0;
-    return [
-      {
-        key: 'cpu',
-        label: 'CPU',
-        sub: cpuOk ? 'Máy chủ' : 'Không khả dụng',
-        value: cpuOk ? Math.round(Number(cpu)) : null,
-        textColor: cpuOk ? 'text-amber-600' : 'text-slate-400',
-        color: 'bg-amber-500',
-        glow: 'shadow-amber-500/30',
-        showBar: cpuOk,
-      },
-      {
-        key: 'mem',
-        label: 'Bộ nhớ (heap)',
-        sub:
-          h.totalMemoryMb != null
-            ? `${fmtCount(h.usedMemoryMb)} / ${fmtCount(h.totalMemoryMb)} MB`
-            : '—',
-        value: Math.round(Number(h.memoryUsagePercent ?? 0)),
-        textColor: 'text-sky-600',
-        color: 'bg-sky-500',
-        glow: 'shadow-sky-500/30',
-        showBar: true,
-      },
-      {
-        key: 'disk',
-        label: 'Ổ đĩa (root)',
-        sub:
-          h.totalDiskGb != null
-            ? `${fmtCount(h.usedDiskGb)} / ${fmtCount(h.totalDiskGb)} GB`
-            : '—',
-        value: Math.round(Number(h.diskUsagePercent ?? 0)),
-        textColor: 'text-rose-600',
-        color: 'bg-rose-500',
-        glow: 'shadow-rose-500/30',
-        showBar: true,
-      },
-    ];
-  }, [systemHealth]);
 
   const auditColumns = useMemo(
     () => [
@@ -294,18 +248,23 @@ export default function SystemAdminDashboard() {
           <Spin spinning={loading}>
             <div className="p-8 space-y-6 max-w-7xl mx-auto w-full">
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                {renderCardWithIcon({ data: metricCards }).map((item) => (
-                  <DashboardCard
+                {renderCardWithIcon({ data: metricCards }).map((item, index) => (
+                  <div
                     key={item.id}
-                    iconName={item.iconName}
-                    title={item.title}
-                    value={item.value}
-                  />
+                    className="animate-fade-up"
+                    style={{ '--enter-delay': `${index * 70}ms` }}
+                  >
+                    <DashboardCard
+                      iconName={item.iconName}
+                      title={item.title}
+                      value={item.value}
+                    />
+                  </div>
                 ))}
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col min-h-[420px]">
+                <div className="lg:col-span-2 bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col min-h-[420px] animate-fade-up hover-lift-soft stagger-2">
                   <div className="flex flex-wrap justify-between items-start gap-3">
                     <div>
                       <p className="font-bold text-lg">Hoạt động hệ thống</p>
@@ -343,7 +302,7 @@ export default function SystemAdminDashboard() {
                   </Spin>
                 </div>
 
-                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-start p-6 min-h-[420px]">
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 flex flex-col justify-start p-6 min-h-[420px] animate-fade-up hover-lift-soft stagger-3">
                   <div className="flex justify-between items-baseline gap-2 mb-2">
                     <p className="font-bold text-lg">Phân bố người dùng</p>
                     {userStats?.totalUsers != null && (
@@ -396,118 +355,42 @@ export default function SystemAdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col">
-                  <div className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden">
-                    <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-[#F37021]">
-                          history
-                        </span>
-                        <h3 className="font-bold text-slate-800 text-lg">
-                          Hoạt động gần đây
-                        </h3>
-                      </div>
-                      <Link
-                        to="/exam-staff/audits"
-                        className="text-[#F37021] text-sm font-semibold hover:underline bg-[#F37021]/5 px-3 py-1.5 rounded-md transition-colors"
-                      >
-                        Xem tất cả
-                      </Link>
-                    </div>
-                    {errors.recentActivities && (
-                      <p className="px-6 pt-3 text-xs text-red-500">
-                        {errors.recentActivities}
-                      </p>
-                    )}
-                    <div className="overflow-x-auto">
-                      <Table
-                        rowKey={(row, i) =>
-                          `${row.username ?? ''}-${row.createdAt ?? ''}-${i}`
-                        }
-                        columns={auditColumns}
-                        dataSource={recentActivities}
-                        pagination={false}
-                        locale={{
-                          emptyText: 'Chưa có hoạt động',
-                        }}
-                        className="overflow-hidden"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex flex-col">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="size-9 rounded-xl bg-[#F37021]/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[#F37021] text-[20px]">
-                        dns
+              <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden flex flex-col animate-fade-up hover-lift-soft stagger-4">
+                <div className="bg-white rounded-3xl overflow-hidden">
+                  <div className="px-6 py-5 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[#F37021]">
+                        history
                       </span>
+                      <h3 className="font-bold text-slate-800 text-lg">
+                        Hoạt động gần đây
+                      </h3>
                     </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800 text-base leading-tight">
-                        Giám sát tài nguyên
-                      </h4>
-                      <p className="text-xs text-slate-400">
-                        JVM &amp; ổ đĩa (thời gian thực)
-                      </p>
-                    </div>
+                    <Link
+                      to="/admin/audits"
+                      className="text-[#F37021] text-sm font-semibold hover:underline bg-[#F37021]/5 px-3 py-1.5 rounded-md transition-colors"
+                    >
+                      Xem tất cả
+                    </Link>
                   </div>
-                  {errors.systemHealth && (
-                    <p className="text-xs text-red-500 mb-4">
-                      {errors.systemHealth}
+                  {errors.recentActivities && (
+                    <p className="px-6 pt-3 text-xs text-red-500">
+                      {errors.recentActivities}
                     </p>
                   )}
-                  <div className="space-y-5 flex-1">
-                    {!loading && resourceRows.length === 0 ? (
-                      <Empty description="Không tải được dữ liệu" />
-                    ) : (
-                      resourceRows.map((res) => (
-                        <div
-                          key={res.key}
-                          className="space-y-2"
-                        >
-                          <div className="flex justify-between items-center gap-2">
-                            <div className="min-w-0">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.12em]">
-                                {res.label}
-                              </p>
-                              <p className="text-sm font-semibold text-slate-700 mt-0.5 truncate">
-                                {res.sub}
-                              </p>
-                            </div>
-                            {res.value == null ? (
-                              <span className="text-lg font-black text-slate-400 shrink-0">
-                                N/A
-                              </span>
-                            ) : (
-                              <span
-                                className={`text-2xl font-black shrink-0 ${res.textColor}`}
-                              >
-                                {res.value}%
-                              </span>
-                            )}
-                          </div>
-                          {res.showBar && res.value != null && (
-                            <>
-                              <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                <div
-                                  className={`h-full ${res.color} rounded-full transition-all duration-700 ${res.glow}`}
-                                  style={{
-                                    width: `${Math.min(100, Math.max(0, res.value))}%`,
-                                  }}
-                                />
-                              </div>
-                              <p
-                                className={`text-[10px] font-bold ${res.textColor}`}
-                              >
-                                Đã sử dụng {res.value}%
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      ))
-                    )}
+                  <div className="overflow-x-auto">
+                    <Table
+                      rowKey={(row, i) =>
+                        `${row.username ?? ''}-${row.createdAt ?? ''}-${i}`
+                      }
+                      columns={auditColumns}
+                      dataSource={recentActivities}
+                      pagination={false}
+                      locale={{
+                        emptyText: 'Chưa có hoạt động',
+                      }}
+                      className="overflow-hidden"
+                    />
                   </div>
                 </div>
               </div>

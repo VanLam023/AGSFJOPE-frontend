@@ -59,6 +59,10 @@ const deleteUser = (userId) => {
   return axiosClient.delete(`/admin/users/${userId}`);
 };
 
+const unlockUser = (userId) => {
+  return axiosClient.patch(`/admin/users/${userId}/unlock`);
+};
+
 const getApiConfig = () => {
   return axiosClient.get('/admin/config/ai');
 };
@@ -92,6 +96,18 @@ const getSystemGradingMode = (mode) => {
   return axiosClient.get(`/admin/config/grading-modes/${mode}`);
 };
 
+const createSystemGradingMode = (payload) => {
+  return axiosClient.post('/admin/config/grading-modes', payload);
+};
+
+const updateSystemGradingMode = (mode, payload) => {
+  return axiosClient.put(`/admin/config/grading-modes/${mode}`, payload);
+};
+
+const setDefaultGradingMode = (mode) => {
+  return axiosClient.put(`/admin/config/grading-modes/${mode}/set-default`);
+};
+
 const updateSystemConfig = ({
   maxUploadSizeMb,
   maxExamPaperMb,
@@ -102,6 +118,38 @@ const updateSystemConfig = ({
     maxExamPaperMb,
     defaultGradingMode,
   });
+};
+
+const updateSystemPassThreshold = ({ passThreshold }) => {
+  return axiosClient.put('/admin/config/system/pass-threshold', {
+    passThreshold,
+  });
+};
+
+const getAdminAuditLogs = ({
+  action,
+  entityType,
+  userId,
+  from,
+  to,
+  page = 0,
+  size = 20,
+} = {}) => {
+  return axiosClient.get('/admin/audit-logs', {
+    params: cleanParams({
+      action,
+      entityType,
+      userId,
+      from,
+      to,
+      page,
+      size,
+    }),
+  });
+};
+
+const getAdminAuditLogById = (auditLogId) => {
+  return axiosClient.get(`/admin/audit-logs/${auditLogId}`);
 };
 
 const cleanParams = (obj) =>
@@ -137,12 +185,33 @@ const getAdminDashboardSystemActivity = ({ period } = {}) => {
   });
 };
 
+const getAdminPayments = ({ from, to, search, page = 0, size = 15 } = {}) => {
+  return axiosClient.get('/admin/config/payments', {
+    params: cleanParams({ from, to, search, page, size }),
+  });
+};
+
+const getPayosConfig = () => {
+  return axiosClient.get('/admin/config/payos');
+};
+
+const updatePayosConfig = ({ clientId, apiKey, checksumKey, appealFee, paymentTimeoutMin }) => {
+  return axiosClient.put('/admin/config/payos', {
+    clientId,
+    apiKey,
+    checksumKey,
+    appealFee,
+    paymentTimeoutMin,
+  });
+};
+
 export {
   importExcel,
   createUser,
   getAllUsers,
   getUserDetail,
   deleteUser,
+  unlockUser,
   editUserDetail,
   getApiConfig,
   updateAiConfig,
@@ -150,10 +219,19 @@ export {
   getSystemConfig,
   getSystemGradingModes,
   getSystemGradingMode,
+  createSystemGradingMode,
+  updateSystemGradingMode,
+  setDefaultGradingMode,
   updateSystemConfig,
+  updateSystemPassThreshold,
+  getAdminAuditLogs,
+  getAdminAuditLogById,
   getAdminDashboardOverview,
   getAdminDashboardUserStats,
   getAdminDashboardRecentActivities,
   getAdminDashboardSystemHealth,
   getAdminDashboardSystemActivity,
+  getAdminPayments,
+  getPayosConfig,
+  updatePayosConfig,
 };
